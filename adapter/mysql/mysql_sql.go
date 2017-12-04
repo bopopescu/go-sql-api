@@ -180,8 +180,21 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	}
 	for f, w := range opt.Wheres {
 		// check field exist
-		rs = rs.Where(goqu.Ex{f: goqu.Op{w.Operation: w.Value}})
+		rs = rs.Where(goqu.Ex{f:goqu.Op{w.Operation: w.Value}})
+
 	}
+	for orderColumn, orderStr := range opt.Orders {
+		// check field exist
+		if "DESC"==strings.ToUpper(orderStr){
+			rs=rs.OrderAppend(goqu.I(orderColumn).Desc())
+		}else{
+			rs=rs.OrderAppend(goqu.I(orderColumn).Asc())
+		}
+
+
+	}
+
+
 	for _, l := range opt.Links {
 		refT := l
 		//multi-PriKey or No-PriKey

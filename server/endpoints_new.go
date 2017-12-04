@@ -390,6 +390,21 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 			}
 		}
 	}
+
+
+	orderR := regexp.MustCompile("\\'(.*?)\\'\\((.*?)\\)")
+	if queryParam[key.KEY_QUERY_ORDER] != nil {
+		option.Orders = make(map[string]string)
+		for _, orders := range queryParam[key.KEY_QUERY_ORDER] {
+			orders = strings.Replace(orders, "\"", "'", -1) // replace "
+			arr := orderR.FindStringSubmatch(orders)
+			if len(arr) == 3 {
+				option.Orders[arr[1]] = arr[2]
+
+			}
+		}
+	}
+
 	if queryParam[key.KEY_QUERY_SEARCH] != nil {
 		searchStrArray := queryParam[key.KEY_QUERY_SEARCH]
 		if searchStrArray[0] != "" {

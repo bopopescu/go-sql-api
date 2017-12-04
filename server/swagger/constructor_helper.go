@@ -118,6 +118,7 @@ func GetParametersFromDbMetadata(meta *DataBaseMetadata) (params map[string]spec
 
 func NewQueryParametersForMySQLAPI() (ps []spec.Parameter) {
 	ps=append(NewQueryParametersForCustomPaging(),NewQueryParametersForFilter()...)
+	ps=append(ps,NewQueryParametersForOrder()...)
 	ps=append(ps,NewQueryParametersForOutputDields()...)
 	return
 }
@@ -135,7 +136,12 @@ func NewQueryParametersForFilter() (ps []spec.Parameter) {
 	}
 	return
 }
-
+func NewQueryParametersForOrder() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryArrayParameter(key.KEY_QUERY_ORDER, "指定一个或多个字段排序 如:\"表名.字段名\"(排序值(默认是升序，desc/asc))", "string", false),
+	}
+	return
+}
 func NewQueryParametersForOutputDields() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryArrayParameter(key.KEY_QUERY_FIELDS, "指定输出一个或多个字段", "string", false),

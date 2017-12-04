@@ -74,6 +74,7 @@ type QueryOption struct {
 	Fields []string                  // select fields
 	Links  []string                  // auto join table
 	Wheres map[string]WhereOperation // field -> { operation, value }
+	Orders map[string]string // field -> { operation, value }
 	Search string                    // fuzzy query word
 }
 
