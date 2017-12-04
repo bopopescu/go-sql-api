@@ -2,7 +2,7 @@ package swagger
 
 import (
 	"github.com/go-openapi/spec"
-	types    "github.com/xuybin/go-mysql-api/types"
+	types    "github.com/shiyongabc/go-mysql-api/types"
 )
 
 func GenSwaggerFromDBMetadata(dbMetadata *types.DataBaseMetadata) (s *spec.Swagger) {

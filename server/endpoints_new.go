@@ -2,18 +2,18 @@ package server
 
 import (
 	"net/http"
-	"github.com/xuybin/go-mysql-api/server/swagger"
+	"github.com/shiyongabc/go-mysql-api/server/swagger"
 	"github.com/labstack/echo"
-	"github.com/xuybin/go-mysql-api/server/static"
-	"github.com/xuybin/go-mysql-api/adapter"
-	. "github.com/xuybin/go-mysql-api/types"
+	"github.com/shiyongabc/go-mysql-api/server/static"
+	"github.com/shiyongabc/go-mysql-api/adapter"
+	. "github.com/shiyongabc/go-mysql-api/types"
 	"math"
 	"encoding/json"
 	"strconv"
 	"fmt"
 	"strings"
 	"regexp"
-	"github.com/xuybin/go-mysql-api/server/key"
+	"github.com/shiyongabc/go-mysql-api/server/key"
 	"github.com/xuri/excelize"
 	"os"
 	"github.com/satori/go.uuid"
@@ -22,6 +22,7 @@ import (
 
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI) {
+	s.POST("/api/related/batch/", endpointRelatedBatch(api)).Name = "batch save related table"
 	s.GET("/api/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/echo/", endpointEcho).Name = "Echo API"
 	s.GET("/api/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
@@ -60,7 +61,24 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		return c.JSON( http.StatusOK, api.GetDatabaseMetadata())
 	}
 }
-
+func endpointRelatedBatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		payload, errorMessage := bodyMapOf(c)
+		tableName := c.Param("table")
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+		rs, errorMessage := api.RelatedCreate(tableName, payload)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
+		rowesAffected, err := rs.RowsAffected()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
+		}
+		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+	}
+}
 func endpointEcho(c echo.Context) (err error) {
 	contentType:=c.Request().Header.Get("Content-Type")
 	if(contentType==""){
@@ -155,9 +173,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		return c.Blob(http.StatusOK,"application/octet-stream",fbytes)
 	}else{
 		//空数据时,输出[] 而不是 null
-		if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
+		if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))>0{
 			data2:=data.(*Paginator)
-			data2.Data=[]string{}
 			return c.JSON( http.StatusOK,data2)
 		}else if len(data.([]map[string]interface{}))==0{
 			return c.JSON( http.StatusOK,[]string{})

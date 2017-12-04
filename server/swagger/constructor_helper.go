@@ -3,8 +3,8 @@ package swagger
 import (
 	"github.com/go-openapi/spec"
 	"fmt"
-	"github.com/xuybin/go-mysql-api/server/key"
-	. "github.com/xuybin/go-mysql-api/types"
+	"github.com/shiyongabc/go-mysql-api/server/key"
+	. "github.com/shiyongabc/go-mysql-api/types"
 )
 
 func NewRefSchema(refDefinationName, reftype string) (s spec.Schema) {

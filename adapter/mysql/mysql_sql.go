@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"gopkg.in/doug-martin/goqu.v4"
-	. "github.com/xuybin/go-mysql-api/types"
+	. "github.com/shiyongabc/go-mysql-api/types"
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
 	"strings"
 )

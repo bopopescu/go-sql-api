@@ -3,12 +3,40 @@ package swagger
 import (
 	"github.com/go-openapi/spec"
 	"fmt"
-	. "github.com/xuybin/go-mysql-api/types"
+	. "github.com/shiyongabc/go-mysql-api/types"
 )
 
 func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]spec.PathItem) {
 	paths = make(map[string]spec.PathItem)
+	batchRelatedPath := spec.PathItem{}
 	metadataPath := spec.PathItem{}
+
+	batchRelatedPath.Post=NewOperation(
+		"",
+		fmt.Sprintf("从模板表里查询关联表信息"),
+		fmt.Sprintf("从模板表里查询关联表字段信息"),
+		[]spec.Parameter{{
+			ParamProps: spec.ParamProps{
+				In:     "body",
+				Name:   "body",
+				Description:fmt.Sprintf("参数对象"),
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type: spec.StringOrArray{"object"},
+					},
+				},
+			},
+		}},
+		fmt.Sprintf("关联表同时插入数据"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
+	paths["/api/related/batch/"]=batchRelatedPath
+
+
 	metadataPath.Head=NewOperation(
 		"metadata",
 		fmt.Sprintf("从DB加载最新的元数据"),

@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	. "github.com/xuybin/go-mysql-api/types"
-	"github.com/xuybin/go-mysql-api/server/lib"
+	. "github.com/shiyongabc/go-mysql-api/types"
+	"github.com/shiyongabc/go-mysql-api/server/lib"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/gommon/log"
 	"gopkg.in/doug-martin/goqu.v4"
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
-	"github.com/xuybin/go-mysql-api/adapter"
+	"github.com/shiyongabc/go-mysql-api/adapter"
 	"strconv"
 	"strings"
 )
@@ -269,6 +269,17 @@ func (api *MysqlAPI) Create(table string, obj map[string]interface{}) (rs sql.Re
 	if err != nil {
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 	}
+	return api.exec(sql)
+}
+// batch Create related table by Table name and obj map
+func (api *MysqlAPI) RelatedCreate(templateId string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
+
+
+	sql, err := api.sql.InsertByTable(templateId, obj)
+	if err != nil {
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+	}
+	sql="insert into account_db.subject_config(`subject_len`,`first_subject`,`second_subject_len`,`third_subject_len`)values('12','qw','21','32')"
 	return api.exec(sql)
 }
 
