@@ -7,6 +7,7 @@ import (
 var ERR_SQL_EXECUTION = "err_sql_execution"
 var ERR_SQL_RESULTS = "err_sql_results"
 var ERR_PARAMETER = "err_parameter"
+var ERR_JSONCONVERT="err_json_convert"
 
 // ErrorMessage
 type ErrorMessage struct {

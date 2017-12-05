@@ -64,18 +64,14 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 func endpointRelatedBatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
-		tableName := c.Param("table")
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
-		rs, errorMessage := api.RelatedCreate(tableName, payload)
+		rowesAffected, errorMessage := api.RelatedCreate( payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
-		rowesAffected, err := rs.RowsAffected()
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
-		}
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -324,6 +320,8 @@ func bodyMapOf(c echo.Context) (jsonMap map[string]interface{}, errorMessage *Er
 	}
 	return
 }
+
+
 
 func bodySliceOf(c echo.Context) (jsonSlice []interface{}, errorMessage *ErrorMessage) {
 	jsonSlice = make([]interface{}, 0)

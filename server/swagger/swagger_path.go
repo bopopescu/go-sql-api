@@ -13,20 +13,11 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 
 	batchRelatedPath.Post=NewOperation(
 		"",
-		fmt.Sprintf("从模板表里查询关联表信息"),
-		fmt.Sprintf("从模板表里查询关联表字段信息"),
-		[]spec.Parameter{{
-			ParamProps: spec.ParamProps{
-				In:     "body",
-				Name:   "body",
-				Description:fmt.Sprintf("参数对象"),
-				Schema: &spec.Schema{
-					SchemaProps: spec.SchemaProps{
-						Type: spec.StringOrArray{"object"},
-					},
-				},
-			},
-		}},
+		fmt.Sprintf("添加关联记录数据"),
+		fmt.Sprintf("添加关联记录数据"),
+		[]spec.Parameter{GetParametersFromRelatedRecord()},
+
+
 		fmt.Sprintf("关联表同时插入数据"),
 		&spec.Schema{
 			SchemaProps: spec.SchemaProps{

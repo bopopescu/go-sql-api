@@ -13,6 +13,9 @@ import (
 	"github.com/shiyongabc/go-mysql-api/adapter"
 	"strconv"
 	"strings"
+	"encoding/json"
+
+	"container/list"
 )
 
 // MysqlAPI
@@ -271,16 +274,122 @@ func (api *MysqlAPI) Create(table string, obj map[string]interface{}) (rs sql.Re
 	}
 	return api.exec(sql)
 }
-// batch Create related table by Table name and obj map
-func (api *MysqlAPI) RelatedCreate(templateId string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
-
-
-	sql, err := api.sql.InsertByTable(templateId, obj)
-	if err != nil {
-		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+func  Json2map(jsonStr string) (s map[string]interface{}, errorMessage *ErrorMessage) {
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
+		errorMessage = &ErrorMessage{ERR_JSONCONVERT,"json convert error:"+err.Error()}
+		return nil, errorMessage
 	}
-	sql="insert into account_db.subject_config(`subject_len`,`first_subject`,`second_subject_len`,`third_subject_len`)values('12','qw','21','32')"
-	return api.exec(sql)
+	return result, nil
+}
+func  JsonArr2map(jsonArrStr string) (s []map[string]interface{},errorMessage *ErrorMessage) {
+	var result []map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonArrStr), &result); err != nil {
+		errorMessage = &ErrorMessage{ERR_JSONCONVERT,"json convert error:"+err.Error()}
+		return nil, errorMessage
+	}
+	return result, nil
+}
+// batch Create related table by Table name and obj map
+func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
+
+ 	var rowAaffect int64
+	var masterRowAffect int64
+	var slaveRowAffect int64
+	var	rs sql.Result
+	var masterId string
+
+	slaveIds := list.New()
+	masterTableName:=obj["masterTableName"].(string)
+	slaveTableName:=obj["slaveTableName"].(string)
+	masterTableInfo:=obj["masterTableInfo"].(string)
+	slaveTableInfo:=obj["slaveTableInfo"].(string)
+	fmt.Printf("masterTableInfo=",masterTableInfo)
+	masterInfoMap:=make(map[string]interface{})
+	var slaveInfoMap []map[string]interface{}
+	//slaveInfoMap:=make([]map[string]interface{})
+
+	masterInfoMap,errorMessage=Json2map(masterTableInfo)
+	if errorMessage!=nil{
+		fmt.Printf("err=",errorMessage)
+	}
+	masterId=masterInfoMap["id"].(string)
+	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
+	if errorMessage!=nil{
+		fmt.Printf("err=",errorMessage)
+	}
+	fmt.Printf("slaveTableName",slaveTableName)
+	fmt.Printf("slaveInfoMap",slaveInfoMap)
+
+	sql, err := api.sql.InsertByTable(masterTableName, masterInfoMap)
+
+	if errorMessage != nil {
+
+		// 回滚已经插入的数据
+		api.Delete(masterTableName,masterId,nil)
+		for e := slaveIds.Front(); e != nil; e = e.Next() {
+			api.Delete(slaveTableName,e.Value,nil)
+		}
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+		return 0,errorMessage
+	}
+
+	rs,errorMessage=api.exec(sql)
+	fmt.Printf("err=",errorMessage)
+	if errorMessage != nil  {
+		// 回滚已经插入的数据
+		api.Delete(masterTableName,masterId,nil)
+		for e := slaveIds.Front(); e != nil; e = e.Next() {
+			api.Delete(slaveTableName,e.Value,nil)
+		}
+		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+errorMessage.Error()}
+       return 0,errorMessage
+	}
+
+	masterRowAffect,err=rs.RowsAffected()
+	if err != nil {
+
+		// 回滚已经插入的数据
+		api.Delete(masterTableName,masterId,nil)
+		for e := slaveIds.Front(); e != nil; e = e.Next() {
+			api.Delete(slaveTableName,e.Value,nil)
+		}
+		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+		return 0,errorMessage
+	}
+
+	for i, slave := range slaveInfoMap {
+		sql, err := api.sql.InsertByTable(slaveTableName, slave)
+		fmt.Printf("i=",i)
+		slaveIds.PushBack(slave["id"].(string))
+
+		if err!=nil{
+			// 回滚已经插入的数据
+			api.Delete(masterTableName,masterId,nil)
+			for e := slaveIds.Front(); e != nil; e = e.Next() {
+				api.Delete(slaveTableName,e.Value,nil)
+			}
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return 0,errorMessage
+		}else{
+			rs,err=api.exec(sql)
+			slaveRowAffect,err=rs.RowsAffected()
+			if err != nil {
+
+				// 回滚已经插入的数据
+				api.Delete(masterTableName,masterId,nil)
+				for e := slaveIds.Front(); e != nil; e = e.Next() {
+					api.Delete(slaveTableName,e.Value,nil)
+				}
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+				return 0,errorMessage
+			}
+			rowAaffect=rowAaffect+slaveRowAffect
+		}
+
+	}
+	rowAaffect=rowAaffect+masterRowAffect
+  return rowAaffect,nil
 }
 
 // Update by Table name and obj map
