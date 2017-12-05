@@ -10,7 +10,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	paths = make(map[string]spec.PathItem)
 	batchRelatedPath := spec.PathItem{}
 	metadataPath := spec.PathItem{}
-
+	databaseName:=meta.DatabaseName
 	batchRelatedPath.Post=NewOperation(
 		"",
 		fmt.Sprintf("添加关联记录数据"),
@@ -25,7 +25,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 			},
 		},
 	)
-	paths["/api/related/batch/"]=batchRelatedPath
+	paths["/api/"+databaseName+"/related/batch/"]=batchRelatedPath
 
 
 	metadataPath.Head=NewOperation(
@@ -55,7 +55,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 			},
 		},
 	)
-	paths["/api/metadata/"]=metadataPath
+	paths["/api/"+databaseName+"/metadata/"]=metadataPath
 
 	echoPath := spec.PathItem{}
 	echoPath.Post=NewOperation(
@@ -81,9 +81,9 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 			},
 		},
 	)
-	paths["/api/echo/"]=echoPath
+	paths["/api/"+databaseName+"/echo/"]=echoPath
 	for _, t := range meta.Tables {
-		AppendPathsFor(t, paths)
+		AppendPathsFor(t, paths,meta)
 	}
 	return
 }
@@ -151,18 +151,19 @@ func NewGetOperation(tName string) (op *spec.Operation){
 	return
 }
 
-func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem) () {
+func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase *DataBaseMetadata) () {
 	tName := meta.TableName
 	isView := meta.TableType == "VIEW"
 	withoutIDPathItem := spec.PathItem{}
 	withIDPathItem := spec.PathItem{}
 	withoutIDBatchPathItem := spec.PathItem{}
 	withoutTranslatePathItem := spec.PathItem{}
-	apiNoIDPath := fmt.Sprintf("/api/%s", tName)
+	databaseName:=metaBase.DatabaseName
+	apiNoIDPath := fmt.Sprintf("/api/"+databaseName+"/%s", tName)
 	if !isView {
-		// /api/:table group
+		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)
-		// /api/:table group
+		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Post = NewOperation(
 			tName,
 			fmt.Sprintf("在%s表里,插入一条记录", tName),
@@ -196,7 +197,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem) () {
 		paths[apiNoIDPath] = withoutIDPathItem
 
 		if(len(meta.GetPrimaryColumns())>0){
-			// /api/:table/:id group
+			// /api/"+databaseName+"/:table/:id group
 			withIDPathItem.Get = NewOperation(
 				tName,
 				fmt.Sprintf("从%s表里,查询指定主键的记录", tName),
@@ -240,7 +241,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem) () {
 					},
 				},
 			)
-			apiIDPath := fmt.Sprintf("/api/%s/{%s}", tName,columnNames(meta.GetPrimaryColumns()),)
+			apiIDPath := fmt.Sprintf("/api/"+databaseName+"/%s/{%s}", tName,columnNames(meta.GetPrimaryColumns()),)
 			paths[apiIDPath] = withIDPathItem
 		}
 		// Batch group
@@ -259,7 +260,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem) () {
 				},
 			},
 		)
-		apiBatchPath := fmt.Sprintf("/api/%s/batch/", tName)
+		apiBatchPath := fmt.Sprintf("/api/"+databaseName+"/%s/batch/", tName)
 
 		paths[apiBatchPath] = withoutIDBatchPathItem
 		// withoutTranslatePathItem
@@ -279,11 +280,11 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem) () {
 				},
 			},
 		)
-		apiTranslatePath := fmt.Sprintf("/api/%s/translate/", tName)
+		apiTranslatePath := fmt.Sprintf("/api/"+databaseName+"/%s/translate/", tName)
 
 		paths[apiTranslatePath] = withoutTranslatePathItem
 	}else {
-		// /api/:table group
+		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)
 		paths[apiNoIDPath] = withoutIDPathItem
 	}

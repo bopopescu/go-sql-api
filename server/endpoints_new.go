@@ -21,26 +21,26 @@ import (
 )
 
 // mountEndpoints to echo server
-func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI) {
-	s.POST("/api/related/batch/", endpointRelatedBatch(api)).Name = "batch save related table"
-	s.GET("/api/metadata/", endpointMetadata(api)).Name = "Database Metadata"
-	s.POST("/api/echo/", endpointEcho).Name = "Echo API"
-	s.GET("/api/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
-	s.HEAD("/api/metadata/", endpointUpdateMetadata(api)).Name = "从DB获取最新的元数据"
+func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string) {
+	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api)).Name = "batch save related table"
+	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
+	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
+	s.GET("/api/"+databaseName+"/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
+	s.HEAD("/api/"+databaseName+"/metadata/", endpointUpdateMetadata(api)).Name = "从DB获取最新的元数据"
 	s.GET("/api/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
-	s.GET("/api/:table", endpointTableGet(api)).Name = "Retrive Some Records"
-	s.POST("/api/:table", endpointTableCreate(api)).Name = "Create Single Record"
-	s.DELETE("/api/:table", endpointTableDelete(api)).Name = "Remove Some Records"
+	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api)).Name = "Retrive Some Records"
+	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api)).Name = "Create Single Record"
+	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api)).Name = "Remove Some Records"
 
-	s.GET("/api/:table/:id", endpointTableGetSpecific(api)).Name = "Retrive Record By ID"
-	s.DELETE("/api/:table/:id", endpointTableDeleteSpecific(api)).Name = "Delete Record By ID"
-	s.PATCH("/api/:table/:id", endpointTableUpdateSpecific(api)).Name = "Update Record By ID"
+	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api)).Name = "Retrive Record By ID"
+	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api)).Name = "Delete Record By ID"
+	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api)).Name = "Update Record By ID"
 
-	s.POST("/api/:table/batch/", endpointBatchCreate(api)).Name = "Batch Create Records"
+	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api)).Name = "Batch Create Records"
 
-	s.POST("/api/:table/translate/", endpointBatchCreateTranslate(api)).Name = "Batch Create Records apply translate"
+	s.POST("/api/"+databaseName+"/:table/translate/", endpointBatchCreateTranslate(api)).Name = "Batch Create Records apply translate"
 }
 
 func endpointSwaggerUI(c echo.Context) error {

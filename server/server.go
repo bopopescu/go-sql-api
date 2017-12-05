@@ -23,7 +23,8 @@ func New(api adapter.IDatabaseAPI) *MysqlAPIServer {
 	server.Use(lib.LoggerMiddleware)
 	server.Static("/api/docs", "docs")
 	server.api = api
-	mountEndpoints(server.Echo, server.api)
+	databaseName:=api.GetDatabaseMetadata().DatabaseName
+	mountEndpoints(server.Echo, server.api,databaseName)
 	return server
 }
 
