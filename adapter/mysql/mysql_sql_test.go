@@ -30,7 +30,7 @@ func TestDeleteSQLFromMap(t *testing.T) {
 }
 
 func TestUpdateSQLFromMap(t *testing.T) {
-	api := NewMysqlAPI(connectionStr)
+	api := NewMysqlAPI(connectionStr,false)
 	defer api.Stop()
 	if sql, err := api.sql.UpdateByTableAndId("monitor", 1, map[string]interface{}{"target": "change it"}); err != nil {
 		t.Error(err)

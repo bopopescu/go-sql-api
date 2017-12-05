@@ -1,6 +1,6 @@
 # go-mysql-api
 
-[![Build Status](https://travis-ci.org/xuybin/go-mysql-api.svg?branch=master)](https://travis-ci.org/xuybin/go-mysql-api)
+[![Build Status](https://travis-ci.org/shiyongabc/go-mysql-api.svg?branch=master)](https://travis-ci.org/shiyongabc/go-mysql-api)
 provide restful api for mysql/mariadb database
 
 Based on [Echo](https://github.com/labstack/echo), [goqu](https://github.com/doug-martin/goqu), [cli](https://github.com/mkideal/cli) and [go-mysql-driver](https://github.com/go-sql-driver/mysql)
@@ -10,12 +10,12 @@ Based on [Echo](https://github.com/labstack/echo), [goqu](https://github.com/dou
 get go-mysql-api with go env
 
 ```bash
-go get -u -v https://github.com/xuybin/go-mysql-api
+go get -u -v https://github.com/shiyongabc/go-mysql-api
 ```
 
-or download binary from [release page](https://github.com/xuybin/go-mysql-api/releases) !
+or download binary from [release page](https://github.com/shiyongabc/go-mysql-api/releases) !
 
-or see [docker image](https://hub.docker.com/r/xuybin/go-mysql-api/) instance
+or see [docker image](https://hub.docker.com/r/shiyongabc/go-mysql-api/) instance
 
 ## start server
 
@@ -53,7 +53,7 @@ more information about connection str, please see [here](https://github.com/go-s
 if you use docker, set environment vars to setup your server
 
 ```bash
-docker run -d -p 8080:80 --link mysql_1:mysql -e API_CONN_STR='user:pass@tcp(mysql:3306)/test' --name mysql_api xuybin/go-mysql-api:version
+docker run -d -p 8080:80 --link mysql_1:mysql -e API_CONN_STR='user:pass@tcp(mysql:3306)/test' --name mysql_api shiyongabc/go-mysql-api:version
 ```
 
 please use correct connection string, or connectwith with public mysql database

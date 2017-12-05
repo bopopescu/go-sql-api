@@ -6,7 +6,7 @@ import (
 
 	"os"
 
-	"github.com/xuybin/go-mysql-api/adapter/mysql"
+	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
 )
 
 var connectionStr = os.Getenv("API_CONN_STR")
