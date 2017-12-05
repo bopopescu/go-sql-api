@@ -18,7 +18,7 @@ deploy:
     tags: true
     go: 1.9.2
     repo: shiyongabc/go-mysql-api
-after_deploy: 'curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"$TRAVIS_TAG\"}" -X POST https://registry.hub.docker.com/u/shiyongabc/go-mysql-api/trigger/$DOCKER_TOKEN/'
+after_deploy: 'curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"$TRAVIS_TAG\"}" -X POST https://registry.hub.docker.com/r/shiyongabc/go-mysql-api/trigger/$DOCKER_TOKEN/'
 env:
   global:
     secure: ZqotW3T7F6xvswsvKxWgidIEIbKTJ6B5KPZpjsU5P2qEFQtkn9pcQI7lvTsbOz5fGaHqDTVYCamhKeAEWbpMC/54hBX6rSZH0l40ceRpPjKCqUz1/E9q4j81UDdZqNVH6CgEyxvmen1sWEvLGIAql/UHos+HEe5EcVvqL4ojeEDka7HKos1eD2LMY1s67ksDzOaRpo0tTF9EmuBTxRNqaW4gRL5ypfCQIjVUdsZagdrNzaISLqxVTzhvnBtuRmUXoun6jgA25hCr+blk/RKsuzC3W+M15X4AzNcCqIWm3N75e/Ys7DQGl9a/kSEdtUUfjEAdRzV2InBTLFjJ+nsrTSCMOve4hCzamckHIKWlBpF4uOUEzFiZxZkmcVU8GmID9Pfb9eEk++h3+jwOyDocC10/SrtolSHm8QrrbZ45wsfsHnoXmXDD9CY3xo/TWFI3IgLjwB9KEvPM/VSTBg/5E8iTd6H00LSSUddDDxIMq4xKCocovkFfSfrNq2R9QPT4XUFP9GSaE5MMXizQ3sUQ7HVN1KwLI2CSOgPJDJUpgq05eFWfNM97gcizI1UyOiWlYTu9PDzfamU4eVjKr2TOxyGg3UR5OyyzBFQcxmkAidS0xTW/oG9GoAwtJydc7KoFDWMsrDZBwiw6D/BlYhFyyCQbbsrOU9zgk1TCMpw4wX8=
