@@ -157,7 +157,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 	withoutIDPathItem := spec.PathItem{}
 	withIDPathItem := spec.PathItem{}
 	withoutIDBatchPathItem := spec.PathItem{}
-	withoutTranslatePathItem := spec.PathItem{}
+
 	databaseName:=metaBase.DatabaseName
 	apiNoIDPath := fmt.Sprintf("/api/"+databaseName+"/%s", tName)
 	if !isView {
@@ -263,26 +263,6 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 		apiBatchPath := fmt.Sprintf("/api/"+databaseName+"/%s/batch/", tName)
 
 		paths[apiBatchPath] = withoutIDBatchPathItem
-		// withoutTranslatePathItem
-
-		withoutTranslatePathItem.Post = NewOperation(
-			tName,
-			fmt.Sprintf("在%s表里,批量插入记录", tName),
-			"",
-			[]spec.Parameter{NewParamForArrayDefinition(tName)},
-			fmt.Sprintf("执行成功,返回影响行数(注意:以影响行数为判断成功与否的依据)"),
-			&spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Type: spec.StringOrArray{"integer"},
-				},
-				SwaggerSchemaProps: spec.SwaggerSchemaProps{
-					Example: 0,
-				},
-			},
-		)
-		apiTranslatePath := fmt.Sprintf("/api/"+databaseName+"/%s/translate/", tName)
-
-		paths[apiTranslatePath] = withoutTranslatePathItem
 	}else {
 		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)

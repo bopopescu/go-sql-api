@@ -40,7 +40,7 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string) 
 
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api)).Name = "Batch Create Records"
 
-	s.POST("/api/"+databaseName+"/:table/translate/", endpointBatchCreateTranslate(api)).Name = "Batch Create Records apply translate"
+
 }
 
 func endpointSwaggerUI(c echo.Context) error {
@@ -298,11 +298,6 @@ func endpointBatchCreate(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			}
 		}
 		return c.JSON(http.StatusOK, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
-	}
-}
-func endpointBatchCreateTranslate(api adapter.IDatabaseAPI) func(c echo.Context) error {
-	return func(c echo.Context) error {
-		return nil
 	}
 }
 
