@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"fmt"
+	"strings"
 )
 
 var ERR_SQL_EXECUTION = "err_sql_execution"
@@ -154,6 +155,10 @@ func (d *DataBaseMetadata) HaveTable(sTableName string) bool {
 // TableHaveField
 func (d *DataBaseMetadata) TableHaveField(sTableName string, sFieldName string) bool {
 	t := d.GetTableMeta(sTableName)
+	if(strings.Contains(sFieldName,".")){
+		t=d.GetTableMeta(strings.Split(sFieldName,".")[0])
+		sFieldName=strings.Split(sFieldName,".")[1]
+	}
 	if t == nil {
 		return false
 	}

@@ -360,9 +360,9 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	}
 	if queryParam[key.KEY_QUERY_LINK] != nil { // _link
 		option.Links = make([]string,0)
-		for idx, f := range queryParam[key.KEY_QUERY_LINK] {
+		for _, f := range queryParam[key.KEY_QUERY_LINK] {
 			if(f!=""){
-				option.Links[idx] = f
+				option.Links = append(option.Links, f)
 			}
 		}
 	}
