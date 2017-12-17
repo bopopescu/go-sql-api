@@ -23,6 +23,7 @@ import (
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string) {
 	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api)).Name = "batch save related table"
+	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
 	s.GET("/api/"+databaseName+"/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
@@ -75,6 +76,21 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
+func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		payload, errorMessage := bodyMapOf(c)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+		rowesAffected, errorMessage := api.RelatedUpdate( payload)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
+
+		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+	}
+}
+
 func endpointEcho(c echo.Context) (err error) {
 	contentType:=c.Request().Header.Get("Content-Type")
 	if(contentType==""){
