@@ -3,8 +3,11 @@ package swagger
 import (
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/jsonreference"
+	_ "github.com/shiyongabc/go-mysql-api/adapter"
 	types    "github.com/shiyongabc/go-mysql-api/types"
 	"fmt"
+
+
 )
 
 func SwaggerDefinationsFromDabaseMetadata(dbMeta *types.DataBaseMetadata) (definations spec.Definitions) {
@@ -54,11 +57,14 @@ func getTableSwaggerRefAble(t string) (refable spec.Refable) {
 	return
 }
 
-func GetTagsFromDBMetadata(meta *types.DataBaseMetadata) (tags []spec.Tag) {
+//type MysqlAPI mysql.MysqlAPI
+
+func  GetTagsFromDBMetadata(meta *types.DataBaseMetadata) (tags []spec.Tag) {
 	tags = make([]spec.Tag, 0)
 	for _, t := range meta.Tables {
 		if t.TableType=="VIEW" && t.Comment!="" {
-			t.Comment="视图"
+
+			 t.Comment=t.Comment
 		}
 		//else if t.TableType=="BASE TABLE" {
 		//	t.Comment="表"

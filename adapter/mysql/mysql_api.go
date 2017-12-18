@@ -15,6 +15,8 @@ import (
 	"strings"
 	"encoding/json"
 
+	//"github.com/mkideal/pkg/option"
+
 	"container/list"
 )
 
@@ -69,7 +71,30 @@ func (api *MysqlAPI) SQL() *SQL {
 
 // GetDatabaseMetadata return database meta
 func (api *MysqlAPI) GetDatabaseMetadata() *DataBaseMetadata {
-	return api.databaseMetadata
+	meta:=api.databaseMetadata
+	for _, t := range meta.Tables {
+		if t.TableType == "VIEW" && t.Comment != "" {
+
+			//
+			wMap := map[string]WhereOperation{}
+			wMap["view_name"] = WhereOperation{
+				Operation: "eq",
+				Value:     t.TableName,
+			}
+			//option.Wheres=wMap
+			//option.Table=t.TableName
+			//api := mysql.NewMysqlAPI(main.connectionStr, main.useInformationSchema)
+			option := QueryOption{Wheres: wMap, Table: "view_config"}
+			data, errorMessage := api.Select(option)
+			fmt.Printf("data", data)
+			fmt.Printf("errorMessage", errorMessage)
+			for _,view:=range data {
+				t.Comment = view["view_des"].(string)
+			}
+
+		}
+	}
+	return meta
 }
 
 // UpdateAPIMetadata use to update the metadata of the MySQLAPI instance
@@ -545,6 +570,7 @@ func (api *MysqlAPI) Select(option QueryOption) (rs []map[string]interface{},err
 	}
 	return api.query(sql)
 }
+
 
 func (api *MysqlAPI) SelectTotalCount(option QueryOption) (totalCount int,errorMessage *ErrorMessage) {
 	var sql string
