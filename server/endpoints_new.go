@@ -120,7 +120,7 @@ func endpointTableGet(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c,data,false,tableName)
+			return responseTableGet(c,data,false,tableName,api)
 		}else{
 			//分页
 			totalCount,errorMessage:=api.SelectTotalCount(option)
@@ -132,12 +132,13 @@ func endpointTableGet(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName)
+			return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api)
 		}
 	}
 }
 
-func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string) error{
+func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI) error{
+	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
 		if c.QueryParams().Get("filename")!="" {
 			filename =c.QueryParams().Get("filename")
@@ -159,16 +160,100 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			for k, _ := range data1[0] {
 				keys = append(keys, k)
 			}
-			//写表头A1-->ZZ1
-			for j, k:=range keys{
-				xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(1), k)
+			//写表头 从模本配置里面获取表头信息 模板key就是tableName
+			var headerRows string
+			wMapHead := map[string]WhereOperation{}
+			wMapHead["template_key"] = WhereOperation{
+				Operation: "eq",
+				Value:     tableName,
 			}
-			//写数据A2:ZZ2->An:ZZn
-			for i,d:=range data1{
+			optionHead := QueryOption{Wheres: wMapHead, Table: "export_template"}
+			data, errorMessage := api.Select(optionHead)
+			fmt.Printf("data", data)
+			fmt.Printf("errorMessage", errorMessage)
+			for _,header:=range data {
+				headerRows= header["header_rows"].(string)
+			}
+			fmt.Printf("headerRows",headerRows)
+			hRows,err:=strconv.Atoi(headerRows)
+			if err!=nil{
+				fmt.Printf("error",err)
+			}
+			//fmt.Printf("hRows",hRows)
+			//  读取表头内容
+			wMapHeadContent := map[string]WhereOperation{}
+			wMapHeadContent["template_key"] = WhereOperation{
+				Operation: "eq",
+				Value:     tableName,
+			}
+			optionHeadContent := QueryOption{Wheres: wMapHead, Table: "export_template_detail"}
+			headContent, errorMessage := api.Select(optionHeadContent)
+			fmt.Printf("dataContent", headContent)
+			fmt.Printf("errorMessage", errorMessage)
+
+			if err!=nil{
+				fmt.Printf("error",err)
+			}
+
+			if  len(headContent)>0{
+				for _,header:=range headContent {
+					i,err:=strconv.Atoi(header["i"].(string))
+					if err!=nil{
+						fmt.Printf("err",err)
+					}
+
+					j,err1:=strconv.Atoi(header["j"].(string))
+					if err1!=nil{
+						fmt.Printf("err",err)
+					}
+					value:=header["value"].(string)
+					//if err2!=nil{
+					//	fmt.Printf("err",err)
+					//}
+					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
+				}
+			}else{
 				for j, k:=range keys{
-					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+2), d[k])
+					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(1), k)
+
 				}
 			}
+
+		//	xlsx.MergeCell("Sheet1","D2","E3")
+		// 合并单元格  从模板里读取合并单元格信息
+
+			wMapHeadMerge := map[string]WhereOperation{}
+			wMapHeadContent["template_key"] = WhereOperation{
+				Operation: "eq",
+				Value:     tableName,
+			}
+			optionHeadMerge := QueryOption{Wheres: wMapHeadMerge, Table: "export_header_merge"}
+			headMerge, errorMessage := api.Select(optionHeadMerge)
+			fmt.Printf("headMerge", headMerge)
+			fmt.Printf("errorMessage", errorMessage)
+			for _,headMerge:=range headMerge {
+				startItem:= headMerge["start_item"].(string)
+				endItem := headMerge["end_item"].(string)
+				xlsx.MergeCell("Sheet1",startItem,endItem)
+			}
+
+			//写数据A2:ZZ2->An:ZZn
+			// 写数据 根据模板里的行标开始写数据
+			if hRows!=0{
+				for i,d:=range data1{
+					for j, k:=range keys{
+						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
+					}
+				}
+			}else{
+				for i,d:=range data1{
+					for j, k:=range keys{
+						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+2), d[k])
+					}
+				}
+
+			}
+
 		}
 
 		// Save xlsx file by the given path.
