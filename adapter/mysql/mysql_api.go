@@ -351,10 +351,10 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	if errorMessage != nil {
 
 		// 回滚已经插入的数据
-		api.Delete(masterTableName,masterId,nil)
-		for e := slaveIds.Front(); e != nil; e = e.Next() {
-			api.Delete(slaveTableName,e.Value,nil)
-		}
+	//	api.Delete(masterTableName,masterId,nil)
+	//	for e := slaveIds.Front(); e != nil; e = e.Next() {
+	//		api.Delete(slaveTableName,e.Value,nil)
+	//	}
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 		return 0,errorMessage
 	}
