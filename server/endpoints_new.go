@@ -28,7 +28,7 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string) 
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
 	s.GET("/api/"+databaseName+"/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
 	s.HEAD("/api/"+databaseName+"/metadata/", endpointUpdateMetadata(api)).Name = "从DB获取最新的元数据"
-	s.GET("/api/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
+	s.GET("/api/"+databaseName+"/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
 	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api)).Name = "Retrive Some Records"

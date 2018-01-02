@@ -73,7 +73,8 @@
 window.onload = function() {
    function getSwaggerJSONURI() {
             l = window.location
-            return l.protocol + "//" + l.host + "/api/swagger/"
+           swaggerUrl=l.toString().replace("docs","swagger")
+            return swaggerUrl//l.protocol + "//" + l.host + "/api/swagger/"
         }
 
   // Build a system
