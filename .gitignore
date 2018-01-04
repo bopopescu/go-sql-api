@@ -27,4 +27,4 @@
 *.iml
 /*.docx
 
-*go-mysql-api*
+*go-mysql-api-darwin*
