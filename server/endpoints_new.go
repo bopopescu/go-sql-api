@@ -273,8 +273,10 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))>0{
 			data2:=data.(*Paginator)
 			return c.JSON( http.StatusOK,data2)
-		}else if len(data.([]map[string]interface{}))==0{
-			return c.JSON( http.StatusOK,[]string{})
+		}else if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
+			data2:=data.(*Paginator)
+			data2.Data=[]string{}
+			return c.JSON( http.StatusOK,data2)
 		}else {
 			return c.JSON( http.StatusOK,data)
 		}
