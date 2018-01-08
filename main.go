@@ -4,6 +4,8 @@ import (
 	"github.com/shiyongabc/go-mysql-api/server"
 	"github.com/mkideal/cli"
 	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
+
+	"strings"
 )
 
 type cliArgs struct {
@@ -17,7 +19,13 @@ func main() {
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)
-		server.New(api).Start(argv.ListenAddress)
+		hostStrArr:=[]string{}
+		hostStrArr=strings.Split(argv.ConnectionStr,"(")
+		//fmt.Printf("host",hostStrArr)
+		endIndex:=strings.LastIndex(hostStrArr[1],":")
+		redisHost:=string(hostStrArr[1][0:endIndex])
+//fmt.Printf("host=",string(hostStrArr[1][0:endIndex]))
+		server.New(api,redisHost).Start(argv.ListenAddress)
 		return nil
 	})
 

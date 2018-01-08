@@ -18,11 +18,13 @@ import (
 	"os"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
-)
+	"github.com/garyburd/redigo/redis"
+
+	)
 
 // mountEndpoints to echo server
-func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string) {
-	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api)).Name = "batch save related table"
+func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisConn redis.Conn) {
+	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisConn)).Name = "batch save related table"
 	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
@@ -31,15 +33,15 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string) 
 	s.GET("/api/"+databaseName+"/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
-	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api)).Name = "Retrive Some Records"
-	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api)).Name = "Create Single Record"
-	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api)).Name = "Remove Some Records"
+	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api,redisConn)).Name = "Retrive Some Records"
+	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api,redisConn)).Name = "Create Single Record"
+	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api,redisConn)).Name = "Remove Some Records"
 
-	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api)).Name = "Retrive Record By ID"
-	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api)).Name = "Delete Record By ID"
-	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api)).Name = "Update Record By ID"
+	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisConn)).Name = "Retrive Record By ID"
+	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisConn)).Name = "Delete Record By ID"
+	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisConn)).Name = "Update Record By ID"
 
-	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api)).Name = "Batch Create Records"
+	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisConn)).Name = "Batch Create Records"
 
 
 }
@@ -62,15 +64,32 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		return c.JSON( http.StatusOK, api.GetDatabaseMetadata())
 	}
 }
-func endpointRelatedBatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
+		masterTableName:=payload["masterTableName"].(string)
+		slaveTableName:=payload["slaveTableName"].(string)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
 		rowesAffected, errorMessage := api.RelatedCreate( payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
+		}
+
+		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
+		val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
+		//fmt.Println(val1, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val1 {
+			redisConn.Send("DEL", val1[i])
 		}
 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
@@ -106,38 +125,83 @@ func endpointUpdateMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error
 	}
 }
 
-func endpointTableGet(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+
 	return func(c echo.Context) error {
+		tableName := c.Param("table")
 		option ,errorMessage:= parseQueryParams(c)
+		option.Table = tableName
+
+		paramBytes,err:=option.MarshalJSON()
+		params:=string(paramBytes[:])
+		params=strings.Replace(params,"\"","-",-1)
+		params=strings.Replace(params,":","-",-1)
+		params=strings.Replace(params,",","-",-1)
+		params=strings.Replace(params,"{","",-1)
+		params=strings.Replace(params,"}","",-1)
+		params=strings.Replace(params,"-","",-1)
+		params=strings.Replace(params,"null","",-1)
+		params=strings.Replace(params,"[]","",-1)
+		fmt.Printf("params=",params)
+		cacheData, err := redis.String(redisConn.Do("GET", params))
+		if err != nil {
+			fmt.Println("redis get failed:", err)
+		} else {
+			fmt.Printf("Get mykey: %v \n", cacheData)
+		}
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
-		tableName := c.Param("table")
-		option.Table = tableName
+
 		if option.Index==0{
+			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
+			if cacheData!=""{
+				return responseTableGet(c,cacheData,false,tableName,api,params,redisConn)
+			}
+
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c,data,false,tableName,api)
+			return responseTableGet(c,data,false,tableName,api,params,redisConn)
 		}else{
-			//分页
-			totalCount,errorMessage:=api.SelectTotalCount(option)
-			if errorMessage != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+			cacheTotalCount,err:=redis.String(redisConn.Do("GET",params+"-totalCount"))
+			//cacheTotalCount=cacheTotalCount.(string)
+			fmt.Printf("cacheTotalCount",cacheTotalCount)
+			fmt.Printf("err",err)
+			fmt.Printf("cacheData",cacheData)
+			if cacheTotalCount!="" &&cacheData!=""&&err==nil{
+				totalCount:=0
+				totalCount,err:=strconv.Atoi(cacheTotalCount)
+				if err!=nil{
+					fmt.Printf("err",err)
+				}
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisConn)
+
+			}else{
+				//分页
+				totalCount,errorMessage:=api.SelectTotalCount(option)
+				if errorMessage != nil {
+					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+				}
+
+				data, errorMessage := api.Select(option)
+				redisConn.Do("SET",params+"-totalCount",totalCount)
+				if errorMessage != nil {
+					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+				}
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisConn)
+
 			}
 
-			data, errorMessage := api.Select(option)
-			if errorMessage != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+
 			}
-			return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api)
-		}
 	}
 }
 
-func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI) error{
+func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisConn redis.Conn) error{
 	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
 		if c.QueryParams().Get("filename")!="" {
@@ -269,22 +333,46 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		}
 		return c.Blob(http.StatusOK,"application/octet-stream",fbytes)
 	}else{
+		cacheData,err:=redis.String(redisConn.Do("GET",cacheParams))
+		if err!=nil{
+			fmt.Printf("err",err)
+		}
+		if cacheData!=""{
+			return c.JSON( http.StatusOK,cacheData)
+		}
 		//空数据时,输出[] 而不是 null
 		if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))>0{
 			data2:=data.(*Paginator)
+			dataByte,err:=json.Marshal(data2)
+			if err!=nil{
+				fmt.Printf("err",err)
+			}
+			cacheDataStr:=string(dataByte[:])
+			fmt.Printf("cacheDataStr",cacheDataStr)
+
+			redisConn.Do("SET",cacheParams,cacheDataStr)
 			return c.JSON( http.StatusOK,data2)
 		}else if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
 			data2:=data.(*Paginator)
 			data2.Data=[]string{}
 			return c.JSON( http.StatusOK,data2)
 		}else {
+
+			dataByte,err:=json.Marshal(data)
+			if err!=nil{
+				fmt.Printf("err",err)
+			}
+			cacheDataStr:=string(dataByte[:])
+			fmt.Printf("cacheDataStr",cacheDataStr)
+
+			redisConn.Do("SET",cacheParams,cacheDataStr)
 			return c.JSON( http.StatusOK,data)
 		}
 	}
 }
 
 
-func endpointTableGetSpecific(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -299,6 +387,19 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI) func(c echo.Context) err
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		if(len(rs)==1){
+			cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+			if strings.Contains(tableName,"all"){
+				endIndex:=strings.LastIndex(tableName,"all")
+				cacheTable:=string(tableName[0:endIndex])
+				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+			}
+
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 			return c.JSON(http.StatusOK, &rs[0])
 		}else if(len(rs)>1){
 			errorMessage = &ErrorMessage{ERR_SQL_RESULTS,fmt.Sprintf("Expected one result to be returned by selectOne(), but found: %d", len(rs))}
@@ -309,7 +410,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI) func(c echo.Context) err
 	}
 }
 
-func endpointTableCreate(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -324,11 +425,25 @@ func endpointTableCreate(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
+		//添加时清楚缓存
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"all"){
+			endIndex:=strings.LastIndex(tableName,"all")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
+
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
+		}
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
 
-func endpointTableUpdateSpecific(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -344,11 +459,18 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI) func(c echo.Context) 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
+		}
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
 
-func endpointTableDelete(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointTableDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -363,11 +485,24 @@ func endpointTableDelete(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"all"){
+			endIndex:=strings.LastIndex(tableName,"all")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
+
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
+		}
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
 
-func endpointTableDeleteSpecific(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -379,11 +514,24 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI) func(c echo.Context) 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"all"){
+			endIndex:=strings.LastIndex(tableName,"all")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
+
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
+		}
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
 
-func endpointBatchCreate(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointBatchCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
@@ -399,6 +547,19 @@ func endpointBatchCreate(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			} else {
 				totalRowesAffected+=1
 			}
+		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"all"){
+			endIndex:=strings.LastIndex(tableName,"all")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
+
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
 		}
 		return c.JSON(http.StatusOK, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 	}

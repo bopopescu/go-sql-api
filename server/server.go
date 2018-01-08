@@ -5,6 +5,8 @@ import (
 	"github.com/labstack/echo"
 	"github.com/shiyongabc/go-mysql-api/adapter"
 	"github.com/robfig/cron"
+	"github.com/garyburd/redigo/redis"
+	"fmt"
 )
 
 // MysqlAPIServer is a http server could access mysql api
@@ -14,7 +16,7 @@ type MysqlAPIServer struct {
 }
 
 // New create a new MysqlAPIServer instance
-func New(api adapter.IDatabaseAPI) *MysqlAPIServer {
+func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	server := &MysqlAPIServer{}
 	server.Echo = echo.New()
 	server.HTTPErrorHandler = lib.ErrorHandler
@@ -25,7 +27,12 @@ func New(api adapter.IDatabaseAPI) *MysqlAPIServer {
 	server.Static("/api/"+databaseName+"/docs", "docs")
 	server.api = api
 //	databaseName:=api.GetDatabaseMetadata().DatabaseName
-	mountEndpoints(server.Echo, server.api,databaseName)
+
+	c, err := redis.Dial("tcp", redisHost+":6379")
+	if err != nil {
+		fmt.Println("Connect to redis error", err)
+	}
+	mountEndpoints(server.Echo, server.api,databaseName,c)
 	return server
 }
 
