@@ -299,7 +299,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI) func(c echo.Context) err
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		if(len(rs)==1){
-			return c.JSON(http.StatusOK, &rs)
+			return c.JSON(http.StatusOK, &rs[0])
 		}else if(len(rs)>1){
 			errorMessage = &ErrorMessage{ERR_SQL_RESULTS,fmt.Sprintf("Expected one result to be returned by selectOne(), but found: %d", len(rs))}
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
