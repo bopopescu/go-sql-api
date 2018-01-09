@@ -395,8 +395,8 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) fun
 		}
 		if(len(rs)==1){
 			cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-			if strings.Contains(tableName,"all"){
-				endIndex:=strings.LastIndex(tableName,"all")
+			if strings.Contains(tableName,"related"){
+				endIndex:=strings.LastIndex(tableName,"related")
 				cacheTable:=string(tableName[0:endIndex])
 				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 			}
@@ -434,8 +434,8 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 		}
 		//添加时清楚缓存
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-		if strings.Contains(tableName,"all"){
-			endIndex:=strings.LastIndex(tableName,"all")
+		if strings.Contains(tableName,"related"){
+			endIndex:=strings.LastIndex(tableName,"related")
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
@@ -493,8 +493,8 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-		if strings.Contains(tableName,"all"){
-			endIndex:=strings.LastIndex(tableName,"all")
+		if strings.Contains(tableName,"related"){
+			endIndex:=strings.LastIndex(tableName,"related")
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
@@ -522,8 +522,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-		if strings.Contains(tableName,"all"){
-			endIndex:=strings.LastIndex(tableName,"all")
+		if strings.Contains(tableName,"related"){
+			endIndex:=strings.LastIndex(tableName,"related")
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
@@ -556,8 +556,8 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			}
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-		if strings.Contains(tableName,"all"){
-			endIndex:=strings.LastIndex(tableName,"all")
+		if strings.Contains(tableName,"related"){
+			endIndex:=strings.LastIndex(tableName,"related")
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
