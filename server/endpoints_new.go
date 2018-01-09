@@ -142,6 +142,16 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 		params=strings.Replace(params,"-","",-1)
 		params=strings.Replace(params,"null","",-1)
 		params=strings.Replace(params,"[]","",-1)
+		params=strings.Replace(params,"Table","",-1)
+		params=strings.Replace(params,"Index","",-1)
+		params=strings.Replace(params,"Limit","",-1)
+		params=strings.Replace(params,"Offset","",-1)
+		params=strings.Replace(params,"Fields","",-1)
+		params=strings.Replace(params,"Links","",-1)
+		params=strings.Replace(params,"Wheres","",-1)
+		params=strings.Replace(params,"Search","",-1)
+
+		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
 		fmt.Printf("params=",params)
 		cacheData, err := redis.String(redisConn.Do("GET", params))
 		if err != nil {
@@ -156,7 +166,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
-			if cacheData!=""{
+			if cacheData!="QUEUED"&&cacheData!=""{
 				return responseTableGet(c,cacheData,false,tableName,api,params,redisConn)
 			}
 
@@ -172,7 +182,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 			fmt.Printf("cacheTotalCount",cacheTotalCount)
 			fmt.Printf("err",err)
 			fmt.Printf("cacheData",cacheData)
-			if cacheTotalCount!="" &&cacheData!=""&&err==nil{
+			if cacheTotalCount!="" &&cacheData!="QUEUED"&&cacheData!=""&&err==nil{
 				totalCount:=0
 				totalCount,err:=strconv.Atoi(cacheTotalCount)
 				if err!=nil{
@@ -337,11 +347,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		if err!=nil{
 			fmt.Printf("err",err)
 		}
-		if ispaginator&&cacheData!=""{
+		if ispaginator&&cacheData!="QUEUED"&&cacheData!=""{
 			var paginator Paginator
 			json.Unmarshal([]byte(cacheData), &paginator)
 			return c.JSON( http.StatusOK,paginator)
-		}else if cacheData!=""{
+		}else if cacheData!="QUEUED"&&cacheData!=""{
 			var catcheStruct interface{}
 			json.Unmarshal([]byte(cacheData), &catcheStruct)
 			return c.JSON( http.StatusOK,catcheStruct)
