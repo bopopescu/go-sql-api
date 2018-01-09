@@ -337,9 +337,16 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		if err!=nil{
 			fmt.Printf("err",err)
 		}
-		if cacheData!=""{
-			return c.JSON( http.StatusOK,cacheData)
+		if ispaginator&&cacheData!=""{
+			var paginator Paginator
+			json.Unmarshal([]byte(cacheData), &paginator)
+			return c.JSON( http.StatusOK,paginator)
+		}else if cacheData!=""{
+			var catcheStruct interface{}
+			json.Unmarshal([]byte(cacheData), &catcheStruct)
+			return c.JSON( http.StatusOK,catcheStruct)
 		}
+
 		//空数据时,输出[] 而不是 null
 		if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))>0{
 			data2:=data.(*Paginator)
