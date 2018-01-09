@@ -28,7 +28,7 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	server.api = api
 //	databaseName:=api.GetDatabaseMetadata().DatabaseName
 
-	c, err := redis.Dial("tcp", redisHost+":6379")
+	c, err := redis.Dial("tcp", redisHost)
 	if err != nil {
 		fmt.Println("Connect to redis error", err)
 	}
