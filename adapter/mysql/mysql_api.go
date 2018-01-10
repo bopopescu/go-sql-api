@@ -338,7 +338,16 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
 	}
-	//masterId=masterInfoMap["id"].(string)
+	//
+	var primaryColumns []*ColumnMetadata
+	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+	for _, col := range primaryColumns {
+		if col.Key == "PRI" {
+			masterId=col.ColumnName
+			break;//取第一个主键
+		}
+	}
+
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
@@ -433,12 +442,19 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
 	//slaveInfoMap:=make([]map[string]interface{})
-
+	var primaryColumns []*ColumnMetadata
+	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+	for _, col := range primaryColumns {
+		if col.Key == "PRI" {
+			masterId=col.ColumnName
+			break;//取第一个主键
+		}
+	}
 	masterInfoMap,errorMessage=Json2map(masterTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
 	}
-	masterId=masterInfoMap["id"].(string)
+	//
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
