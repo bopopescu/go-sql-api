@@ -338,7 +338,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
 	}
-	masterId=masterInfoMap["id"].(string)
+	//masterId=masterInfoMap["id"].(string)
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
