@@ -97,6 +97,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 	}
 }
 func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+	var count int
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName:=payload["masterTableName"].(string)
@@ -115,7 +116,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 		}
 		//删除主表的数据
 		masterId:=payload[masterIdColumnName].(string)
-		api.Delete(masterTableName,masterId,nil)
+	    rs,errorMessage:=	api.Delete(masterTableName,masterId,nil)
+	if errorMessage!=nil{
+		fmt.Printf("errorMessage",errorMessage)
+	}
+		fmt.Printf("rs",rs)
+
+	count=1;
 		// 删除从表数据  先查出关联的从表记录
 		slaveWhere := map[string]WhereOperation{}
 		slaveWhere[masterIdColumnName] = WhereOperation{
@@ -126,9 +133,11 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 		data, errorMessage := api.Select(slaveOption)
 		fmt.Printf("data", data)
 		fmt.Printf("errorMessage", errorMessage)
+
 		for _,slaveInfo:=range data {
 			slaveId:= slaveInfo["id"].(string)
 			api.Delete(slaveTableName,slaveId,nil)
+			count=count+1
 		}
 
 		if errorMessage != nil {
@@ -150,7 +159,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 			redisConn.Send("DEL", val1[i])
 		}
 
-		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+		return c.String(http.StatusOK, strconv.Itoa(count))
 	}
 }
 
