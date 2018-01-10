@@ -31,6 +31,7 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	c, err := redis.Dial("tcp", redisHost)
 	if err != nil {
 		fmt.Println("Connect to redis error", err)
+		c=nil
 	}
 	mountEndpoints(server.Echo, server.api,databaseName,c)
 	return server

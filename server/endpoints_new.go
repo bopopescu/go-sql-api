@@ -133,6 +133,10 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 		option.Table = tableName
 
 		paramBytes,err:=option.MarshalJSON()
+		if err!=nil{
+			fmt.Printf("err",err)
+		}
+
 		params:=string(paramBytes[:])
 		params=strings.Replace(params,"\"","-",-1)
 		params=strings.Replace(params,":","-",-1)
@@ -153,12 +157,17 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 
 		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
 		fmt.Printf("params=",params)
-		cacheData, err := redis.String(redisConn.Do("GET", params))
-		if err != nil {
-			fmt.Println("redis get failed:", err)
-		} else {
-			fmt.Printf("Get mykey: %v \n", cacheData)
+		var cacheData string
+		if redisConn!=nil{
+			cacheData, err := redis.String(redisConn.Do("GET", params))
+
+			if err != nil {
+				fmt.Println("redis get failed:", err)
+			} else {
+				fmt.Printf("Get mykey: %v \n", cacheData)
+			}
 		}
+
 
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
@@ -343,10 +352,18 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		}
 		return c.Blob(http.StatusOK,"application/octet-stream",fbytes)
 	}else{
-		cacheData,err:=redis.String(redisConn.Do("GET",cacheParams))
-		if err!=nil{
-			fmt.Printf("err",err)
+		var cacheData string
+		if(redisConn!=nil){
+			cacheData,err:=redis.String(redisConn.Do("GET",cacheParams))
+			if err!=nil{
+				fmt.Printf("err",err)
+			}else{
+				fmt.Printf("cacheData",cacheData)
+			}
 		}
+
+
+
 		if ispaginator&&cacheData!="QUEUED"&&cacheData!=""{
 			var paginator Paginator
 			json.Unmarshal([]byte(cacheData), &paginator)
@@ -367,9 +384,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			cacheDataStr:=string(dataByte[:])
 			fmt.Printf("cacheDataStr",cacheDataStr)
 
-			redisConn.Do("SET",cacheParams,cacheDataStr)
+			if redisConn!=nil{
+				redisConn.Do("SET",cacheParams,cacheDataStr)
+			}
 			return c.JSON( http.StatusOK,data2)
-		}else if ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
+		}else if redisConn!=nil&&ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
 			data2:=data.(*Paginator)
 			data2.Data=[]string{}
 			return c.JSON( http.StatusOK,data2)
@@ -382,7 +401,10 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			cacheDataStr:=string(dataByte[:])
 			fmt.Printf("cacheDataStr",cacheDataStr)
 
-			redisConn.Do("SET",cacheParams,cacheDataStr)
+			if redisConn!=nil{
+				redisConn.Do("SET",cacheParams,cacheDataStr)
+			}
+
 			return c.JSON( http.StatusOK,data)
 		}
 	}
