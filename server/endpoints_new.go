@@ -20,12 +20,13 @@ import (
 	"io/ioutil"
 	"github.com/garyburd/redigo/redis"
 
+	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
 )
 
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisConn redis.Conn) {
 	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisConn)).Name = "batch save related table"
-	s.DELETE("/api/"+databaseName+"/related/batch/", endpointRelatedDelete(api,redisConn)).Name = "batch save related table"
+	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisConn)).Name = "batch delete related table"
 	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
@@ -102,6 +103,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName:=payload["masterTableName"].(string)
 		slaveTableName:=payload["slaveTableName"].(string)
+		masterTableInfo:=payload["masterTableInfo"].(string)
+		fmt.Printf("masterTableInfo=",masterTableInfo)
+		masterInfoMap:=make(map[string]interface{})
+		//slaveInfoMap:=make([]map[string]interface{})
+
+		masterInfoMap,errorMessage=mysql.Json2map(masterTableInfo)
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
@@ -115,7 +123,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 			}
 		}
 		//删除主表的数据
-		masterId:=payload[masterIdColumnName].(string)
+		masterId:=masterInfoMap[masterIdColumnName].(string)
 	    rs,errorMessage:=	api.Delete(masterTableName,masterId,nil)
 	if errorMessage!=nil{
 		fmt.Printf("errorMessage",errorMessage)

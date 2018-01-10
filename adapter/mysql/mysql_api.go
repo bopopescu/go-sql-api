@@ -343,7 +343,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
-			masterId=col.ColumnName
+			masterId=masterInfoMap[col.ColumnName].(string)
 			break;//取第一个主键
 		}
 	}

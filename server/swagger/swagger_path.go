@@ -27,7 +27,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 			},
 		},
 	)
-	paths["/api/"+databaseName+"/related/batch/"]=deleteRelatedPath
+	paths["/api/"+databaseName+"/related/delete/"]=deleteRelatedPath
 
 
 	batchRelatedPath.Post=NewOperation(
