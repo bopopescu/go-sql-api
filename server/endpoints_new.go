@@ -25,6 +25,7 @@ import (
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisConn redis.Conn) {
 	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisConn)).Name = "batch save related table"
+	s.DELETE("/api/"+databaseName+"/related/batch/", endpointRelatedDelete(api,redisConn)).Name = "batch save related table"
 	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
@@ -95,6 +96,64 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
+func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		payload, errorMessage := bodyMapOf(c)
+		masterTableName:=payload["masterTableName"].(string)
+		slaveTableName:=payload["slaveTableName"].(string)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+		var masterIdColumnName string
+		var primaryColumns []*ColumnMetadata
+		primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+		for _, col := range primaryColumns {
+			if col.Key == "PRI" {
+				masterIdColumnName=col.ColumnName
+				break;//取第一个主键
+			}
+		}
+		//删除主表的数据
+		masterId:=payload[masterIdColumnName].(string)
+		api.Delete(masterTableName,masterId,nil)
+		// 删除从表数据  先查出关联的从表记录
+		slaveWhere := map[string]WhereOperation{}
+		slaveWhere[masterIdColumnName] = WhereOperation{
+			Operation: "eq",
+			Value:     masterId,
+		}
+		slaveOption := QueryOption{Wheres: slaveWhere, Table: slaveTableName}
+		data, errorMessage := api.Select(slaveOption)
+		fmt.Printf("data", data)
+		fmt.Printf("errorMessage", errorMessage)
+		for _,slaveInfo:=range data {
+			slaveId:= slaveInfo["id"].(string)
+			api.Delete(slaveTableName,slaveId,nil)
+		}
+
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val {
+			redisConn.Send("DEL", val[i])
+		}
+
+		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
+		val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
+		//fmt.Println(val1, err)
+		redisConn.Send("MULTI")
+		for i, _ := range val1 {
+			redisConn.Send("DEL", val1[i])
+		}
+
+		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+	}
+}
+
 func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)

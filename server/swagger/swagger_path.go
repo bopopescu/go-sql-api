@@ -9,9 +9,27 @@ import (
 func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]spec.PathItem) {
 	paths = make(map[string]spec.PathItem)
 	batchRelatedPath := spec.PathItem{}
+	deleteRelatedPath := spec.PathItem{}
 	patchRelatedPath := spec.PathItem{}
 	metadataPath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+	deleteRelatedPath.Delete=NewOperation(
+		"relate record(关联记录)",
+		fmt.Sprintf("删除关联记录数据"),
+		fmt.Sprintf("删除关联记录数据"),
+		[]spec.Parameter{GetParametersFromRelatedRecord()},
+
+
+		fmt.Sprintf("关联表同时删除关联数据"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/related/batch/"]=deleteRelatedPath
+
+
 	batchRelatedPath.Post=NewOperation(
 		"relate record(关联记录)",
 		fmt.Sprintf("添加关联记录数据"),

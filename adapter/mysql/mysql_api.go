@@ -426,6 +426,8 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
   return rowAaffect,nil
 }
 
+
+
 func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
 	var rowAaffect int64
 	var masterRowAffect int64
