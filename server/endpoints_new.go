@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"github.com/garyburd/redigo/redis"
 
-	)
+)
 
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisConn redis.Conn) {
@@ -159,7 +159,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 		fmt.Printf("params=",params)
 		var cacheData string
 		if redisConn!=nil{
-			cacheData, err := redis.String(redisConn.Do("GET", params))
+		   cacheData, err = redis.String(redisConn.Do("GET", params))
 
 			if err != nil {
 				fmt.Println("redis get failed:", err)
@@ -200,6 +200,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisConn)
 
 			}else{
+
 				//分页
 				totalCount,errorMessage:=api.SelectTotalCount(option)
 				if errorMessage != nil {
@@ -353,8 +354,9 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		return c.Blob(http.StatusOK,"application/octet-stream",fbytes)
 	}else{
 		var cacheData string
+		var err error
 		if(redisConn!=nil){
-			cacheData,err:=redis.String(redisConn.Do("GET",cacheParams))
+			cacheData,err=redis.String(redisConn.Do("GET",cacheParams))
 			if err!=nil{
 				fmt.Printf("err",err)
 			}else{
