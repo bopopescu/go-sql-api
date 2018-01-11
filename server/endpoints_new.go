@@ -79,20 +79,28 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
 
+
 		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
-		val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
-		//fmt.Println(val1, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val1 {
-			redisConn.Send("DEL", val1[i])
+		if redisConn!=nil{
+			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
+
+			fmt.Println(val1, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val1 {
+				redisConn.Send("DEL", val1[i])
+			}
 		}
+
 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
@@ -159,20 +167,28 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
 
+
 		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
-		val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
-		//fmt.Println(val1, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val1 {
-			redisConn.Send("DEL", val1[i])
+		if redisConn!=nil{
+			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
+
+			fmt.Println(val1, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val1 {
+				redisConn.Send("DEL", val1[i])
+			}
 		}
+
 
 		return c.String(http.StatusOK, strconv.Itoa(count))
 	}
@@ -518,12 +534,16 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) fun
 				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 			}
 
-			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-			fmt.Println(val, err)
-			redisConn.Send("MULTI")
-			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
+			if redisConn!=nil{
+				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+				fmt.Println(val, err)
+				redisConn.Send("MULTI")
+				for i, _ := range val {
+					redisConn.Send("DEL", val[i])
+				}
 			}
+
 			return c.JSON(http.StatusOK, &rs[0])
 		}else if(len(rs)>1){
 			errorMessage = &ErrorMessage{ERR_SQL_RESULTS,fmt.Sprintf("Expected one result to be returned by selectOne(), but found: %d", len(rs))}
@@ -556,13 +576,16 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -584,12 +607,16 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -616,12 +643,16 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -645,12 +676,16 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -679,12 +714,16 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 
-		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-		fmt.Println(val, err)
-		redisConn.Send("MULTI")
-		for i, _ := range val {
-			redisConn.Send("DEL", val[i])
+		if redisConn!=nil{
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			redisConn.Send("MULTI")
+			for i, _ := range val {
+				redisConn.Send("DEL", val[i])
+			}
 		}
+
 		return c.JSON(http.StatusOK, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 	}
 }
