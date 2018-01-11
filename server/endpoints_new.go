@@ -104,6 +104,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 		masterTableName:=payload["masterTableName"].(string)
 		slaveTableName:=payload["slaveTableName"].(string)
 		masterTableInfo:=payload["masterTableInfo"].(string)
+		// isRetainMasterInfo
+		isRetainMasterInfo:=payload["isRetainMasterInfo"].(string)
 		fmt.Printf("masterTableInfo=",masterTableInfo)
 		masterInfoMap:=make(map[string]interface{})
 		//slaveInfoMap:=make([]map[string]interface{})
@@ -124,13 +126,18 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 		}
 		//删除主表的数据
 		masterId:=masterInfoMap[masterIdColumnName].(string)
-	    rs,errorMessage:=	api.Delete(masterTableName,masterId,nil)
-	if errorMessage!=nil{
-		fmt.Printf("errorMessage",errorMessage)
-	}
-		fmt.Printf("rs",rs)
+		if isRetainMasterInfo=="0"||isRetainMasterInfo==""{
+			rs,errorMessage:=	api.Delete(masterTableName,masterId,nil)
+			count=1;
+			if errorMessage!=nil{
+				fmt.Printf("errorMessage",errorMessage)
+			}
+			fmt.Printf("rs",rs)
 
-	count=1;
+		}
+
+
+
 		// 删除从表数据  先查出关联的从表记录
 		slaveWhere := map[string]WhereOperation{}
 		slaveWhere[masterIdColumnName] = WhereOperation{

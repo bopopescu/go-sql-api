@@ -17,7 +17,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 		"relate record(关联记录)",
 		fmt.Sprintf("删除关联记录数据"),
 		fmt.Sprintf("删除关联记录数据"),
-		[]spec.Parameter{GetParametersFromRelatedRecord()},
+		[]spec.Parameter{GetParametersFromRelatedRecordDelete()},
 
 
 		fmt.Sprintf("关联表同时删除关联数据"),
