@@ -288,7 +288,11 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 			}
 			return responseTableGet(c,data,false,tableName,api,params,redisConn)
 		}else{
-			cacheTotalCount,err:=redis.String(redisConn.Do("GET",params+"-totalCount"))
+			var cacheTotalCount string
+			if redisConn!=nil{
+				cacheTotalCount,err=redis.String(redisConn.Do("GET",params+"-totalCount"))
+
+			}
 			//cacheTotalCount=cacheTotalCount.(string)
 			fmt.Printf("cacheTotalCount",cacheTotalCount)
 			fmt.Printf("err",err)
@@ -310,7 +314,10 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 				}
 
 				data, errorMessage := api.Select(option)
-				redisConn.Do("SET",params+"-totalCount",totalCount)
+				if redisConn!=nil{
+					redisConn.Do("SET",params+"-totalCount",totalCount)
+				}
+
 				if errorMessage != nil {
 					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 				}
@@ -646,6 +653,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 
 
 			var action_field_value int
+			// 操作类型是更新 动作类型是累加
 			if operate_type=="UPDATE"{
 				if action_type=="ACC"{
 					for _,rsQ:=range rsQuery {
@@ -916,16 +924,34 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 		option.Wheres = make(map[string]WhereOperation)
 		for _, sWhere := range queryParam[key.KEY_QUERY_WHERE] {
 			sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
-			arr := r.FindStringSubmatch(sWhere)
-			if len(arr) == 4 {
-				switch arr[2] {
-				case "in", "notIn":
-					option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-				case "like", "is", "neq", "isNot", "eq":
-					option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+			// 支持同一个参数字符串里包含多个条件
+			if strings.Contains(sWhere,"&"){
+			  subWhereArr:=	strings.Split(sWhere,"&")
+			  for _,subWhere:=range subWhereArr{
+				  arr := r.FindStringSubmatch(subWhere)
+				  if len(arr) == 4 {
+					  switch arr[2] {
+					  case "in", "notIn":
+						  option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+					  case "like", "is", "neq", "isNot", "eq":
+						  option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+					  }
+				  }
+			  }
+			}else{
+				arr := r.FindStringSubmatch(sWhere)
+				if len(arr) == 4 {
+					switch arr[2] {
+					case "in", "notIn":
+						option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+					case "like", "is", "neq", "isNot", "eq":
+						option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+					}
 				}
-
 			}
+
+
+
 		}
 	}
 
