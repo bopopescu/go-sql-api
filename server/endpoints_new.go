@@ -21,6 +21,9 @@ import (
 	"github.com/garyburd/redigo/redis"
 
 	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
+//	"container/list"
+	"container/list"
+
 )
 
 // mountEndpoints to echo server
@@ -553,6 +556,27 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) fun
 		}
 	}
 }
+func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
+
+	whereOption := map[string]WhereOperation{}
+	whereOption["operate_table"] = WhereOperation{
+		Operation: "eq",
+		Value:     tableName,
+	}
+	whereOption["api_method"] = WhereOperation{
+		Operation: "eq",
+		Value:     apiMethod,
+	}
+	querOption := QueryOption{Wheres: whereOption, Table: "operate_config"}
+	rs, errorMessage= api.Select(querOption)
+	if errorMessage!=nil{
+		fmt.Printf("errorMessage", errorMessage)
+	}else{
+		fmt.Printf("rs", rs)
+	}
+
+	return rs,errorMessage
+}
 
 func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
@@ -561,6 +585,98 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+		// 前置条件处理
+	    operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,"POST")
+	    var operate_condition string
+		var operate_content string
+
+		for _,operate:=range operates {
+			operate_condition= operate["operate_condition"].(string)
+			operate_content = operate["operate_content"].(string)
+		}
+		var conditionType string
+		var conditionFileds string
+		var conditionFiledArr [5]string
+		var operateCondJsonMap map[string]interface{}
+		var operateCondContentJsonMap map[string]interface{}
+		  fieldList:=list.New()
+		// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
+		if(operate_condition!=""){
+			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+			conditionType=operateCondJsonMap["conditionType"].(string)
+			conditionFileds=operateCondJsonMap["conditionFields"].(string)
+			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+		}
+		if(operate_content!=""){
+			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+		}
+		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
+		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
+		if "JUDGE"==conditionType{
+			for _,item:= range conditionFiledArr{
+				if item!=""{
+					fieldList.PushBack(item)
+				}
+			}
+			//  从配置里获取要判断的字段 并返回对象
+			whereOption := map[string]WhereOperation{}
+			for e := fieldList.Front(); e != nil; e = e.Next() {
+				whereOption[e.Value.(string)] = WhereOperation{
+					Operation: "eq",
+					Value:     payload[e.Value.(string)].(string),
+				}
+			}
+			querOption := QueryOption{Wheres: whereOption, Table: tableName}
+			rsQuery, errorMessage:= api.Select(querOption)
+			if errorMessage!=nil{
+				fmt.Printf("errorMessage", errorMessage)
+			}else{
+				fmt.Printf("rs", rsQuery)
+			}
+			operate_type:=operateCondContentJsonMap["operate_type"].(string)
+			pri_key:=operateCondContentJsonMap["pri_key"].(string)
+			var pri_key_value string
+			action_type:=operateCondContentJsonMap["action_type"].(string)
+			action_field:=operateCondContentJsonMap["action_field"].(string)
+
+
+			action_field_value1:=payload[action_field].(float64)
+			fmt.Printf("action_field_value1",action_field_value1)
+			action_field_value1_int:=int(action_field_value1)
+
+
+			var action_field_value int
+			if operate_type=="UPDATE"{
+				if action_type=="ACC"{
+					for _,rsQ:=range rsQuery {
+						pri_key_value=rsQ[pri_key].(string)
+						action_field_value0:= rsQ[action_field].(string)
+						action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
+
+						if err0!=nil{
+							fmt.Printf("err0",err0)
+						}
+						action_field_value=action_field_value0_int+action_field_value1_int
+						break
+					}
+				}
+				 actionFiledMap:= map[string]interface{}{}
+				actionFiledMap[action_field]=action_field_value
+
+				rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
+				if err!=nil{
+					fmt.Print("err=",err)
+				}
+
+				rowesAffected,error:=rsU.RowsAffected()
+				if error!=nil{
+					fmt.Printf("err=",error)
+				}
+				return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+			}
+		}
+
+
 		rs, errorMessage := api.Create(tableName, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
