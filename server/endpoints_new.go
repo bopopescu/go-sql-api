@@ -662,17 +662,19 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 				}
 				 actionFiledMap:= map[string]interface{}{}
 				actionFiledMap[action_field]=action_field_value
+				if pri_key_value!=""{
+					rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
+					if err!=nil{
+						fmt.Print("err=",err)
+					}
 
-				rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
-				if err!=nil{
-					fmt.Print("err=",err)
+					rowesAffected,error:=rsU.RowsAffected()
+					if error!=nil{
+						fmt.Printf("err=",error)
+					}
+					return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 				}
 
-				rowesAffected,error:=rsU.RowsAffected()
-				if error!=nil{
-					fmt.Printf("err=",error)
-				}
-				return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 			}
 		}
 
