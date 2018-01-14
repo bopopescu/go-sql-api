@@ -72,12 +72,73 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
-		masterTableName:=payload["masterTableName"].(string)
-		slaveTableName:=payload["slaveTableName"].(string)
+		masterTableName := payload["masterTableName"].(string)
+		slaveTableName := payload["slaveTableName"].(string)
+		slaveTableInfo:=payload["slaveTableInfo"].(string)
+		slaveInfoMap,errorMessage:=mysql.JsonArr2map(slaveTableInfo)
 		if errorMessage != nil {
-			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+			return echo.NewHTTPError(http.StatusBadRequest, errorMessage)
 		}
-		rowesAffected, errorMessage := api.RelatedCreate( payload)
+		rowesAffected, errorMessage := api.RelatedCreate(payload)
+		// 后置条件处理
+		operates, errorMessage := SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST")
+		var operate_condition string
+		var operate_content string
+
+		for _, operate := range operates {
+			operate_condition = operate["operate_condition"].(string)
+			operate_content = operate["operate_content"].(string)
+		}
+		var conditionType string
+		var conditionFileds string
+		var conditionFiledArr [5]string
+		var operateCondJsonMap map[string]interface{}
+		var operateCondContentJsonMap map[string]interface{}
+		fieldList := list.New()
+		// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
+		if (operate_condition != "") {
+			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+			conditionType = operateCondJsonMap["conditionType"].(string)
+			conditionFileds = operateCondJsonMap["conditionFields"].(string)
+			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+		}
+		if (operate_content != "") {
+			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+		}
+		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作  如果是OBTAIN_FROM_LOCAL 从参数里面获取
+		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
+		if "OBTAIN_FROM_LOCAL" == conditionType {
+			for _, item := range conditionFiledArr {
+				if item != "" {
+					fieldList.PushBack(item)
+				}
+			}
+			//  从参数里获取配置中字段的值
+			var count int64
+			for e := fieldList.Front(); e != nil; e = e.Next() {
+
+				for _,slave:=range slaveInfoMap{
+					fielVale := slave[e.Value.(string)].(string)
+					operate_type := operateCondContentJsonMap["operate_type"].(string)
+					operate_table := operateCondContentJsonMap["operate_table"].(string)
+
+					// 操作类型级联删除
+					if operate_type == "CASCADE_DELETE" && fielVale != "" {
+
+						api.Delete(operate_table, fielVale, nil)
+						count=count+1
+					}
+				}
+
+				rowesAffected=rowesAffected+count
+			}
+			return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
+		}
+
+
+
+
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -566,7 +627,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) fun
 func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
 	whereOption := map[string]WhereOperation{}
-	whereOption["operate_table"] = WhereOperation{
+	whereOption["cond_table"] = WhereOperation{
 		Operation: "eq",
 		Value:     tableName,
 	}
