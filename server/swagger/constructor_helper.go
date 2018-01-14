@@ -256,7 +256,7 @@ func NewQueryParametersForCustomPaging() (ps []spec.Parameter) {
 func NewQueryParametersForFilter() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.KEY_QUERY_SEARCH, "全表查找字符串", "string", false),
-		NewQueryArrayParameter(key.KEY_QUERY_WHERE, "指定一个或多个字段筛选 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like\\](字段值)", "string", false),
+		NewQueryArrayParameter(key.KEY_QUERY_WHERE, "指定一个或多个字段筛选 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt\\](字段值)", "string", false),
 	}
 	return
 }

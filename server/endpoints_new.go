@@ -994,7 +994,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 					  switch arr[2] {
 					  case "in", "notIn":
 						  option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-					  case "like", "is", "neq", "isNot", "eq":
+					  case "like", "is", "neq", "isNot", "eq","lt","gt":
 						  option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
 					  }
 				  }
@@ -1005,7 +1005,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 					switch arr[2] {
 					case "in", "notIn":
 						option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-					case "like", "is", "neq", "isNot", "eq":
+					case "like", "is", "neq", "isNot", "eq","lt","gt":
 						option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
 					}
 				}
