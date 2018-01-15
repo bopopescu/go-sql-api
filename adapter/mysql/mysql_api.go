@@ -392,10 +392,18 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		return 0,errorMessage
 	}
 
+	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
+	var slavePriId string
+	for _, col := range primaryColumns {
+		if col.Key == "PRI" {
+			slavePriId=masterInfoMap[col.ColumnName].(string)
+			break;//取第一个主键
+		}
+	}
 	for i, slave := range slaveInfoMap {
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
 		fmt.Printf("i=",i)
-		slaveIds.PushBack(slave["id"].(string))
+		slaveIds.PushBack(slave[slavePriId].(string))
 
 		if err!=nil{
 			// 回滚已经插入的数据
