@@ -409,7 +409,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
 		fmt.Printf("i=",i)
 		fmt.Printf("slavePriId",slavePriId)
-		slaveIds.PushBack(slave[slavePriId].(string))
+		slaveIds.PushBack(slavePriId)
 
 		if err!=nil{
 			// 回滚已经插入的数据
