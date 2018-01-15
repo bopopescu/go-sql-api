@@ -354,6 +354,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 				if masterInfoMap[masterPriKey]==nil{
 					uuid := uuid.NewV4()
 					masterId=uuid.String()
+					masterInfoMap[masterPriKey]=masterId
 				}else{
 					masterId=masterInfoMap[masterPriKey].(string)
 				}
