@@ -340,6 +340,8 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	}
 	//
 	var primaryColumns []*ColumnMetadata
+
+	var primaryColumns1 []*ColumnMetadata
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
@@ -392,19 +394,21 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		return 0,errorMessage
 	}
 
-	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
+	primaryColumns1=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
 	var slavePriId string
 
 	for i, slave := range slaveInfoMap {
-		for _, col := range primaryColumns {
+		for _, col := range primaryColumns1 {
 			if col.Key == "PRI" {
 				slavePriId=slave[col.ColumnName].(string)
+				fmt.Printf("slavePriId",slavePriId)
 				break;//取第一个主键
 			}
 		}
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
 		fmt.Printf("i=",i)
+		fmt.Printf("slavePriId",slavePriId)
 		slaveIds.PushBack(slave[slavePriId].(string))
 
 		if err!=nil{
