@@ -354,8 +354,10 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 				if masterInfoMap[masterPriKey]==nil{
 					uuid := uuid.NewV4()
 					masterId=uuid.String()
+				}else{
+					masterId=masterInfoMap[masterPriKey].(string)
 				}
-				masterId=masterInfoMap[masterPriKey].(string)
+
 			}
 
 			break;//取第一个主键
