@@ -118,16 +118,19 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 			for e := fieldList.Front(); e != nil; e = e.Next() {
 
 				for _,slave:=range slaveInfoMap{
-					fielVale := slave[e.Value.(string)].(string)
-					operate_type := operateCondContentJsonMap["operate_type"].(string)
-					operate_table := operateCondContentJsonMap["operate_table"].(string)
+					if slave[e.Value.(string)]!=nil{
+						fielVale := slave[e.Value.(string)].(string)
+						operate_type := operateCondContentJsonMap["operate_type"].(string)
+						operate_table := operateCondContentJsonMap["operate_table"].(string)
 
-					// 操作类型级联删除
-					if operate_type == "CASCADE_DELETE" && fielVale != "" {
+						// 操作类型级联删除
+						if operate_type == "CASCADE_DELETE" && fielVale != "" {
 
-						api.Delete(operate_table, fielVale, nil)
-						count=count+1
+							api.Delete(operate_table, fielVale, nil)
+							count=count+1
+						}
 					}
+
 				}
 
 				rowesAffected=rowesAffected+count

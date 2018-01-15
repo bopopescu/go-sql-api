@@ -347,8 +347,21 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			if masterTableName=="order_form"{
-				timestamp := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-				masterId=timestamp //strconv.Itoa(time.Now().Unix())
+				masterPriKey=col.ColumnName
+				now:=time.Now()
+
+				baseUnix:=strconv.FormatInt(now.Unix(),10)
+
+				t := now.Unix()
+				fmt.Println(t)
+				//时间戳到具体显示的转化
+				fmt.Println(time.Unix(t, 0).String())
+				timeStr:=time.Unix(t, 0).String()
+				timeStr=string(timeStr[:10])
+				timeStr=strings.Replace(timeStr,"-","",-1)
+				orderid:=timeStr+baseUnix
+				fmt.Printf("tt",orderid)
+				masterId=orderid //strconv.Itoa(time.Now().Unix())
 			}else{
 				masterPriKey=col.ColumnName
 				if masterInfoMap[masterPriKey]==nil{
@@ -364,7 +377,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			break;//取第一个主键
 		}
 	}
-
+	masterInfoMap[masterPriKey]=masterId
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
