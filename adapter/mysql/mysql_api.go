@@ -394,13 +394,15 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
 	var slavePriId string
-	for _, col := range primaryColumns {
-		if col.Key == "PRI" {
-			slavePriId=masterInfoMap[col.ColumnName].(string)
-			break;//取第一个主键
-		}
-	}
+
 	for i, slave := range slaveInfoMap {
+		for _, col := range primaryColumns {
+			if col.Key == "PRI" {
+				slavePriId=slave[col.ColumnName].(string)
+				break;//取第一个主键
+			}
+		}
+
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
 		fmt.Printf("i=",i)
 		slaveIds.PushBack(slave[slavePriId].(string))
