@@ -413,7 +413,10 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		for _, col := range primaryColumns1 {
 			if col.Key == "PRI" {
 				slavePriKey=col.ColumnName
-				slavePriId=slave[col.ColumnName].(string)
+				if slave[slavePriKey]!=nil{
+					slavePriId=slave[slavePriKey].(string)
+				}
+
 				fmt.Printf("slavePriId",slavePriId)
 				break;//取第一个主键
 			}
