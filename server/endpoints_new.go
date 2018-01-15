@@ -746,7 +746,25 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 
 			}
 		}
+		primaryColumns:=api.GetDatabaseMetadata().GetTableMeta(tableName).GetPrimaryColumns()
+		var priId string
+		var priKey string
+		for _, col := range primaryColumns {
+			if col.Key == "PRI" {
+				priKey=col.ColumnName
+				if payload[priKey]!=nil{
+					priId=payload[priKey].(string)
+				}else{
+						uuid := uuid.NewV4()
+					    priId=uuid.String()
+						payload[priKey]=priId
 
+				}
+
+				fmt.Printf("priId",priId)
+				break;//取第一个主键
+			}
+		}
 
 		rs, errorMessage := api.Create(tableName, payload)
 		if errorMessage != nil {

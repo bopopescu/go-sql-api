@@ -18,6 +18,7 @@ import (
 	//"github.com/mkideal/pkg/option"
 
 	"container/list"
+	"github.com/satori/go.uuid"
 )
 
 // MysqlAPI
@@ -340,12 +341,23 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	}
 	//
 	var primaryColumns []*ColumnMetadata
-
+    var masterPriKey string
 	var primaryColumns1 []*ColumnMetadata
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
-			masterId=masterInfoMap[col.ColumnName].(string)
+			if masterTableName=="order_form"{
+				timestamp := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+				masterId=timestamp //strconv.Itoa(time.Now().Unix())
+			}else{
+				masterPriKey=col.ColumnName
+				if masterInfoMap[masterPriKey]==nil{
+					uuid := uuid.NewV4()
+					masterId=uuid.String()
+				}
+				masterId=masterInfoMap[masterPriKey].(string)
+			}
+
 			break;//取第一个主键
 		}
 	}
@@ -396,14 +408,22 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 	primaryColumns1=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
 	var slavePriId string
-
+	var slavePriKey string
 	for i, slave := range slaveInfoMap {
 		for _, col := range primaryColumns1 {
 			if col.Key == "PRI" {
+				slavePriKey=col.ColumnName
 				slavePriId=slave[col.ColumnName].(string)
 				fmt.Printf("slavePriId",slavePriId)
 				break;//取第一个主键
 			}
+		}
+		//设置主键id
+        slave[masterPriKey]=masterId
+		if slavePriId==""{
+			uuid := uuid.NewV4()
+			slavePriId=uuid.String()
+			slave[slavePriKey]=slavePriId
 		}
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
