@@ -8,6 +8,7 @@ import (
 
 func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]spec.PathItem) {
 	paths = make(map[string]spec.PathItem)
+
 	batchRelatedPath := spec.PathItem{}
 	deleteRelatedPath := spec.PathItem{}
 	patchRelatedPath := spec.PathItem{}
@@ -61,6 +62,8 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 		},
 	)
 	paths["/api/"+databaseName+"/related/record/"]=patchRelatedPath
+
+
 
 
 
@@ -262,6 +265,22 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 					},
 				},
 			)
+			withIDPathItem.Put = NewOperation(
+				tName,
+				fmt.Sprintf("在%s表里,更新指定主键的记录", tName),
+				fmt.Sprintf("%s表的主键%s", tName,columnNames(meta.GetPrimaryColumns())),
+				append([]spec.Parameter{NewPathIDParameter(meta)},NewParamForDefinition(tName)),
+				fmt.Sprintf("执行成功,返回影响行数(注意:以影响行数为判断成功与否的依据)"),
+				&spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type: spec.StringOrArray{"integer"},
+					},
+					SwaggerSchemaProps: spec.SwaggerSchemaProps{
+						Example: 1,
+					},
+				},
+			)
+
 			withIDPathItem.Delete = NewOperation(
 				tName,
 				fmt.Sprintf("在%s表里,删除指定主键的记录", tName),
