@@ -45,6 +45,7 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisConn)).Name = "Retrive Record By ID"
 	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisConn)).Name = "Delete Record By ID"
 	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisConn)).Name = "Update Record By ID"
+	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisConn)).Name = "Put Record By ID"
 
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisConn)).Name = "Batch Create Records"
 

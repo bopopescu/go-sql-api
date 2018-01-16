@@ -412,7 +412,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 	masterRowAffect,err=rs.RowsAffected()
 	if err != nil {
-
+		fmt.Printf("err",err)
 		// 回滚已经插入的数据
 		api.Delete(masterTableName,masterId,nil)
 		for e := slaveIds.Front(); e != nil; e = e.Next() {
@@ -462,7 +462,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			rs,err=api.exec(sql)
 			slaveRowAffect,err=rs.RowsAffected()
 			if err != nil {
-
+				fmt.Printf("err",err)
 				// 回滚已经插入的数据
 				api.Delete(masterTableName,masterId,nil)
 				for e := slaveIds.Front(); e != nil; e = e.Next() {
