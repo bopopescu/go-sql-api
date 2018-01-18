@@ -558,10 +558,10 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				fmt.Printf("err",err)
 			}
 			cacheDataStr:=string(dataByte[:])
-			fmt.Printf("cacheDataStr",cacheDataStr)
 
 			if redisConn!=nil{
 				redisConn.Do("SET",cacheParams,cacheDataStr)
+				fmt.Printf("cacheDataStr",cacheDataStr)
 			}
 			return c.JSON( http.StatusOK,data2)
 		}else if redisConn!=nil&&ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
@@ -575,10 +575,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				fmt.Printf("err",err)
 			}
 			cacheDataStr:=string(dataByte[:])
-			fmt.Printf("cacheDataStr",cacheDataStr)
+			//fmt.Printf("cacheDataStr",cacheDataStr)
 
 			if redisConn!=nil{
 				redisConn.Do("SET",cacheParams,cacheDataStr)
+				fmt.Printf("cacheDataStr",cacheDataStr)
 			}
 
 			return c.JSON( http.StatusOK,data)
