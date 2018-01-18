@@ -27,12 +27,15 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	server.Static("/api/"+databaseName+"/docs", "docs")
 	server.api = api
 //	databaseName:=api.GetDatabaseMetadata().DatabaseName
-
+  fmt.Printf("redisHost",redisHost)
 	c, err := redis.Dial("tcp", redisHost)
 	if err != nil {
 		fmt.Println("Connect to redis error", err)
 		c=nil
+	}else{
+		fmt.Println("Connect to redis success")
 	}
+
 	mountEndpoints(server.Echo, server.api,databaseName,c)
 	return server
 }
