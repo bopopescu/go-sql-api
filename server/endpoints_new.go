@@ -21,15 +21,16 @@ import (
 	"github.com/garyburd/redigo/redis"
 
 	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
-//	"container/list"
+	//	"container/list"
 	"container/list"
 
+	"time"
 )
 
 // mountEndpoints to echo server
-func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisConn redis.Conn) {
-	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisConn)).Name = "batch save related table"
-	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisConn)).Name = "batch delete related table"
+func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisHost string) {
+	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisHost)).Name = "batch save related table"
+	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisHost)).Name = "batch delete related table"
 	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
@@ -38,16 +39,16 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.GET("/api/"+databaseName+"/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
-	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api,redisConn)).Name = "Retrive Some Records"
-	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api,redisConn)).Name = "Create Single Record"
-	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api,redisConn)).Name = "Remove Some Records"
+	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api,redisHost)).Name = "Retrive Some Records"
+	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api,redisHost)).Name = "Create Single Record"
+	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api,redisHost)).Name = "Remove Some Records"
 
-	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisConn)).Name = "Retrive Record By ID"
-	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisConn)).Name = "Delete Record By ID"
-	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisConn)).Name = "Update Record By ID"
-	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisConn)).Name = "Put Record By ID"
+	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisHost)).Name = "Retrive Record By ID"
+	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisHost)).Name = "Delete Record By ID"
+	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Update Record By ID"
+	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Put Record By ID"
 
-	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisConn)).Name = "Batch Create Records"
+	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
 
 
 }
@@ -70,7 +71,7 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		return c.JSON( http.StatusOK, api.GetDatabaseMetadata())
 	}
 }
-func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName := payload["masterTableName"].(string)
@@ -147,7 +148,10 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -159,7 +163,10 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 
 
 		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
 
 			fmt.Println(val1, err)
@@ -173,7 +180,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
-func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	var count int
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
@@ -235,7 +242,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -247,7 +257,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c
 
 
 		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
 
 			fmt.Println(val1, err)
@@ -292,7 +305,7 @@ func endpointUpdateMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error
 	}
 }
 
-func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
@@ -325,8 +338,10 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
 		fmt.Printf("params=",params)
 		var cacheData string
-		if redisConn!=nil{
-		   cacheData, err = redis.String(redisConn.Do("GET", params))
+		if redisHost!=""{
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			cacheData, err = redis.String(redisConn.Do("GET", params))
 
 			if err != nil {
 				fmt.Println("redis get failed:", err)
@@ -343,7 +358,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
 			if cacheData!="QUEUED"&&cacheData!=""{
-				return responseTableGet(c,cacheData,false,tableName,api,params,redisConn)
+				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost)
 			}
 
 			//无需分页,直接返回数组
@@ -351,10 +366,13 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c,data,false,tableName,api,params,redisConn)
+			return responseTableGet(c,data,false,tableName,api,params,redisHost)
 		}else{
 			var cacheTotalCount string
-			if redisConn!=nil{
+			if(redisHost!=""){
+				pool:=newPool(redisHost)
+				redisConn:=pool.Get()
+				defer redisConn.Close()
 				cacheTotalCount,err=redis.String(redisConn.Do("GET",params+"-totalCount"))
 
 			}
@@ -368,7 +386,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 				if err!=nil{
 					fmt.Printf("err",err)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisConn)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost)
 
 			}else{
 
@@ -379,23 +397,26 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo
 				}
 
 				data, errorMessage := api.Select(option)
-				if redisConn!=nil{
+				if(redisHost!=""){
+					pool:=newPool(redisHost)
+					redisConn:=pool.Get()
+					defer redisConn.Close()
 					redisConn.Do("SET",params+"-totalCount",totalCount)
 				}
 
 				if errorMessage != nil {
 					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisConn)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost)
 
 			}
 
 
-			}
+		}
 	}
 }
 
-func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisConn redis.Conn) error{
+func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string) error{
 	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
 		if c.QueryParams().Get("filename")!="" {
@@ -477,8 +498,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				}
 			}
 
-		//	xlsx.MergeCell("Sheet1","D2","E3")
-		// 合并单元格  从模板里读取合并单元格信息
+			//	xlsx.MergeCell("Sheet1","D2","E3")
+			// 合并单元格  从模板里读取合并单元格信息
 
 			wMapHeadMerge := map[string]WhereOperation{}
 			wMapHeadContent["template_key"] = WhereOperation{
@@ -529,7 +550,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 	}else{
 		var cacheData string
 		var err error
-		if(redisConn!=nil){
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
+
 			cacheData,err=redis.String(redisConn.Do("GET",cacheParams))
 			if err!=nil{
 				fmt.Printf("err",err)
@@ -559,12 +584,15 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			}
 			cacheDataStr:=string(dataByte[:])
 
-			if redisConn!=nil{
+			if(redisHost!=""){
+				pool:=newPool(redisHost)
+				redisConn:=pool.Get()
+				defer redisConn.Close()
 				redisConn.Do("SET",cacheParams,cacheDataStr)
 				fmt.Printf("cacheDataStr",cacheDataStr)
 			}
 			return c.JSON( http.StatusOK,data2)
-		}else if redisConn!=nil&&ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
+		}else if redisHost!=""&&ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
 			data2:=data.(*Paginator)
 			data2.Data=[]string{}
 			return c.JSON( http.StatusOK,data2)
@@ -577,7 +605,10 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			cacheDataStr:=string(dataByte[:])
 			//fmt.Printf("cacheDataStr",cacheDataStr)
 
-			if redisConn!=nil{
+			if(redisHost!=""){
+				pool:=newPool(redisHost)
+				redisConn:=pool.Get()
+				defer redisConn.Close()
 				redisConn.Do("SET",cacheParams,cacheDataStr)
 				fmt.Printf("cacheDataStr",cacheDataStr)
 			}
@@ -588,7 +619,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 }
 
 
-func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -610,7 +641,10 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) fun
 				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 			}
 
-			if redisConn!=nil{
+			if(redisHost!=""){
+				pool:=newPool(redisHost)
+				redisConn:=pool.Get()
+				defer redisConn.Close()
 				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 				fmt.Println(val, err)
@@ -651,7 +685,7 @@ func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string)
 	return rs,errorMessage
 }
 
-func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -659,8 +693,8 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
 		// 前置条件处理
-	    operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,"POST")
-	    var operate_condition string
+		operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,"POST")
+		var operate_condition string
 		var operate_content string
 
 		for _,operate:=range operates {
@@ -672,7 +706,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 		var conditionFiledArr [5]string
 		var operateCondJsonMap map[string]interface{}
 		var operateCondContentJsonMap map[string]interface{}
-		  fieldList:=list.New()
+		fieldList:=list.New()
 		// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
 		if(operate_condition!=""){
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
@@ -734,7 +768,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 						break
 					}
 				}
-				 actionFiledMap:= map[string]interface{}{}
+				actionFiledMap:= map[string]interface{}{}
 				actionFiledMap[action_field]=action_field_value
 				if pri_key_value!=""{
 					rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
@@ -760,9 +794,9 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 				if payload[priKey]!=nil{
 					priId=payload[priKey].(string)
 				}else{
-						uuid := uuid.NewV4()
-					    priId=uuid.String()
-						payload[priKey]=priId
+					uuid := uuid.NewV4()
+					priId=uuid.String()
+					payload[priKey]=priId
 
 				}
 
@@ -786,7 +820,10 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -800,7 +837,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 	}
 }
 
-func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -817,7 +854,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -831,7 +871,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 	}
 }
 
-func endpointTableDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -853,7 +893,10 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -867,7 +910,7 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 	}
 }
 
-func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -886,7 +929,10 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -900,7 +946,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisConn redis.Conn) 
 	}
 }
 
-func endpointBatchCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c echo.Context) error {
+func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
@@ -924,7 +970,10 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisConn redis.Conn) func(c e
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 
-		if redisConn!=nil{
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
@@ -1010,18 +1059,18 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 			sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
 			// 支持同一个参数字符串里包含多个条件
 			if strings.Contains(sWhere,"&"){
-			  subWhereArr:=	strings.Split(sWhere,"&")
-			  for _,subWhere:=range subWhereArr{
-				  arr := r.FindStringSubmatch(subWhere)
-				  if len(arr) == 4 {
-					  switch arr[2] {
-					  case "in", "notIn":
-						  option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-					  case "like", "is", "neq", "isNot", "eq","lt","gt":
-						  option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
-					  }
-				  }
-			  }
+				subWhereArr:=	strings.Split(sWhere,"&")
+				for _,subWhere:=range subWhereArr{
+					arr := r.FindStringSubmatch(subWhere)
+					if len(arr) == 4 {
+						switch arr[2] {
+						case "in", "notIn":
+							option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+						case "like", "is", "neq", "isNot", "eq","lt","gt":
+							option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+						}
+					}
+				}
 			}else{
 				arr := r.FindStringSubmatch(sWhere)
 				if len(arr) == 4 {
@@ -1060,4 +1109,29 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 		}
 	}
 	return
+}
+func newPool(server string) *redis.Pool {
+	return &redis.Pool{
+		MaxIdle:     8,
+		MaxActive:   10,
+		IdleTimeout: 12*3600 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", server)
+			if err != nil {
+				return nil, err
+			}
+			//if _, err := c.Do("AUTH", password); err != nil {
+			//	c.Close()
+			//	return nil, err
+			//}
+			return c, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			if time.Since(t) < time.Minute {
+				return nil
+			}
+			_, err := c.Do("PING")
+			return err
+		},
+	}
 }

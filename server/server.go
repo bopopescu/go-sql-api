@@ -5,7 +5,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/shiyongabc/go-mysql-api/adapter"
 	"github.com/robfig/cron"
-	"github.com/garyburd/redigo/redis"
+
 	"fmt"
 )
 
@@ -28,15 +28,15 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	server.api = api
 //	databaseName:=api.GetDatabaseMetadata().DatabaseName
   fmt.Printf("redisHost",redisHost)
-	c, err := redis.Dial("tcp", redisHost)
-	if err != nil {
-		fmt.Println("Connect to redis error", err)
-		c=nil
-	}else{
-		fmt.Println("Connect to redis success")
-	}
+	//c, err := redis.Dial("tcp", redisHost)
+	//if err != nil {
+	//	fmt.Println("Connect to redis error", err)
+	//	c=nil
+	//}else{
+	//	fmt.Println("Connect to redis success")
+	//}
 
-	mountEndpoints(server.Echo, server.api,databaseName,c)
+	mountEndpoints(server.Echo, server.api,databaseName,redisHost)
 	return server
 }
 
