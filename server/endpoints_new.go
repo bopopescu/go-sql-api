@@ -155,9 +155,12 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
+				}
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
@@ -171,7 +174,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
 
 			fmt.Println(val1, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val1 {
 				redisConn.Send("DEL", val1[i])
 			}
@@ -250,9 +253,12 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
+				}
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
@@ -266,7 +272,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
 
 			fmt.Println(val1, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val1 {
 				redisConn.Send("DEL", val1[i])
 			}
@@ -336,6 +342,10 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		params=strings.Replace(params,"Links","",-1)
 		params=strings.Replace(params,"Wheres","",-1)
 		params=strings.Replace(params,"Search","",-1)
+		params=strings.Replace(params,"\n","",-1)
+		params=strings.Replace(params," ","",-1)
+		params=strings.Replace(params,"%","",-1)
+		params=strings.Replace(params,".","",-1)
 
 		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
 		fmt.Printf("params=",params)
@@ -650,9 +660,12 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 				fmt.Println(val, err)
-				redisConn.Send("MULTI")
+				//redisConn.Send("MULTI")
 				for i, _ := range val {
-					redisConn.Send("DEL", val[i])
+					_, err = redisConn.Do("DEL", val[i])
+					if err != nil {
+						fmt.Println("redis delelte failed:", err)
+					}
 					fmt.Printf("DEL-CACHE",val[i], err)
 				}
 			}
@@ -830,9 +843,12 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
+				}
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
@@ -865,11 +881,17 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
-			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
-				fmt.Printf("DEL-CACHE",val[i], err)
+			//redisConn.Send("MULTI")
+			if rowesAffected>0{
+				for i, _ := range val {
+					_, err = redisConn.Do("DEL", val[i])
+					if err != nil {
+						fmt.Println("redis delelte failed:", err)
+					}
+					fmt.Printf("DEL-CACHE",val[i], err)
+				}
 			}
+
 		}
 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
@@ -905,9 +927,12 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
+				}
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
@@ -942,10 +967,18 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
-			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
-				fmt.Printf("DEL-CACHE",val[i], err)
+			////redisConn.Send("MULTI")
+			if rowesAffected>0{
+			  for i, _ := range val {
+				//err:=_, err = redisConn.Do("DEL", val[i])
+					_, err = redisConn.Do("DEL", val[i])
+					if err != nil {
+						fmt.Println("redis delelte failed:", err)
+					}
+
+					fmt.Printf("DEL-CACHE",val[i], err)
+				}
+
 			}
 		}
 
@@ -984,9 +1017,12 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
 			fmt.Println(val, err)
-			redisConn.Send("MULTI")
+			//redisConn.Send("MULTI")
 			for i, _ := range val {
-				redisConn.Send("DEL", val[i])
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
+				}
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
