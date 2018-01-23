@@ -158,6 +158,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -252,6 +253,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -651,6 +653,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 				redisConn.Send("MULTI")
 				for i, _ := range val {
 					redisConn.Send("DEL", val[i])
+					fmt.Printf("DEL-CACHE",val[i], err)
 				}
 			}
 
@@ -830,6 +833,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -864,6 +868,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -903,6 +908,7 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -939,6 +945,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -980,6 +987,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			redisConn.Send("MULTI")
 			for i, _ := range val {
 				redisConn.Send("DEL", val[i])
+				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
 
