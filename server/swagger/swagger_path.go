@@ -8,12 +8,31 @@ import (
 
 func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]spec.PathItem) {
 	paths = make(map[string]spec.PathItem)
-
+	clearCachePath := spec.PathItem{}
 	batchRelatedPath := spec.PathItem{}
 	deleteRelatedPath := spec.PathItem{}
 	patchRelatedPath := spec.PathItem{}
 	metadataPath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+
+	clearCachePath.Get=NewOperation(
+		"clear-cache",
+		fmt.Sprintf("清除指定key的缓存"),
+		fmt.Sprintf("清除指定key的缓存"),
+		NewQueryParametersForClearCache(),
+
+
+		fmt.Sprintf("清除指定key的缓存"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"string"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/clear/cache/"]=clearCachePath
+
+
+
 	deleteRelatedPath.Delete=NewOperation(
 		"relate record(关联记录)",
 		fmt.Sprintf("删除关联记录数据"),

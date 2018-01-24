@@ -246,6 +246,13 @@ func NewQueryParametersForMySQLAPI() (ps []spec.Parameter) {
 	ps=append(ps,NewQueryParametersForOutputDields()...)
 	return
 }
+func NewQueryParametersForClearCache() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.KEY_CACHE, "缓存key", "string", true),
+	}
+	return
+}
+
 func NewQueryParametersForCustomPaging() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.KEY_QUERY_PAGEINDEX, "分页页码(从1开始编号)", "integer", false),

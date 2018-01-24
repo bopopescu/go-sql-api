@@ -29,6 +29,8 @@ import (
 
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisHost string) {
+	s.GET("/api/"+databaseName+"/clear/cache/", endpointTableClearCacheSpecific(api,redisHost)).Name = "clear cache"
+
 	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisHost)).Name = "batch save related table"
 	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisHost)).Name = "batch delete related table"
 	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
@@ -157,7 +159,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 
 				rowesAffected=rowesAffected+count
 			}
-		//	return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
+			//	return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
 		}
 
 
@@ -650,6 +652,49 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 	}
 }
 
+func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var count int
+		tableName := c.Param("table")
+		cacheKey := c.Param("cacheKey")
+
+			cacheKeyPattern:=cacheKey
+			if strings.Contains(tableName,"related"){
+				endIndex:=strings.LastIndex(tableName,"related")
+				cacheTable:=string(tableName[0:endIndex])
+				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+			}
+			if strings.Contains(tableName,"detail"){
+				endIndex:=strings.LastIndex(tableName,"detail")
+				cacheTable:=string(tableName[0:endIndex])
+				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+			}
+
+			if(redisHost!=""){
+				pool:=newPool(redisHost)
+				redisConn:=pool.Get()
+				defer redisConn.Close()
+				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+				fmt.Println(val, err)
+				//redisConn.Send("MULTI")
+				for i, _ := range val {
+					_, err = redisConn.Do("DEL", val[i])
+					if err != nil {
+						fmt.Println("redis delelte failed:", err)
+					}else{
+						count=count+1
+					}
+					fmt.Printf("DEL-CACHE",val[i], err)
+				}
+			}
+
+			return c.JSON(http.StatusOK, count)
+
+	}
+}
+
+
 
 func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
@@ -669,6 +714,11 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 			cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 			if strings.Contains(tableName,"related"){
 				endIndex:=strings.LastIndex(tableName,"related")
+				cacheTable:=string(tableName[0:endIndex])
+				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+			}
+			if strings.Contains(tableName,"detail"){
+				endIndex:=strings.LastIndex(tableName,"detail")
 				cacheTable:=string(tableName[0:endIndex])
 				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 			}
