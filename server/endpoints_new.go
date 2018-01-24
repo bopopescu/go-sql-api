@@ -369,7 +369,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
-			if cacheData!="QUEUED"&&cacheData!=""{
+			if cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{
 				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost)
 			}
 
@@ -392,7 +392,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			fmt.Printf("cacheTotalCount",cacheTotalCount)
 			fmt.Printf("err",err)
 			fmt.Printf("cacheData",cacheData)
-			if cacheTotalCount!="" &&cacheData!="QUEUED"&&cacheData!=""&&err==nil{
+			if cacheTotalCount!="" &&cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"&&err==nil{
 				totalCount:=0
 				totalCount,err:=strconv.Atoi(cacheTotalCount)
 				if err!=nil{
@@ -577,11 +577,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 
 
-		if ispaginator&&cacheData!="QUEUED"&&cacheData!=""{
+		if ispaginator&&cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{
 			var paginator Paginator
 			json.Unmarshal([]byte(cacheData), &paginator)
 			return c.JSON( http.StatusOK,paginator)
-		}else if cacheData!="QUEUED"&&cacheData!=""{
+		}else if cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{
 			var catcheStruct interface{}
 			json.Unmarshal([]byte(cacheData), &catcheStruct)
 			return c.JSON( http.StatusOK,catcheStruct)
@@ -969,8 +969,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			fmt.Println(val, err)
 			////redisConn.Send("MULTI")
 			if rowesAffected>0{
-			  for i, _ := range val {
-				//err:=_, err = redisConn.Do("DEL", val[i])
+				for i, _ := range val {
+					//err:=_, err = redisConn.Do("DEL", val[i])
 					_, err = redisConn.Do("DEL", val[i])
 					if err != nil {
 						fmt.Println("redis delelte failed:", err)
