@@ -130,6 +130,26 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 
 							api.Delete(operate_table, fielVale, nil)
 							count=count+1
+
+							cacheKeyPattern0:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+operate_table+"*"
+							if(redisHost!=""){
+								pool:=newPool(redisHost)
+								redisConn:=pool.Get()
+								defer redisConn.Close()
+								val0, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern0))
+
+								fmt.Println(val0, err)
+								//redisConn.Send("MULTI")
+								for i, _ := range val0 {
+									_, err = redisConn.Do("DEL", val0[i])
+									if err != nil {
+										fmt.Println("redis delelte failed:", err)
+									}
+									fmt.Printf("DEL-CACHE",val0[i], err)
+								}
+							}
+
+
 						}
 					}
 
@@ -137,7 +157,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 
 				rowesAffected=rowesAffected+count
 			}
-			return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
+		//	return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
 		}
 
 
