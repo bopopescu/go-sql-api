@@ -258,8 +258,18 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		fmt.Printf("data", data)
 		fmt.Printf("errorMessage", errorMessage)
 
+		var primaryColumnsSlave []*ColumnMetadata
+		primaryColumnsSlave=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
+		var slaveColumnName string
+		for _, col := range primaryColumnsSlave {
+			if col.Key == "PRI" {
+				slaveColumnName=col.ColumnName
+				break;//取第一个主键
+			}
+		}
+
 		for _,slaveInfo:=range data {
-			slaveId:= slaveInfo["id"].(string)
+			slaveId:= slaveInfo[slaveColumnName].(string)
 			api.Delete(slaveTableName,slaveId,nil)
 			count=count+1
 		}
