@@ -657,17 +657,16 @@ func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) 
 		var count int
 		//tableName := c.Param("table")
 		cacheKey := c.Param("cacheKey")
-
+		cacheKey=cacheKey+"*"
 			cacheKeyPattern:=cacheKey
-
-
+			fmt.Printf("cacheKey=",cacheKey)
 			if(redisHost!=""){
 				pool:=newPool(redisHost)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
-				fmt.Println(val, err)
+				fmt.Println("redis-keys=",val)
 				//redisConn.Send("MULTI")
 				for i, _ := range val {
 					_, err = redisConn.Do("DEL", val[i])
