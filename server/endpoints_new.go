@@ -906,6 +906,11 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
+		if strings.Contains(tableName,"detail"){
+			endIndex:=strings.LastIndex(tableName,"detail")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
 		if(redisHost!=""){
 			pool:=newPool(redisHost)
 			redisConn:=pool.Get()
