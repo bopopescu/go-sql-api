@@ -357,7 +357,14 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			fmt.Printf("err",err)
 		}
 
+		orderBytes,err:=json.Marshal(option.Orders)
+		if err!=nil{
+			fmt.Printf("err",err)
+		}
+
+		orderParam:=string(orderBytes[:])
 		params:=string(paramBytes[:])
+		params=params+orderParam
 		params=strings.Replace(params,"\"","-",-1)
 		params=strings.Replace(params,":","-",-1)
 		params=strings.Replace(params,",","-",-1)
@@ -378,6 +385,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		params=strings.Replace(params," ","",-1)
 		params=strings.Replace(params,"%","",-1)
 		params=strings.Replace(params,".","",-1)
+//params=option.Orders
 
 		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
 		fmt.Printf("params=",params)
