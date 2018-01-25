@@ -1145,7 +1145,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	option = QueryOption{}
 	queryParam := c.QueryParams()
 	//option.Index, option.Limit, option.Offset, option.Fields, option.Wheres, option.Links, err = parseQueryParams(c)
-	option.Limit, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGESIZE))      // _limit
+	option.Limit, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGESIZE))  // _limit
 	option.Index, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGEINDEX)) // _skip
 	//排除未传值的情况(==0)
 	if option.Limit != 0 {
@@ -1167,15 +1167,15 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	option.Fields = make([]string, 0)
 	if queryParam[key.KEY_QUERY_FIELDS] != nil { // _fields
 		for _, f := range queryParam[key.KEY_QUERY_FIELDS] {
-			if(f!=""){
+			if (f != "") {
 				option.Fields = append(option.Fields, f)
 			}
 		}
 	}
 	if queryParam[key.KEY_QUERY_LINK] != nil { // _link
-		option.Links = make([]string,0)
+		option.Links = make([]string, 0)
 		for _, f := range queryParam[key.KEY_QUERY_LINK] {
-			if(f!=""){
+			if (f != "") {
 				option.Links = append(option.Links, f)
 			}
 		}
@@ -1186,35 +1186,45 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 		for _, sWhere := range queryParam[key.KEY_QUERY_WHERE] {
 			sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
 			// 支持同一个参数字符串里包含多个条件
-			if strings.Contains(sWhere,"&"){
-				subWhereArr:=	strings.Split(sWhere,"&")
-				for _,subWhere:=range subWhereArr{
+			if strings.Contains(sWhere, "&") {
+				subWhereArr := strings.Split(sWhere, "&")
+				for _, subWhere := range subWhereArr {
 					arr := r.FindStringSubmatch(subWhere)
 					if len(arr) == 4 {
 						switch arr[2] {
 						case "in", "notIn":
 							option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-						case "like", "is", "neq", "isNot", "eq","lt","gt":
+						case "like", "is", "neq", "isNot", "eq":
 							option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+						case "lt":
+							option.Wheres[arr[1]+"lt"] = WhereOperation{arr[2], arr[3]}
+						case  "gt":
+							option.Wheres[arr[1]+"gt"] = WhereOperation{arr[2], arr[3]}
+
 						}
 					}
 				}
-			}else{
+			} else {
 				arr := r.FindStringSubmatch(sWhere)
 				if len(arr) == 4 {
 					switch arr[2] {
 					case "in", "notIn":
 						option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-					case "like", "is", "neq", "isNot", "eq","lt","gt":
+					case "like", "is", "neq", "isNot", "eq":
 						option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
-					}
+
+					case "lt":
+						option.Wheres[arr[1]+"lt"] = WhereOperation{arr[2], arr[3]}
+					case  "gt":
+						option.Wheres[arr[1]+"gt"] = WhereOperation{arr[2], arr[3]}
+
 				}
+
 			}
-
-
-
 		}
+
 	}
+}
 
 
 	orderR := regexp.MustCompile("\\'(.*?)\\'\\((.*?)\\)")
