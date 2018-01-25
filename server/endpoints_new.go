@@ -655,20 +655,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		var count int
-		tableName := c.Param("table")
+		//tableName := c.Param("table")
 		cacheKey := c.Param("cacheKey")
 
 			cacheKeyPattern:=cacheKey
-			if strings.Contains(tableName,"related"){
-				endIndex:=strings.LastIndex(tableName,"related")
-				cacheTable:=string(tableName[0:endIndex])
-				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
-			}
-			if strings.Contains(tableName,"detail"){
-				endIndex:=strings.LastIndex(tableName,"detail")
-				cacheTable:=string(tableName[0:endIndex])
-				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
-			}
+
 
 			if(redisHost!=""){
 				pool:=newPool(redisHost)
@@ -949,6 +940,11 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"detail"){
+			endIndex:=strings.LastIndex(tableName,"detail")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
 		if(redisHost!=""){
 			pool:=newPool(redisHost)
 			redisConn:=pool.Get()
@@ -1034,7 +1030,11 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
-
+		if strings.Contains(tableName,"detail"){
+			endIndex:=strings.LastIndex(tableName,"detail")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
 		if(redisHost!=""){
 			pool:=newPool(redisHost)
 			redisConn:=pool.Get()
