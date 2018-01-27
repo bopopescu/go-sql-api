@@ -390,7 +390,28 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
 		fmt.Printf("params=",params)
 		var cacheData string
-		if redisHost!=""{
+
+		// 先从配置中获取是否需要缓存
+
+		whereOption := map[string]WhereOperation{}
+			whereOption["view_name"] = WhereOperation{
+				Operation: "eq",
+				Value:     tableName,
+			}
+		querOption := QueryOption{Wheres: whereOption, Table: tableName}
+		rsQuery, errorMessage:= api.Select(querOption)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage", errorMessage)
+		}else{
+			fmt.Printf("rs", rsQuery)
+		}
+       // is_need_cache
+       var isNeedCache int
+       for _,rsq:=range rsQuery{
+		   isNeedCache=rsq["is_need_cache"].(int)
+	   }
+
+		if isNeedCache==1&&redisHost!=""{
 			pool:=newPool(redisHost)
 			redisConn:=pool.Get()
 			cacheData, err = redis.String(redisConn.Do("GET", params))
@@ -410,7 +431,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
 			if cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{
-				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost)
+				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost,isNeedCache)
 			}
 
 			//无需分页,直接返回数组
@@ -418,7 +439,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c,data,false,tableName,api,params,redisHost)
+			return responseTableGet(c,data,false,tableName,api,params,redisHost,isNeedCache)
 		}else{
 			var cacheTotalCount string
 			if(redisHost!=""){
@@ -438,7 +459,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if err!=nil{
 					fmt.Printf("err",err)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost,isNeedCache)
 
 			}else{
 
@@ -459,7 +480,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if errorMessage != nil {
 					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost,isNeedCache)
 
 			}
 
@@ -468,7 +489,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 	}
 }
 
-func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string) error{
+func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,isNeedCache int) error{
 	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
 		if c.QueryParams().Get("filename")!="" {
@@ -602,7 +623,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 	}else{
 		var cacheData string
 		var err error
-		if(redisHost!=""){
+		if(isNeedCache==1&&redisHost!=""){
 			pool:=newPool(redisHost)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
@@ -636,7 +657,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			}
 			cacheDataStr:=string(dataByte[:])
 
-			if(redisHost!=""){
+			if(isNeedCache==1&&redisHost!=""){
 				pool:=newPool(redisHost)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
@@ -657,7 +678,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			cacheDataStr:=string(dataByte[:])
 			//fmt.Printf("cacheDataStr",cacheDataStr)
 
-			if(redisHost!=""){
+			if(isNeedCache==1&&redisHost!=""){
 				pool:=newPool(redisHost)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
@@ -719,35 +740,6 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		if(len(rs)==1){
-			cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
-			if strings.Contains(tableName,"related"){
-				endIndex:=strings.LastIndex(tableName,"related")
-				cacheTable:=string(tableName[0:endIndex])
-				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
-			}
-			if strings.Contains(tableName,"detail"){
-				endIndex:=strings.LastIndex(tableName,"detail")
-				cacheTable:=string(tableName[0:endIndex])
-				cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
-			}
-
-			if(redisHost!=""){
-				pool:=newPool(redisHost)
-				redisConn:=pool.Get()
-				defer redisConn.Close()
-				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
-
-				fmt.Println(val, err)
-				//redisConn.Send("MULTI")
-				for i, _ := range val {
-					_, err = redisConn.Do("DEL", val[i])
-					if err != nil {
-						fmt.Println("redis delelte failed:", err)
-					}
-					fmt.Printf("DEL-CACHE",val[i], err)
-				}
-			}
-
 			return c.JSON(http.StatusOK, &rs[0])
 		}else if(len(rs)>1){
 			errorMessage = &ErrorMessage{ERR_SQL_RESULTS,fmt.Sprintf("Expected one result to be returned by selectOne(), but found: %d", len(rs))}
