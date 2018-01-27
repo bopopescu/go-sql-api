@@ -398,8 +398,8 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				Operation: "eq",
 				Value:     tableName,
 			}
-		querOption := QueryOption{Wheres: whereOption, Table: tableName}
-		rsQuery, errorMessage:= api.Select(querOption)
+		viewQuerOption := QueryOption{Wheres: whereOption, Table: "view_config"}
+		rsQuery, errorMessage:= api.Select(viewQuerOption)
 		if errorMessage!=nil{
 			fmt.Printf("errorMessage", errorMessage)
 		}else{
