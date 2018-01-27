@@ -408,7 +408,8 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
        // is_need_cache
        var isNeedCache int
        for _,rsq:=range rsQuery{
-		   isNeedCache=rsq["is_need_cache"].(int)
+		   isNeedCacheStr:=rsq["is_need_cache"].(string)
+		   isNeedCache,err=strconv.Atoi(isNeedCacheStr)
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
