@@ -443,7 +443,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			return responseTableGet(c,data,false,tableName,api,params,redisHost,isNeedCache)
 		}else{
 			var cacheTotalCount string
-			if(redisHost!=""){
+			if(isNeedCache==1&&redisHost!=""){
 				pool:=newPool(redisHost)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
@@ -471,7 +471,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				}
 
 				data, errorMessage := api.Select(option)
-				if(redisHost!=""){
+				if(isNeedCache==1&&redisHost!=""){
 					pool:=newPool(redisHost)
 					redisConn:=pool.Get()
 					defer redisConn.Close()
