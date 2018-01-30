@@ -25,6 +25,7 @@ import (
 	"container/list"
 
 	"time"
+
 )
 
 // mountEndpoints to echo server
@@ -423,8 +424,20 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				fmt.Printf("Get mykey: %v \n", cacheData)
 			}
 		}
+       // 如果是查询商品列表 隔离绿通公司查询商品
+       // 如果没有传服务商id  则默认查 绿通公司的商品
+       if tableName=="goods_info_view"{
+		 if  option.Wheres["goods_info_view.dis_service_id"].Operation==""{
+		 	if option.Wheres==nil{
+				option.Wheres=map[string]WhereOperation{}
+			}
+			option.Wheres[tableName+".dis_service_id"]=WhereOperation{
+				Operation:"eq",
+			Value:"a505f58f-6cdd-41af-93c8-9eddffcb993b",
+			}
+		 }
 
-
+	   }
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
