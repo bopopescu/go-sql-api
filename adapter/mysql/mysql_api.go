@@ -460,7 +460,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			return 0,errorMessage
 		}else{
 			rs,err=api.exec(sql)
-			slaveRowAffect,err=rs.RowsAffected()
+
 			if err != nil {
 				fmt.Printf("err",err)
 				// 回滚已经插入的数据
@@ -470,6 +470,9 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 				}
 				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 				return 0,errorMessage
+			}else{
+				slaveRowAffect,err=rs.RowsAffected()
+
 			}
 			rowAaffect=rowAaffect+slaveRowAffect
 		}
@@ -569,7 +572,7 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 			return 0,errorMessage
 		}else{
 			rs,err=api.exec(sql)
-			slaveRowAffect,err=rs.RowsAffected()
+			
 			if err != nil {
 
 				// 回滚已经插入的数据
@@ -579,6 +582,8 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 				}
 				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 				return 0,errorMessage
+			}else{
+				slaveRowAffect,err=rs.RowsAffected()
 			}
 			rowAaffect=rowAaffect+slaveRowAffect
 		}
