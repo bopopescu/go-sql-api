@@ -426,8 +426,8 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
        // 如果是查询商品列表 隔离绿通公司查询商品
        // 如果没有传服务商id  则默认查 绿通公司的商品
-       if tableName=="goods_info_view"{
-		 if  option.Wheres["goods_info_view.dis_service_id"].Operation==""{
+       if tableName=="goods_info_view" || tableName=="goods_category"{
+		 if  option.Wheres["goods_info_view.dis_service_id"].Operation=="" || option.Wheres["goods_category.dis_service_id"].Operation==""{
 		 	if option.Wheres==nil{
 				option.Wheres=map[string]WhereOperation{}
 			}
