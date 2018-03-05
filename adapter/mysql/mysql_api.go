@@ -354,6 +354,9 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			for _, col := range primaryColumns1 {
 				if col.Key == "PRI" {
 					slavePriKey = col.ColumnName
+					if slave[slavePriKey]!=nil{
+						slavePriId=slave[slavePriKey].(string)
+					}
 					fmt.Printf("slave", slave)
 					break; //取第一个主键
 				}
@@ -363,7 +366,10 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		for _, col := range primaryColumns {
 			if col.ColumnName==slavePriKey{
 				uuid := uuid.NewV4()
-				slavePriId=uuid.String()
+				//slavePriId=uuid.String()
+				if slavePriId==""{
+					slavePriId=uuid.String()
+				}
 				masterInfoMap[col.ColumnName]=slavePriId
 			}
 
@@ -412,7 +418,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 	sql, err := api.sql.InsertByTable(masterTableName, masterInfoMap)
 
-	if errorMessage != nil {
+	if err != nil {
 
 		// 回滚已经插入的数据
 	//	api.Delete(masterTableName,masterId,nil)
@@ -424,7 +430,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	}
 
 	rs,errorMessage=api.exec(sql)
-	fmt.Printf("err=",errorMessage)
+	fmt.Printf("batch-master-err=",errorMessage)
 	if errorMessage != nil  {
 		// 回滚已经插入的数据
 		api.Delete(masterTableName,masterId,nil)
@@ -437,7 +443,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 	masterRowAffect,err=rs.RowsAffected()
 	if err != nil {
-		fmt.Printf("err",err)
+		fmt.Printf("batch-master-getrows-err",err)
 		// 回滚已经插入的数据
 		api.Delete(masterTableName,masterId,nil)
 		for e := slaveIds.Front(); e != nil; e = e.Next() {
@@ -448,18 +454,8 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	}
 
 
-	for i, slave := range slaveInfoMap {
-		for _, col := range primaryColumns1 {
-			if col.Key == "PRI" {
-				slavePriKey=col.ColumnName
-				if slave[slavePriKey]!=nil{
-					slavePriId=slave[slavePriKey].(string)
-				}
+	for _, slave := range slaveInfoMap {
 
-				fmt.Printf("slavePriId",slavePriId)
-				break;//取第一个主键
-			}
-		}
 		//设置主键id
         slave[masterPriKey]=masterId
 		if slavePriId==""{
@@ -471,7 +467,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		}
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
-		fmt.Printf("i=",i)
+		fmt.Printf("get-sql-err=",err)
 		fmt.Printf("slavePriId",slavePriId)
 		slaveIds.PushBack(slavePriId)
 
@@ -484,10 +480,10 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 			return 0,errorMessage
 		}else{
-			rs,err=api.exec(sql)
+			rs,errorMessage=api.exec(sql)
 
-			if err != nil {
-				fmt.Printf("batch-slave-err",err)
+			if errorMessage != nil {
+				fmt.Printf("batch-slave-err",errorMessage)
 				// 回滚已经插入的数据
 				api.Delete(masterTableName,masterId,nil)
 				for e := slaveIds.Front(); e != nil; e = e.Next() {
