@@ -340,6 +340,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		fmt.Printf("err=",errorMessage)
 	}
 	//
+	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	var primaryColumns []*ColumnMetadata
     var masterPriKey string
 	var slavePriId string
@@ -410,7 +411,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		}
 	}
 	masterInfoMap[masterPriKey]=masterId
-	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
+
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
 	}
