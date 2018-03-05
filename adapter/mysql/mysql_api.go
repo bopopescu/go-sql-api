@@ -363,8 +363,8 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 		for _, col := range primaryColumns {
 			if col.ColumnName==slavePriKey{
 				uuid := uuid.NewV4()
-				dependencId:=uuid.String()
-				masterInfoMap[col.ColumnName]=dependencId
+				slavePriId=uuid.String()
+				masterInfoMap[col.ColumnName]=slavePriId
 			}
 
 		}
@@ -487,7 +487,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			rs,err=api.exec(sql)
 
 			if err != nil {
-				fmt.Printf("err",err)
+				fmt.Printf("batch-slave-err",err)
 				// 回滚已经插入的数据
 				api.Delete(masterTableName,masterId,nil)
 				for e := slaveIds.Front(); e != nil; e = e.Next() {
