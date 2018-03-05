@@ -354,6 +354,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			for _, col := range primaryColumns1 {
 				if col.Key == "PRI" {
 					slavePriKey = col.ColumnName
+
 					if slave[slavePriKey]!=nil{
 						slavePriId=slave[slavePriKey].(string)
 					}
@@ -455,7 +456,17 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 
 	for _, slave := range slaveInfoMap {
+		for _, col := range primaryColumns1 {
+			if col.Key == "PRI" {
+				slavePriKey = col.ColumnName
 
+				if slave[slavePriKey]!=nil{
+					slavePriId=slave[slavePriKey].(string)
+				}
+				fmt.Printf("slave", slave)
+				break; //取第一个主键
+			}
+		}
 		//设置主键id
         slave[masterPriKey]=masterId
 		if slavePriId==""{
