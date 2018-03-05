@@ -350,33 +350,34 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
 	primaryColumns1=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
 	// 如果是一对一 且有相互依赖
-	if len(slaveInfoMap)==1{
-		//for _, slave := range slaveInfoMap {
+	if len(slaveInfoMap)==1 {
+		for _, slave := range slaveInfoMap {
 			for _, col := range primaryColumns1 {
 				if col.Key == "PRI" {
 					slavePriKey = col.ColumnName
 
-					//if slave[slavePriKey]!=nil{
-					//	slavePriId=slave[slavePriKey].(string)
-					//}
-					fmt.Printf("slavePriKey====", slavePriKey)
+					if slave[slavePriKey] != nil {
+						slavePriId = slave[slavePriKey].(string)
+					}
+					fmt.Printf("slavePriId-key==", slavePriKey)
 					break; //取第一个主键
 				}
-		//	}
-		}
-
-		for _, col := range primaryColumns {
-			if col.ColumnName==slavePriKey{
-				uuid := uuid.NewV4()
-				//slavePriId=uuid.String()
-				if slavePriId==""{
-					slavePriId=uuid.String()
-				}
-				fmt.Printf("slavePriId====", slavePriId)
-				masterInfoMap[slavePriKey]=slavePriId
 			}
 
 		}
+		for _, col := range primaryColumns {
+			if col.ColumnName == slavePriKey {
+				uuid := uuid.NewV4()
+				//slavePriId=uuid.String()
+				if slavePriId == "" {
+					slavePriId = uuid.String()
+				}
+				fmt.Printf("slavePriId====", slavePriId)
+				masterInfoMap[slavePriKey] = slavePriId
+			}
+
+		}
+
 	}
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
