@@ -366,6 +366,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 		}
 		for _, col := range primaryColumns {
+			fmt.Printf("slavePriId-master====", col.ColumnName,"==",slavePriKey)
 			if col.ColumnName == slavePriKey {
 				uuid := uuid.NewV4()
 				//slavePriId=uuid.String()
