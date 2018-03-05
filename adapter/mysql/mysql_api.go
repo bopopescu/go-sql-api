@@ -365,6 +365,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 			}
 
 		}
+	}
 		for _, col := range primaryColumns {
 			fmt.Printf("slavePriId-master====", col.ColumnName,"==",slavePriKey)
 			if col.ColumnName == slavePriKey {
@@ -379,7 +380,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 		}
 
-	}
+
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			if masterTableName=="order_form"{
