@@ -348,6 +348,7 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 	var primaryColumns1 []*ColumnMetadata
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+
 	primaryColumns1=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
 	// 如果是一对一 且有相互依赖
 	if len(slaveInfoMap)==1 {
@@ -366,20 +367,16 @@ func (api *MysqlAPI) RelatedCreate(obj map[string]interface{}) (rowAffect int64,
 
 		}
 	}
-		for i, col := range primaryColumns {
-			fmt.Printf("slavePriId-master====", col.ColumnName,"index==",i,"slavePriKey",slavePriKey)
-			if col.ColumnName == slavePriKey {
-				uuid := uuid.NewV4()
-				//slavePriId=uuid.String()
-				if slavePriId == "" {
-					slavePriId = uuid.String()
-				}
-				fmt.Printf("slavePriId====", slavePriId)
-				masterInfoMap[slavePriKey] = slavePriId
-			}
-
+	if api.GetDatabaseMetadata().GetTableMeta(masterTableName).HaveField(slavePriKey){
+		uuid := uuid.NewV4()
+		//slavePriId=uuid.String()
+		if slavePriId == "" {
+			slavePriId = uuid.String()
 		}
-
+		fmt.Printf("slavePriId====", slavePriId)
+		masterInfoMap[slavePriKey] = slavePriId
+	}
+		
 
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
