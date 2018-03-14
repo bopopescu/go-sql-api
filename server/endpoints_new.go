@@ -420,6 +420,8 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
        // is_need_cache
        var isNeedCache int
+       // 返回的字段是否需要计算公式计算
+
        for _,rsq:=range rsQuery{
 		   isNeedCacheStr:=rsq["is_need_cache"].(string)
 		   isNeedCache,err=strconv.Atoi(isNeedCacheStr)
@@ -440,6 +442,92 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+
+		// 查询时的后置事件
+		operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,"GET")
+		var operate_content string
+		var operate_type string
+		var operate_table string
+		var action_type string
+		for _,operate:=range operates {
+			operate_content = operate["operate_content"].(string)
+		}
+		var operateCondContentJsonMap map[string]interface{}
+		if (operate_content != "") {
+			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+		}
+       if operateCondContentJsonMap!=nil{
+		   operate_type = operateCondContentJsonMap["operate_type"].(string)
+		   operate_table = operateCondContentJsonMap["operate_table"].(string)
+		   action_type = operateCondContentJsonMap["action_type"].(string)
+	   }
+	   // 操作类型（一个操作类型对应多个action） 关联查询
+	  if operate_type!="" && operate_type=="RELATED_QUERY"{
+	  	 // DEPENDY_CACULATE
+	  	 if action_type!="" && action_type=="DEPENDY_CACULATE"{
+			var optionC QueryOption
+			var wheres map[string]WhereOperation
+			 wheres=make(map[string]WhereOperation)
+			var orders map[string]string
+			 orders=make(map[string]string)
+			 optionC.Table=operate_table
+			 wheres["biz_class"] = WhereOperation{
+				 Operation: "eq",
+				 Value:     option.Wheres[tableName+".biz_class"].Value.(string),
+			 }
+			 orders["order_num"]="asc"
+			 optionC.Orders=orders
+			 optionC.Wheres=wheres
+			 dataC, errorMessage := api.Select(optionC)
+			 fmt.Printf("dataC",dataC)
+			 tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(operate_table)
+			var columns []*ColumnMetadata
+			 if tableMetadata!=nil{
+				 columns= tableMetadata.Columns
+			 }
+			 if errorMessage==nil{
+				 for _,datac:=range dataC {
+				 	for _,column:=range columns{
+						caculateValue:=datac[column.ColumnName].(string)
+						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+						numberR := regexp.MustCompile("(^[\\d]+)$")
+						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\d]+)")
+						totalExpressR := regexp.MustCompile("^([\\w]+)\\=([\\d]+)")
+						numberRb:=numberR.MatchString(caculateValue)
+						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
+						totalExpressRb:=totalExpressR.MatchString(caculateValue)
+						fmt.Printf("numberRb=",numberRb," caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb)
+						if numberRb && caculateExpressRb && column.ColumnName!="order_num"{
+							// 计算表达式  begin_period=account_total_view.101+account_total_view.102
+							if strings.Contains(caculateValue,"="){
+								//含有=的表达式expressKey分期初和期末
+								strArr:=strings.Split(caculateValue,"=")
+								expressKey:=strArr[0]
+								fmt.Printf("expressKey=",expressKey)
+								if strings.Contains(expressKey,"begin"){
+									// 期初
+								}else if strings.Contains(expressKey,"end"){
+									//期末
+
+								}
+							}else{
+								// 部分期初和期末
+							}
+						}
+
+						if numberRb && totalExpressRb && column.ColumnName!="order_num"{
+							// 总值计算表达式 begin_period_total=9+8
+
+						}
+					}
+
+				 }
+			 }
+
+			 return responseTableGet(c,dataC,false,tableName,api,params,redisHost,isNeedCache)
+
+		 }
+	  }
 
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
