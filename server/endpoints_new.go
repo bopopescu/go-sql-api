@@ -7,6 +7,7 @@ import (
 	"github.com/shiyongabc/go-mysql-api/server/static"
 	"github.com/shiyongabc/go-mysql-api/adapter"
 	. "github.com/shiyongabc/go-mysql-api/types"
+	. "github.com/shiyongabc/go-mysql-api/server/util"
 	"math"
 	"encoding/json"
 	"strconv"
@@ -25,7 +26,13 @@ import (
 	"container/list"
 
 	"time"
+//	"github.com/shiyongabc/go-mysql-api/async"
+//	"context"
+//	"errors"
 
+//	"context"
+	//"context"
+//	"github.com/mkideal/pkg/option"
 )
 
 // mountEndpoints to echo server
@@ -347,7 +354,7 @@ func endpointUpdateMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error
 }
 
 func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
-
+	fmt.Printf("startTime=",time.Now())
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		option ,errorMessage:= parseQueryParams(c)
@@ -445,13 +452,29 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 		// 查询时的后置事件
 		operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,"GET")
+		var operate_condition string
+		var operateConditionJsonMap map[string]interface{}
+		var conditionFieldKey string
 		var operate_content string
 		var operate_type string
 		var operate_table string
 		var action_type string
+		var conditionFiledArr [5]string
 		for _,operate:=range operates {
 			operate_content = operate["operate_content"].(string)
+			operate_condition = operate["operate_condition"].(string)
 		}
+		if (operate_condition != "") {
+			json.Unmarshal([]byte(operate_condition), &operateConditionJsonMap)
+		}
+
+		if operateConditionJsonMap!=nil{
+			conditionFieldKey = operateConditionJsonMap["conditionFieldKey"].(string)
+			fmt.Printf("conditionFieldKey",conditionFieldKey)
+			conditionFileds:=operateConditionJsonMap["conditionFields"].(string)
+			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+		}
+
 		var operateCondContentJsonMap map[string]interface{}
 		if (operate_content != "") {
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
@@ -485,44 +508,167 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			 if tableMetadata!=nil{
 				 columns= tableMetadata.Columns
 			 }
+			 //查询公共条件
+			 var wheresExp map[string]WhereOperation
+			 wheresExp=make(map[string]WhereOperation)
+			 for _,item:=range conditionFiledArr{
+				 if option.Wheres[tableName+"."+item].Value!=nil{
+					 wheresExp[item] = WhereOperation{
+						 Operation: "eq",
+						 Value:     option.Wheres[tableName+"."+item].Value.(string),
+					 }
+				 }
+
+			 }
+             var lineValueMap map[string]float64
+			 lineValueMap=make(map[string]float64)
 			 if errorMessage==nil{
 				 for _,datac:=range dataC {
 				 	for _,column:=range columns{
-						caculateValue:=datac[column.ColumnName].(string)
-						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
-						numberR := regexp.MustCompile("(^[\\d]+)$")
-						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\d]+)")
-						totalExpressR := regexp.MustCompile("^([\\w]+)\\=([\\d]+)")
-						numberRb:=numberR.MatchString(caculateValue)
-						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
-						totalExpressRb:=totalExpressR.MatchString(caculateValue)
-						fmt.Printf("numberRb=",numberRb," caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb)
-						if numberRb && caculateExpressRb && column.ColumnName!="order_num"{
-							// 计算表达式  begin_period=account_total_view.101+account_total_view.102
-							if strings.Contains(caculateValue,"="){
-								//含有=的表达式expressKey分期初和期末
-								strArr:=strings.Split(caculateValue,"=")
-								expressKey:=strArr[0]
-								fmt.Printf("expressKey=",expressKey)
-								if strings.Contains(expressKey,"begin"){
-									// 期初
-								}else if strings.Contains(expressKey,"end"){
-									//期末
-
-								}
-							}else{
-								// 部分期初和期末
-							}
+				 		var caculateValue string
+				 		if datac[column.ColumnName]!=nil{
+							caculateValue=datac[column.ColumnName].(string)
 						}
 
-						if numberRb && totalExpressRb && column.ColumnName!="order_num"{
-							// 总值计算表达式 begin_period_total=9+8
+						//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
+						//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
+						//caculateValue="6=1+2+3+5"
+						//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
+						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+						arr:=strings.Split(caculateValue,"=")
+						var lineNumber string
+						if len(arr)>=2{
+							lineNumber=arr[0]
+							caculateValue=arr[1]
+						}
+
+						//numberR := regexp.MustCompile("(^[\\d]+)$")
+						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
+						totalExpressR := regexp.MustCompile("^([\\d]+)([\\+|\\-]?)([\\d]+)")
+						// UUID 匹配
+						totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
+						//numberRb:=numberR.MatchString(caculateValue)
+						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
+						totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
+						totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
+						fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
+
+						if  caculateExpressRb {
+							// 计算表达式 account_subject_left_view.begin_debit_funds.101+account_subject_left_view.begin_debit_funds.102
+
+								fmt.Printf("caculateValue=",caculateValue)
+							for{
+								if caculateExpressRb{
+									arr := caculateExpressR.FindStringSubmatch(caculateValue)
+									// "account_subject_left_view.begin_debit_funds.101"
+									// "account_subject_left_view"
+									// "begin_debit_funds"
+									// "101"
+									caculateValueItem:=arr[0]
+
+									fmt.Printf("caculateValueItem=",caculateValueItem)
+									// 通过正则匹配查询
+
+									result,errorMessage:=calculateForExpress(api,arr,conditionFieldKey,wheresExp)
+									fmt.Printf("errorMessage=",errorMessage)
+									caculateValue=strings.Replace(caculateValue,caculateValueItem,result,-1)
+									fmt.Printf("caculateValue=",caculateValue)
+									caculateExpressRb=caculateExpressR.MatchString(caculateValue)
+									if !caculateExpressRb{
+										//caculateValue="123.3+2.4-2"
+										//expStr := regexp.MustCompile("^([\\d]+\\.?[\\d]+)([\\-|\\+])([\\d]+\\.?[\\d]+)")
+										//expStr := regexp.MustCompile("[\\-|\\+]")
+										//expArr := expStr.FindStringSubmatch(caculateValue)
+										//
+										//exp,error :=ExpConvert(expArr)
+										//Exp(exp)
+										//fmt.Printf("err=",error)
+										calResult,error:=Calculate(caculateValue)
+										if error!=nil{
+											fmt.Printf("error=",error)
+										}
+										fmt.Printf("calResult=",calResult)
+										datac[column.ColumnName]=calResult
+										//resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
+										if strings.Contains(column.ColumnName,"begin"){
+											lineValueMap[lineNumber+"b"]=calResult
+										}else if strings.Contains(column.ColumnName,"end"){
+											lineValueMap[lineNumber+"e"]=calResult
+										}
+
+									}
+								}else{
+									break
+								}
+							}
+
+
+						}
+
+						if  column.ColumnName!="order_num"&&!strings.Contains(column.ColumnName,"line_number")&&totalExpressRb&&!totalExpressRb1{
+							for{
+								if column.ColumnName!="order_num"&&totalExpressRb&&!totalExpressRb1{
+									// 总值计算表达式 begin_period_total=9+8
+									//= "8+9"
+									//= "8"
+									//= "+"
+									//= "9"
+									arr := totalExpressR.FindStringSubmatch(caculateValue)
+									fmt.Printf("arr=",arr)
+									itemValue:=arr[0]
+									a:=arr[1]
+									operate:=arr[2]
+									b:=arr[3]
+									var af float64
+									var bf float64
+									if strings.Contains(column.ColumnName,"begin"){
+										af=lineValueMap[a+"b"]
+									}else if strings.Contains(column.ColumnName,"end"){
+										af=lineValueMap[a+"e"]
+									}
+									if strings.Contains(column.ColumnName,"begin"){
+										bf=lineValueMap[b+"b"]
+									}else if strings.Contains(column.ColumnName,"end"){
+										bf=lineValueMap[b+"e"]
+									}
+
+									calResult:=Calc(operate,af,bf)
+									resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
+									caculateValue=	strings.Replace(caculateValue,itemValue,resultStr,-1)
+									totalExpressRb=totalExpressR.MatchString(caculateValue)
+									totalExpressRb1=totalExpressR1.MatchString(caculateValue)
+									if !totalExpressRb{
+										datac[column.ColumnName]=calResult
+									}
+
+									//go func() {
+									//	fmt.Printf("shiyongabc")
+									//	time.Sleep(time.Second)
+									//}()
+
+
+								}else{
+									break
+								}
+							}
+
 
 						}
 					}
 
 				 }
 			 }
+
+ 			 fmt.Printf("endTime=",time.Now())
+			 //f1 := func(_ context.Context) error {
+				// time.Sleep(5*time.Second)
+				// return errors.New("test error")
+			 //}
+			 //
+			 //err :=  async.Run(context.Background(), f1)
+			 //
+			 //fmt.Printf("async-err=",err)
+			 //fmt.Printf("asyncEndTime=",time.Now())
 
 			 return responseTableGet(c,dataC,false,tableName,api,params,redisHost,isNeedCache)
 
@@ -589,7 +735,43 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
 	}
 }
+// 表达式计算
+func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey string,wheres map[string]WhereOperation)(r string,errorMessage *ErrorMessage){
+	// "account_subject_left_view.begin_debit_funds.101"
+	// "account_subject_left_view"
+	// "begin_debit_funds"
+	// "101"
+	caculateValueItem:=arr[0]
+	caculateFromTable:=arr[1]
+	caculateFromFiled:=arr[2]
+	caculateConFieldValue:=arr[3]
 
+	fmt.Printf("caculateValueItem",caculateValueItem)
+	var optionC QueryOption
+
+
+	optionC.Table=caculateFromTable
+	optionC.Fields=[]string{caculateFromFiled}
+	wheres[conditionFiledKey] = WhereOperation{
+		Operation: "eq",
+		Value:     caculateConFieldValue,
+	}
+
+	optionC.Wheres=wheres
+	var result string
+
+	dataC, errorMessage := api.Select(optionC)
+	for _,value:=range dataC{
+		resultIterface:=value[caculateFromFiled]
+		if resultIterface!=nil{
+			result=resultIterface.(string)
+			return result,nil
+		}
+
+	}
+	return "0",nil
+
+}
 func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,isNeedCache int) error{
 	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
