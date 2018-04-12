@@ -57,6 +57,8 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisHost)).Name = "Retrive Record By ID"
 	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisHost)).Name = "Delete Record By ID"
 	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Update Record By ID"
+	//  根据条件批量修改对象的局部字段
+	s.PATCH("/api/"+databaseName+"/:table/", endpointTableUpdateSpecificField(api,redisHost)).Name = "Update Record By part field"
 	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Put Record By ID"
 
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
@@ -1226,6 +1228,53 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 	}
 }
 
+func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		payload, errorMessage := bodyMapOf(c)
+		tableName := c.Param("table")
+		id := c.Param("id")
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+		rs, errorMessage := api.Update(tableName, id, payload)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
+		rowesAffected, err := rs.RowsAffected()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
+		}
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"detail"){
+			endIndex:=strings.LastIndex(tableName,"detail")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			//redisConn.Send("MULTI")
+			if rowesAffected>0{
+				for i, _ := range val {
+					_, err = redisConn.Do("DEL", val[i])
+					if err != nil {
+						fmt.Println("redis delelte failed:", err)
+					}
+					fmt.Printf("DEL-CACHE",val[i], err)
+				}
+			}
+
+		}
+
+		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+	}
+}
+
+
 func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
@@ -1508,9 +1557,9 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 						option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
 
 					case "lt":
-						option.Wheres[arr[1]+"lt"] = WhereOperation{arr[2], arr[3]}
+						option.Wheres[arr[1]+".lt"] = WhereOperation{arr[2], arr[3]}
 					case  "gt":
-						option.Wheres[arr[1]+"gt"] = WhereOperation{arr[2], arr[3]}
+						option.Wheres[arr[1]+".gt"] = WhereOperation{arr[2], arr[3]}
 
 				}
 

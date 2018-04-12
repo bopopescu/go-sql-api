@@ -180,11 +180,11 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	}
 	for f, w := range opt.Wheres {
 		// check field exist
-		if strings.Contains(f,"gt"){
-			f=strings.Replace(f,"gt","",-1)
+		if strings.Contains(f,".gt"){
+			f=strings.Replace(f,".gt","",-1)
 		}
-		if strings.Contains(f,"lt"){
-			f=strings.Replace(f,"lt","",-1)
+		if strings.Contains(f,".lt"){
+			f=strings.Replace(f,".lt","",-1)
 		}
 		rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
