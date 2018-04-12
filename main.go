@@ -5,6 +5,9 @@ import (
 	"github.com/mkideal/cli"
 	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
 
+//	"fmt"
+	"github.com/robfig/cron"
+	"log"
 )
 
 type cliArgs struct {
@@ -16,18 +19,32 @@ type cliArgs struct {
 }
 
 func main() {
+
+
+    // 定时任务	logPrintCron()
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)
-		//hostStrArr:=[]string{}
-		//hostStrArr=strings.Split(argv.ConnectionStr,"(")
-		////fmt.Printf("host",hostStrArr)
-		//endIndex:=strings.LastIndex(hostStrArr[1],":")
-		//redisHost:=string(hostStrArr[1][0:endIndex])
 		redisHost:=argv.RedisHost
-//fmt.Printf("host=",string(hostStrArr[1][0:endIndex]))
 		server.New(api,redisHost).Start(argv.ListenAddress)
 		return nil
 	})
+
+
+
+}
+func logPrintCron(){
+	i := 0
+	c := cron.New()
+	spec := "*/5 * * * * ?"
+	c.AddFunc(spec, func() {
+		i++
+		log.Println("cron running:", i)
+	})
+	c.AddFunc("@every 1h1m", func() {
+		i++
+		log.Println("cron running:", i)
+	})
+	c.Start()
 
 }

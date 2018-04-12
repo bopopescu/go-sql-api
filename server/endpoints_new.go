@@ -33,6 +33,7 @@ import (
 //	"context"
 	//"context"
 //	"github.com/mkideal/pkg/option"
+//	"context"
 )
 
 // mountEndpoints to echo server
@@ -494,10 +495,13 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			var orders map[string]string
 			 orders=make(map[string]string)
 			 optionC.Table=operate_table
-			 wheres["biz_class"] = WhereOperation{
-				 Operation: "eq",
-				 Value:     option.Wheres[tableName+".biz_class"].Value.(string),
+			 if option.Wheres[tableName+".biz_class"].Value!=nil{
+				 wheres["biz_class"] = WhereOperation{
+					 Operation: "eq",
+					 Value:     option.Wheres[tableName+".biz_class"].Value.(string),
+				 }
 			 }
+
 			 orders["order_num"]="asc"
 			 optionC.Orders=orders
 			 optionC.Wheres=wheres
@@ -660,14 +664,13 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			 }
 
  			 fmt.Printf("endTime=",time.Now())
-			 //f1 := func(_ context.Context) error {
-				// time.Sleep(5*time.Second)
-				// return errors.New("test error")
-			 //}
-			 //
-			 //err :=  async.Run(context.Background(), f1)
-			 //
-			 //fmt.Printf("async-err=",err)
+
+
+			// c1 := make (chan int);
+			// go asyncFunc(24,18,c1)
+
+
+			// fmt.Printf("async-err=",<-c1)  阻塞请求
 			 //fmt.Printf("asyncEndTime=",time.Now())
 
 			 return responseTableGet(c,dataC,false,tableName,api,params,redisHost,isNeedCache)
@@ -734,6 +737,14 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 		}
 	}
+}
+func asyncFunc(x,y int,c chan int){
+	fmt.Printf("async-test0",time.Now())
+	// 模拟异步处理耗费的时间
+	time.Sleep(5*time.Second)
+	fmt.Printf("async-test1",time.Now())
+	// 向管道传值
+	c <- x + y
 }
 // 表达式计算
 func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey string,wheres map[string]WhereOperation)(r string,errorMessage *ErrorMessage){
