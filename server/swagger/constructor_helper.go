@@ -252,7 +252,12 @@ func NewQueryParametersForClearCache() (ps []spec.Parameter) {
 	}
 	return
 }
-
+func NewQueryParametersForAsync() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.ASYNC_KEY, "asyncKey", "string", true),
+	}
+	return
+}
 func NewQueryParametersForCustomPaging() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.KEY_QUERY_PAGEINDEX, "分页页码(从1开始编号)", "integer", false),
@@ -331,6 +336,21 @@ func NewPathIDParameter(tMeta *TableMetadata) (p spec.Parameter) {
 	}
 	return
 }
+func NewPathWhereParameter() (p spec.Parameter) {
+	p = spec.Parameter{
+		SimpleSchema: spec.SimpleSchema{
+			Type: "string",
+		},
+		ParamProps: spec.ParamProps{
+			In:          "query",
+			Name:        "where",
+			Required:    true,
+			Description: "指定一个或多个字段筛选 如:表名.字段名.[eq,neq,is,isNot,in,notIn,like,lt,gt](字段值)(多个条件用&拼接)",
+		},
+	}
+	return
+}
+
 func columnNames(primaryColumns []*ColumnMetadata) (names string){
 	for i,v := range primaryColumns{
 		if(i>0){

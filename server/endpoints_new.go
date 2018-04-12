@@ -58,10 +58,12 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisHost)).Name = "Delete Record By ID"
 	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Update Record By ID"
 	//  根据条件批量修改对象的局部字段
-	s.PATCH("/api/"+databaseName+"/:table/", endpointTableUpdateSpecificField(api,redisHost)).Name = "Update Record By part field"
+	s.PATCH("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost)).Name = "Update Record By part field"
 	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Put Record By ID"
 
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
+    //手动执行异步任务
+	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost)).Name = "exec async task"
 
 
 }
@@ -1228,15 +1230,37 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 	}
 }
 
+func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		asyncKey := c.QueryParam(key.ASYNC_KEY)
+		fmt.Printf("asyncKey=",asyncKey)
+		where := c.QueryParam(key.KEY_QUERY_WHERE)
+		option ,errorMessage:= parseWhereParams(where)
+		fmt.Printf("option=",option)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+		 c1 := make (chan int);
+		 go asyncFunc(24,18,c1)
+
+		return c.String(http.StatusOK, "ok")
+	}
+}
+
+
 func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
-		id := c.Param("id")
+
+		//fmt.Printf("option=",option)
+		where := c.QueryParam("where")
+		option ,errorMessage:= parseWhereParams(where)
+		fmt.Printf("option=",option)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
-		rs, errorMessage := api.Update(tableName, id, payload)
+		rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -1591,6 +1615,59 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	}
 	return
 }
+
+func parseWhereParams(whereStr string) (option QueryOption, errorMessage *ErrorMessage) {
+	option = QueryOption{}
+
+	r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+	if whereStr != "" {
+		option.Wheres = make(map[string]WhereOperation)
+		    sWhere:=whereStr
+			sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
+			sWhere=strings.Replace(sWhere,"%22","'",-1)
+			// 支持同一个参数字符串里包含多个条件
+			if strings.Contains(sWhere, "&") {
+				subWhereArr := strings.Split(sWhere, "&")
+				for _, subWhere := range subWhereArr {
+					arr := r.FindStringSubmatch(subWhere)
+					if len(arr) == 4 {
+						switch arr[2] {
+						case "in", "notIn":
+							option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+						case "like", "is", "neq", "isNot", "eq":
+							option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+						case "lt":
+							option.Wheres[arr[1]+"lt"] = WhereOperation{arr[2], arr[3]}
+						case  "gt":
+							option.Wheres[arr[1]+"gt"] = WhereOperation{arr[2], arr[3]}
+
+						}
+					}
+				}
+			} else {
+				arr := r.FindStringSubmatch(sWhere)
+				if len(arr) == 4 {
+					switch arr[2] {
+					case "in", "notIn":
+						option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+					case "like", "is", "neq", "isNot", "eq":
+						option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+
+					case "lt":
+						option.Wheres[arr[1]+".lt"] = WhereOperation{arr[2], arr[3]}
+					case  "gt":
+						option.Wheres[arr[1]+".gt"] = WhereOperation{arr[2], arr[3]}
+
+					}
+
+				}
+
+		}
+	}
+
+	return
+}
+
 func newPool(server string) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     8,

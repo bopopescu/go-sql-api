@@ -10,6 +10,7 @@ type IDatabaseAPI interface {
 	RelatedCreate( obj map[string]interface{}) (rowAaffect int64,errorMessage *ErrorMessage)
 	RelatedUpdate( obj map[string]interface{}) (rowAaffect int64,errorMessage *ErrorMessage)
 	Update(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
+	UpdateBatch(table string, where map[string]WhereOperation, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
 	Delete(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
 	Select(option QueryOption) (rs []map[string]interface{},errorMessage *ErrorMessage)
 	SelectTotalCount(option QueryOption) (totalCount int,errorMessage *ErrorMessage)

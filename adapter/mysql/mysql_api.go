@@ -642,7 +642,16 @@ func (api *MysqlAPI) Update(table string, id interface{}, obj map[string]interfa
 		return
 	}
 }
+func (api *MysqlAPI) UpdateBatch(table string, where map[string]WhereOperation, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
 
+		sql, err := api.sql.UpdateByTableAndFields(table, where, obj)
+		if err != nil {
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return
+		}
+		return api.exec(sql)
+
+}
 // Delete by Table name and where obj
 func (api *MysqlAPI) Delete(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
 	var sSQL string

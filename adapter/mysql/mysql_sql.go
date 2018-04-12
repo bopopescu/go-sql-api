@@ -117,6 +117,21 @@ func (s *SQL) UpdateByTableAndId(tableName string, id interface{}, record map[st
 	return
 }
 
+func (s *SQL) UpdateByTableAndFields(tableName string, where map[string]WhereOperation, record map[string]interface{}) (sql string, err error) {
+
+	if(where==nil){
+		err = fmt.Errorf("update table `%s` must have where !", tableName)
+		return
+	}
+
+	builder := s.sqlBuilder.From(tableName)
+	for f, v := range where{
+		builder = builder.Where(goqu.Ex{f: v.Value})
+	}
+	sql, _, err = builder.ToUpdateSql(record)
+	return
+}
+
 // InsertByTable and record map
 func (s *SQL) InsertByTable(tableName string, record map[string]interface{}) (sql string, err error) {
 	sql, _, err = s.sqlBuilder.From(tableName).Where().ToInsertSql(record)

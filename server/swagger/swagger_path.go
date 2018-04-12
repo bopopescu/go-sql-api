@@ -13,7 +13,24 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	deleteRelatedPath := spec.PathItem{}
 	patchRelatedPath := spec.PathItem{}
 	metadataPath := spec.PathItem{}
+
+	patchAsyncPath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+
+	patchAsyncPath.Get=NewOperation(
+		"exec async task",
+		fmt.Sprintf("执行指定异步任务key"),
+		fmt.Sprintf("执行指定异步任务key"),
+
+		append([]spec.Parameter{NewPathWhereParameter()},NewQueryParametersForAsync()...),
+		fmt.Sprintf("执行指定异步任务key"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"string"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/async/"]=patchAsyncPath
 
 	clearCachePath.Get=NewOperation(
 		"clear-cache",
@@ -213,6 +230,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 	tName := meta.TableName
 	isView := meta.TableType == "VIEW"
 	withoutIDPathItem := spec.PathItem{}
+	withoutIDPathPatchItem := spec.PathItem{}
 	withIDPathItem := spec.PathItem{}
 	withoutIDBatchPathItem := spec.PathItem{}
 
@@ -334,9 +352,31 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 				},
 			},
 		)
+
 		apiBatchPath := fmt.Sprintf("/api/"+databaseName+"/%s/batch/", tName)
 
+
 		paths[apiBatchPath] = withoutIDBatchPathItem
+		withoutIDPathPatchItem.Patch = NewOperation(
+			tName,
+			fmt.Sprintf("从%s表里,更新满足条件的记录", tName),
+			fmt.Sprintf("%s表的主键%s", tName,columnNames(meta.GetPrimaryColumns())),
+			append([]spec.Parameter{NewPathWhereParameter()},NewParamForDefinition(tName)),
+			fmt.Sprintf("执行成功,返回影响行数(注意:以影响行数为判断成功与否的依据)"),
+			&spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: spec.StringOrArray{"integer"},
+				},
+				SwaggerSchemaProps: spec.SwaggerSchemaProps{
+					Example: 0,
+				},
+			},
+		)
+		apiBatchPathPatch := fmt.Sprintf("/api/"+databaseName+"/%s/where/", tName,)
+		//apiBatchPath := fmt.Sprintf("/api/"+databaseName+"/%s/batch/", tName)
+
+
+		paths[apiBatchPathPatch] = withoutIDPathPatchItem
 	}else {
 		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)
