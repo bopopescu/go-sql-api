@@ -126,29 +126,18 @@ func (s *SQL) UpdateByTableAndFields(tableName string, where map[string]WhereOpe
 
 	builder := s.sqlBuilder.From(tableName)
 	for f, v := range where{
-		operation:="eq"
+		//operation:="eq"
 		if strings.Contains(f,".lt"){
 			f=strings.Replace(f,".lt","",-1)
-			operation="lt"
+			//operation="lt"
 		}
 		if strings.Contains(f,".gt"){
 			f=strings.Replace(f,".gt","",-1)
-			operation="gt"
+			//operation="gt"
 		}
-		if strings.Contains(f,".like"){
-			f=strings.Replace(f,".like","",-1)
-			operation="like"
-		}
-		if strings.Contains(f,".in"){
-			f=strings.Replace(f,".in","",-1)
-			operation="in"
-		}
-		if strings.Contains(f,".notin"){
-			f=strings.Replace(f,".notin","",-1)
-			operation="notin"
-		}
+
 		//builder = builder.Where(goqu.Ex{f: v.Value})
-		builder = builder.Where(goqu.ExOr{f:goqu.Op{operation: v.Value}})
+		builder = builder.Where(goqu.ExOr{f:goqu.Op{v.Operation: v.Value}})
 		//rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
 	}
