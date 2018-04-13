@@ -35,6 +35,7 @@ import (
 //}
 func Calculate(str string)(float64,error){
 	var result float64
+
 	//str="-119.12+0"
 	expStr := regexp.MustCompile("^([\\-]?[\\d]+[\\.]?[\\d]{0,})([\\-|\\+|\\*|\\/])([\\d]+[\\.]?[\\d]{0,})")
 	expArr := expStr.FindStringSubmatch(str)
@@ -50,6 +51,12 @@ func Calculate(str string)(float64,error){
 			 expArr = expStr.FindStringSubmatch(str)
 		  }
 		}else{
+			resultF,error:=strconv.ParseFloat(str, 64)
+			if error!=nil{
+				fmt.Printf("error=",error)
+			}else{
+				result=resultF
+			}
 			break
 		}
 	}

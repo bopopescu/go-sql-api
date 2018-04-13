@@ -712,6 +712,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 			var lineValueMap map[string]float64
 			lineValueMap=make(map[string]float64)
 			if errorMessage==nil{
+				//计算每一项值 不包括总值
 				for _,datac:=range dataC {
 					// 主表的关联id
 					datac[masterIdColumnName]=masterId
@@ -724,12 +725,21 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						if datac[column.ColumnName]!=nil{
 							caculateValue=datac[column.ColumnName].(string)
 						}
-
+						//caculateValue="11=account_subject_left_view.current_credit_funds.321"
 						//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
 						//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
-						//caculateValue="6=1+2+3+5"
+						//caculateValue="6=1+2-3-4-5"
+						//caculateValue="10=9+8"
+						//caculateValue="9=6+7-8"
+						//caculateValue="6=1+2-3-4-5"
 						//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
 						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+						if !strings.Contains(caculateValue,"="){
+							continue
+						}
+						if strings.Contains(column.ColumnName,"des"){
+							continue
+						}
 						arr:=strings.Split(caculateValue,"=")
 						var lineNumber string
 						if len(arr)>=2{
@@ -739,14 +749,14 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 						//numberR := regexp.MustCompile("(^[\\d]+)$")
 						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
-						totalExpressR := regexp.MustCompile("^([\\d]+)([\\+|\\-]?)([\\d]+)")
+						//totalExpressR := regexp.MustCompile("^([\\d]+[.\\]?[\\d]{0,})([\\+|\\-]?)([\\d]{0,}[.\\]?[\\d]{0,})")
 						// UUID 匹配
-						totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
+						//totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
 						//numberRb:=numberR.MatchString(caculateValue)
 						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
-						totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
-						totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
-						fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
+					//	totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
+						//totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
+					//	fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
 
 						if  caculateExpressRb {
 							// 计算表达式 account_subject_left_view.begin_debit_funds.101+account_subject_left_view.begin_debit_funds.102
@@ -778,12 +788,21 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 										//exp,error :=ExpConvert(expArr)
 										//Exp(exp)
 										//fmt.Printf("err=",error)
-										calResult,error:=Calculate(caculateValue)
-										if error!=nil{
-											fmt.Printf("error=",error)
+
+											calResult,error:=Calculate(caculateValue)
+
+											if error!=nil{
+												fmt.Printf("error=",error)
+											}
+											fmt.Printf("calResult=",calResult)
+
+
+
+										if  !strings.Contains(column.ColumnName,"des"){
+											datac[column.ColumnName]=strconv.FormatFloat(calResult, 'f', -1, 64)
+											// 当期
+											lineValueMap[lineNumber]=calResult
 										}
-										fmt.Printf("calResult=",calResult)
-										datac[column.ColumnName]=calResult
 										//resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
 										if strings.Contains(column.ColumnName,"begin"){
 											lineValueMap[lineNumber+"b"]=calResult
@@ -800,7 +819,60 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 						}
 
+					}
+
+
+				}
+				//计算每一项的总值
+				for _,datac:=range dataC {
+					// 主表的关联id
+					datac[masterIdColumnName]=masterId
+					// 从表主键id
+					slaveId=uuid.NewV4().String()
+					datac[slaveIdColumnName]=slaveId
+					datac["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+					for _,column:=range columns{
+						var caculateValue string
+						if datac[column.ColumnName]!=nil{
+								caculateValue=datac[column.ColumnName].(string)
+						}
+						//caculateValue="11=account_subject_left_view.current_credit_funds.321"
+						//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
+						//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
+						//caculateValue="6=1+2-3-4-5"
+						//caculateValue="10=9+8"
+						//caculateValue="9=6+7-8"
+						//caculateValue="6=1+2-3-4-5"
+						//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
+						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+						if !strings.Contains(caculateValue,"="){
+							continue
+						}
+						if strings.Contains(column.ColumnName,"des"){
+							continue
+						}
+						arr:=strings.Split(caculateValue,"=")
+						var lineNumber string
+						if len(arr)>=2{
+							lineNumber=arr[0]
+							caculateValue=arr[1]
+							fmt.Printf("lineNumber=",lineNumber)
+						}
+
+						//numberR := regexp.MustCompile("(^[\\d]+)$")
+
+						totalExpressR := regexp.MustCompile("^([\\d]+[.\\]?[\\d]{0,})([\\+|\\-]?)([\\d]{0,}[.\\]?[\\d]{0,})")
+						// UUID 匹配
+						totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
+						//numberRb:=numberR.MatchString(caculateValue)
+
+						totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
+						totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
+						//fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
+
+
 						if  column.ColumnName!="order_num"&&!strings.Contains(column.ColumnName,"line_number")&&totalExpressRb&&!totalExpressRb1{
+							var isFirst=true
 							for{
 								if column.ColumnName!="order_num"&&totalExpressRb&&!totalExpressRb1{
 									// 总值计算表达式 begin_period_total=9+8
@@ -813,6 +885,9 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									itemValue:=arr[0]
 									a:=arr[1]
 									operate:=arr[2]
+									if operate==""{
+										operate="+"
+									}
 									b:=arr[3]
 									var af float64
 									var bf float64
@@ -820,22 +895,40 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 										af=lineValueMap[a+"b"]
 									}else if strings.Contains(column.ColumnName,"end"){
 										af=lineValueMap[a+"e"]
+									}else{
+										af=lineValueMap[a]
+									}
+									if !isFirst{
+										resultF,error:=strconv.ParseFloat(a, 64)
+										if error!=nil{
+											fmt.Printf("error=",error)
+										}else{
+											af=resultF
+										}
 									}
 									if strings.Contains(column.ColumnName,"begin"){
 										bf=lineValueMap[b+"b"]
 									}else if strings.Contains(column.ColumnName,"end"){
 										bf=lineValueMap[b+"e"]
+									}else{
+										bf=lineValueMap[b]
 									}
 
 									calResult:=Calc(operate,af,bf)
 									resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
+									//if itemValue==resultStr
 									caculateValue=	strings.Replace(caculateValue,itemValue,resultStr,-1)
+									if caculateValue=="0"{
+										caculateValue=""
+									}
 									totalExpressRb=totalExpressR.MatchString(caculateValue)
 									totalExpressRb1=totalExpressR1.MatchString(caculateValue)
-									if !totalExpressRb{
+									isFirst=false
+									if itemValue==resultStr||(!totalExpressRb){
 										datac[column.ColumnName]=calResult
+										totalExpressRb=false
 									}
-
+									//  arr=%!(EXTRA []string=[601 601  ])
 									//go func() {
 									//	fmt.Printf("shiyongabc")
 									//	time.Sleep(time.Second)
