@@ -704,7 +704,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 				if item!=""&&option.Wheres[masterTableName+"."+item].Value!=nil {
 					wheresExp[item] = WhereOperation{
 						Operation:option.Wheres[masterTableName+"."+item].Operation,
-						Value:     strings.Replace(option.Wheres[masterTableName+"."+item].Value.(string),"%","",-1),// 如果是like类型Operation替换掉%
+						Value:     option.Wheres[masterTableName+"."+item].Value.(string),// 如果是like类型Operation替换掉%
 					}
 				}
 
@@ -755,9 +755,9 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 							for{
 								if caculateExpressRb{
 									arr := caculateExpressR.FindStringSubmatch(caculateValue)
-									// "account_subject_left_view.begin_debit_funds.101"
+									// account_subject_left_view.end_debit_funds.101
 									// "account_subject_left_view"
-									// "begin_debit_funds"
+									// "end_debit_funds"
 									// "101"
 									caculateValueItem:=arr[0]
 
