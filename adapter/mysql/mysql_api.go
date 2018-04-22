@@ -556,12 +556,6 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	sql, err := api.sql.UpdateByTableAndId(masterTableName,masterId, masterInfoMap)
 
 	if errorMessage != nil {
-
-		// 回滚已经插入的数据
-		api.Delete(masterTableName,masterId,nil)
-		for e := slaveIds.Front(); e != nil; e = e.Next() {
-			api.Delete(slaveTableName,e.Value,nil)
-		}
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 		return 0,errorMessage
 	}
@@ -581,11 +575,6 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	masterRowAffect,err=rs.RowsAffected()
 	if err != nil {
 
-		// 回滚已经插入的数据
-		api.Delete(masterTableName,masterId,nil)
-		for e := slaveIds.Front(); e != nil; e = e.Next() {
-			api.Delete(slaveTableName,e.Value,nil)
-		}
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 		return 0,errorMessage
 	}
@@ -597,23 +586,14 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 
 		if err!=nil{
 			// 回滚已经插入的数据
-			api.Delete(masterTableName,masterId,nil)
-			for e := slaveIds.Front(); e != nil; e = e.Next() {
-				api.Delete(slaveTableName,e.Value,nil)
-			}
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 			return 0,errorMessage
 		}else{
-			rs,err=api.exec(sql)
+			rs,errorMessage=api.exec(sql)
 			
-			if err != nil {
+			if errorMessage != nil {
 
-				// 回滚已经插入的数据
-				api.Delete(masterTableName,masterId,nil)
-				for e := slaveIds.Front(); e != nil; e = e.Next() {
-					api.Delete(slaveTableName,e.Value,nil)
-				}
-				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+errorMessage.Error()}
 				return 0,errorMessage
 			}else{
 				slaveRowAffect,err=rs.RowsAffected()
