@@ -16,7 +16,6 @@ import (
 	"encoding/json"
 
 	//"github.com/mkideal/pkg/option"
-
 	"container/list"
 	"github.com/satori/go.uuid"
 )

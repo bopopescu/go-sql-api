@@ -240,6 +240,51 @@ func GetParametersFromRelatedRecord() (p spec.Parameter) {
 
 	return
 }
+
+func GetParametersFromCreateTableStructure() (p spec.Parameter) {
+
+	schema := spec.Schema{}
+	//schema.Type = spec.StringOrArray{"object"}
+	//schema.Title = "relatedRecord"
+	//schema.Description = "关联记录"
+	schemaProps:=spec.SchemaProps{}
+	//schemaProps.Type=spec.StringOrArray{"object"}
+	//schemaProps.Title="relatedRecord"
+	//schemaProps.Description="关联记录"
+	schemaProps.Properties=map[string]spec.Schema{}
+
+	schemaProps.Properties["tableName"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "表的英文名字",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+	schemaProps.Properties["tableFields"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "表的字段",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+
+	schema.SchemaProps=schemaProps
+	p = spec.Parameter{
+		ParamProps: spec.ParamProps{
+			In:     "body",
+			Name:   "body",
+			Required:true,
+			Description:fmt.Sprintf("需要提交的关联记录对象", "relatedRecord"),
+			Schema: &schema,
+		},
+
+	}
+
+	return
+}
+
 func NewQueryParametersForMySQLAPI() (ps []spec.Parameter) {
 	ps=append(NewQueryParametersForCustomPaging(),NewQueryParametersForFilter()...)
 	ps=append(ps,NewQueryParametersForOrder()...)

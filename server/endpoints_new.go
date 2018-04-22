@@ -43,7 +43,7 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 
 	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisHost)).Name = "batch save related table"
 	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisHost)).Name = "batch delete related table"
-	s.PATCH("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
+	s.PUT("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
 	s.GET("/api/"+databaseName+"/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
@@ -65,6 +65,9 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
     //手动执行异步任务
 	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost)).Name = "exec async task"
+
+	//创建表
+	s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost)).Name = "create table structure"
 
 
 }
@@ -433,11 +436,14 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
        // is_need_cache
        var isNeedCache int
+		var isNeedPostEvent int
        // 返回的字段是否需要计算公式计算
 
        for _,rsq:=range rsQuery{
 		   isNeedCacheStr:=rsq["is_need_cache"].(string)
+		   isNeedPostEventStr:=rsq["is_need_post_event"].(string)
 		   isNeedCache,err=strconv.Atoi(isNeedCacheStr)
+		   isNeedPostEvent,err=strconv.Atoi(isNeedPostEventStr)
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
@@ -456,8 +462,6 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
 
-		// 查询时的后置事件
-
 
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
@@ -467,6 +471,10 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
+			// 无分页的后置事件
+			if isNeedPostEvent==1{
+				postEvent(api,tableName,"GET",data,option)
+			}
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
@@ -519,6 +527,96 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
 	}
 }
+//后置事件处理
+func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption)(rs []map[string]interface{},errorMessage *ErrorMessage){
+	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod)
+	fmt.Printf("errorMessage=",errorMessage)
+	var operate_condition string
+	var operate_content string
+
+	for _,operate:=range operates {
+		operate_condition= operate["operate_condition"].(string)
+		operate_content = operate["operate_content"].(string)
+	}
+	var conditionType string
+	var conditionTable string
+	var conditionFileds string
+	var resultFileds string
+	var conditionFiledArr [5]string
+	var resultFieldsArr [5]string
+	var operateCondJsonMap map[string]interface{}
+	var operateCondContentJsonMap map[string]interface{}
+	fieldList:=list.New()
+	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
+	if(operate_condition!=""){
+		json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+		conditionType=operateCondJsonMap["conditionType"].(string)
+		conditionFileds=operateCondJsonMap["conditionFields"].(string)
+		resultFileds=operateCondJsonMap["resultFields"].(string)
+		conditionTable=operateCondJsonMap["conditionTable"].(string)
+		json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+		json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
+	}
+	if(operate_content!=""){
+		json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+	}
+	for _,item:= range conditionFiledArr{
+		if item!=""{
+			fieldList.PushBack(item)
+		}
+	}
+	//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
+	// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
+	operate_type:=operateCondContentJsonMap["operate_type"].(string)
+	// 动态添加列 并为每一列计算出值
+	if "DYNAMIC_ADD_COLUMN"==operate_type{
+
+     if "OBTAIN_FROM_SPECIFY"==conditionType{
+
+     	for i,item:=range data{
+
+     		fmt.Printf("i=",i," item=",item," conditionTable=",conditionTable)
+     		// 根据主表主键id查询详情
+			option.Table=strings.Replace(tableName,"_view","",-1)
+			option.Links=[]string{"farm_subject"}
+			detailItem, errorMessage:= api.Select(option)
+			fmt.Printf("detailItem=",detailItem)
+
+     		// 根据每一行构建查询条件
+			whereOption := map[string]WhereOperation{}
+			for e := fieldList.Front(); e != nil; e = e.Next() {
+				if item[e.Value.(string)]!=nil{
+					whereOption[e.Value.(string)] = WhereOperation{
+						Operation: "eq",
+						Value:     item[e.Value.(string)].(string),
+					}
+				}
+
+			}
+			querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
+			rsQuery, errorMessage:= api.Select(querOption)
+			if errorMessage!=nil{
+				fmt.Printf("errorMessage", errorMessage)
+			}else{
+				fmt.Printf("rs", rsQuery)
+			}
+			//
+
+
+		}
+
+
+	 }
+
+
+
+fmt.Printf("data=",data)
+
+
+	}
+	return data,nil;
+}
+
 func asyncFunc(x,y int,c chan int){
 	fmt.Printf("async-test0",time.Now())
 	// 模拟异步处理耗费的时间
@@ -1296,6 +1394,7 @@ func SelectOperaInfoByAsyncKey(api adapter.IDatabaseAPI,asyncKey string) (rs []m
 }
 
 func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -1455,6 +1554,25 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
+
+func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		asyncKey := c.QueryParam(key.ASYNC_KEY)
+		fmt.Printf("asyncKey=",asyncKey)
+		where := c.QueryParam(key.KEY_QUERY_WHERE)
+		option ,errorMessage:= parseWhereParams(where)
+		fmt.Printf("option=",option)
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+
+		c1 := make (chan int);
+		go asyncCalculete(api,where,asyncKey,c1)
+
+		return c.String(http.StatusOK, "ok")
+	}
+}
+
 
 func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {

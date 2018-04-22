@@ -15,7 +15,26 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	metadataPath := spec.PathItem{}
 
 	patchAsyncPath := spec.PathItem{}
+	patchCreateTablePath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+
+	patchCreateTablePath.Post=NewOperation(
+		"create table structure",
+		fmt.Sprintf("创建表结构"),
+		fmt.Sprintf("创建表结构"),
+
+		[]spec.Parameter{GetParametersFromCreateTableStructure()},
+
+
+		fmt.Sprintf("关联表同时插入数据"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/table/"]=patchCreateTablePath
+
 
 	patchAsyncPath.Get=NewOperation(
 		"exec async task",
@@ -83,7 +102,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	)
 	paths["/api/"+databaseName+"/related/batch/"]=batchRelatedPath
 
-	patchRelatedPath.Patch=NewOperation(
+	patchRelatedPath.Put=NewOperation(
 		"relate record(关联记录)",
 		fmt.Sprintf("修改关联记录数据"),
 		fmt.Sprintf("修改关联记录数据"),
