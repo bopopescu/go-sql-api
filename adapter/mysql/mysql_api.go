@@ -606,6 +606,16 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	return rowAaffect,nil
 
 }
+func (api *MysqlAPI) CreateTableStructure(execSql string) (errorMessage *ErrorMessage) {
+	r,error:=api.connection.Exec(execSql)
+	fmt.Printf("result=",r)
+	if error != nil {
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
+			return
+	} else {
+		return nil
+	}
+}
 
 // Update by Table name and obj map
 func (api *MysqlAPI) Update(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {

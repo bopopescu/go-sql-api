@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"github.com/shiyongabc/go-mysql-api/server/key"
 	. "github.com/shiyongabc/go-mysql-api/types"
+	//"github.com/shiyongabc/go-mysql-api/adapter/mysql"
 )
 
+type test struct {
+	id string `json:"id"`
+	name string `json:"name"`
+}
 func NewRefSchema(refDefinationName, reftype string) (s spec.Schema) {
 	s = spec.Schema{
 		SchemaProps: spec.SchemaProps{
@@ -261,10 +266,19 @@ func GetParametersFromCreateTableStructure() (p spec.Parameter) {
 			Default:     "",
 		},
 	}
+	schemaProps.Properties["tableNameDesc"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "表的中文名字",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+
 	schemaProps.Properties["tableFields"] = spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Type:        spec.StringOrArray{"string"},
-			Description: "表的字段",
+			Description: "表的字段（字符串数组）",
 			//Title:       col.ColumnName,
 			Default:     "",
 		},
@@ -276,7 +290,7 @@ func GetParametersFromCreateTableStructure() (p spec.Parameter) {
 			In:     "body",
 			Name:   "body",
 			Required:true,
-			Description:fmt.Sprintf("需要提交的关联记录对象", "relatedRecord"),
+			Description:fmt.Sprintf("需要提交的表结构对象", "relatedRecord"),
 			Schema: &schema,
 		},
 

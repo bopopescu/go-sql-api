@@ -1557,18 +1557,22 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		asyncKey := c.QueryParam(key.ASYNC_KEY)
-		fmt.Printf("asyncKey=",asyncKey)
-		where := c.QueryParam(key.KEY_QUERY_WHERE)
-		option ,errorMessage:= parseWhereParams(where)
-		fmt.Printf("option=",option)
-		if errorMessage != nil {
-			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		//sql:="create table test1( id varchar(128) comment 'id',pass varchar(128) comment '密码') comment '测试表';"
+
+		payload, errorMessage := bodyMapOf(c)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+			return c.String(http.StatusBadRequest, "error")
 		}
-
-		c1 := make (chan int);
-		go asyncCalculete(api,where,asyncKey,c1)
-
+		fmt.Printf("errorMessage=",errorMessage)
+		tableName := payload["tableName"].(string)
+		tableNameDesc := payload["tableNameDesc"].(string)
+		tableFields:=payload["tableFields"].(string)
+        sql:="create table if not exists "+tableName+"("+tableFields+")comment '"+tableNameDesc+"';"
+		errorMessage=api.CreateTableStructure(sql)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+		}
 		return c.String(http.StatusOK, "ok")
 	}
 }
