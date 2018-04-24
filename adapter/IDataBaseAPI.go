@@ -16,6 +16,7 @@ type IDatabaseAPI interface {
 	Select(option QueryOption) (rs []map[string]interface{},errorMessage *ErrorMessage)
 	SelectTotalCount(option QueryOption) (totalCount int,errorMessage *ErrorMessage)
 	GetDatabaseMetadata() *DataBaseMetadata
+	GetDatabaseTableMetadata(tableName string) *TableMetadata
 	UpdateAPIMetadata() (api IDatabaseAPI)
 	//RelatedUpdate( obj map[string]interface{}) (rowAaffect int64,errorMessage *ErrorMessage)
 }

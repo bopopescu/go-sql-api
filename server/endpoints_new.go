@@ -48,6 +48,8 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
 	s.GET("/api/"+databaseName+"/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
 	s.HEAD("/api/"+databaseName+"/metadata/", endpointUpdateMetadata(api)).Name = "从DB获取最新的元数据"
+
+
 	s.GET("/api/"+databaseName+"/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
@@ -66,9 +68,18 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
     //手动执行异步任务
 	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost)).Name = "exec async task"
 
+
 	//创建表
 	s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost)).Name = "create table structure"
+	//查询
+	s.GET("/api/"+databaseName+"/table/", endpointGetMetadataByTable(api)).Name = "query table structure"
 
+	//添加列
+	s.POST("/api/"+databaseName+"/table/column/", endpointTableColumnCreate(api,redisHost)).Name = "add table column"
+	//修改列
+	s.PUT("/api/"+databaseName+"/table/column/", endpointTableColumnPut(api,redisHost)).Name = "put table column"
+	//删除列
+	s.DELETE("/api/"+databaseName+"/table/column/", endpointTableColumnDelete(api,redisHost)).Name = "delete table column"
 
 }
 
@@ -359,6 +370,17 @@ func endpointUpdateMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error
 	return func(c echo.Context) error {
 		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, strconv.Itoa(1))
+	}
+}
+// endpointGetMetadataByTable
+
+func endpointGetMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		//api.GetDatabaseMetadata().GetTableMeta()
+		tableName:=c.QueryParam(key.TABLE_NAME)
+		tableMetadata:=	api.GetDatabaseTableMetadata(tableName)
+
+		return c.JSON(http.StatusOK, tableMetadata )
 	}
 }
 
@@ -1554,7 +1576,87 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
+func endpointTableColumnDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		//sql:="alter table test1 add  id_test varchar(128) comment 'id_test' comment '测试表';"
 
+		payload, errorMessage := bodyMapOf(c)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+			return c.String(http.StatusBadRequest, "error")
+		}
+		fmt.Printf("errorMessage=",errorMessage)
+		tableName := payload["tableName"].(string)
+		column := payload["columnName"].(string)
+
+		sql:="alter table "+tableName+" drop column "+column
+
+		errorMessage=api.CreateTableStructure(sql)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+		}
+		api.UpdateAPIMetadata()
+		return c.String(http.StatusOK, "ok")
+	}
+}
+
+func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		//sql:="alter table test1 add  id_test varchar(128) comment 'id_test' comment '测试表';"
+
+		payload, errorMessage := bodyMapOf(c)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+			return c.String(http.StatusBadRequest, "error")
+		}
+		fmt.Printf("errorMessage=",errorMessage)
+		tableName := payload["tableName"].(string)
+		column := payload["columnName"].(string)
+		columnType:=payload["columnType"].(string)
+		defaultValue:=payload["defaultValue"]
+		columnDes:=payload["columnDes"].(string)
+		sql:="alter table "+tableName+" modify column "+column+" "+columnType+" comment '"+columnDes+"';"
+
+		if defaultValue!=""{
+			sql="alter table "+tableName+" modify column "+column+" "+columnType+" default '"+defaultValue.(string)+"' comment '"+columnDes+"';"
+		}
+		errorMessage=api.CreateTableStructure(sql)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+			return c.String(http.StatusOK, "ok")
+		}
+		api.UpdateAPIMetadata()
+		return c.String(http.StatusOK, "ok")
+	}
+}
+func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		//sql:="alter table test1 add  id_test varchar(128) comment 'id_test' comment '测试表';"
+
+		payload, errorMessage := bodyMapOf(c)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+			return c.String(http.StatusBadRequest, "error")
+		}
+		fmt.Printf("errorMessage=",errorMessage)
+		tableName := payload["tableName"].(string)
+		column := payload["columnName"].(string)
+		columnType:=payload["columnType"].(string)
+		defaultValue:=payload["defaultValue"]
+		columnDes:=payload["columnDes"].(string)
+		sql:="alter table "+tableName+" add column "+column+" "+columnType+" comment '"+columnDes+"';"
+
+		if defaultValue!=""{
+			sql="alter table "+tableName+" add column "+column+" "+columnType+" default '"+defaultValue.(string)+"' comment '"+columnDes+"';"
+		}
+		errorMessage=api.CreateTableStructure(sql)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+		}
+		api.UpdateAPIMetadata()
+		return c.String(http.StatusOK, "ok")
+	}
+}
 func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		//sql:="create table test1( id varchar(128) comment 'id',pass varchar(128) comment '密码') comment '测试表';"
@@ -1573,6 +1675,7 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		if errorMessage!=nil{
 			fmt.Printf("errorMessage=",errorMessage)
 		}
+		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, "ok")
 	}
 }

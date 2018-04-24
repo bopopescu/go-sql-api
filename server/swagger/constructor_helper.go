@@ -246,6 +246,69 @@ func GetParametersFromRelatedRecord() (p spec.Parameter) {
 	return
 }
 
+func GetParametersFromCreateTableColumn() (p spec.Parameter) {
+
+	schema := spec.Schema{}
+	schemaProps:=spec.SchemaProps{}
+	schemaProps.Properties=map[string]spec.Schema{}
+	schemaProps.Properties["tableName"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "表的英文名字",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+	schemaProps.Properties["columnName"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "列名",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+
+	schemaProps.Properties["columnType"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "字段类型",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+	schemaProps.Properties["defaultValue"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "默认值",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+	// columnDes
+	schemaProps.Properties["columnDes"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "劣描述",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+	schema.SchemaProps=schemaProps
+	p = spec.Parameter{
+		ParamProps: spec.ParamProps{
+			In:     "body",
+			Name:   "body",
+			Required:true,
+			Description:fmt.Sprintf("字段属性", "relatedRecord"),
+			Schema: &schema,
+		},
+
+	}
+
+	return
+}
+
+
 func GetParametersFromCreateTableStructure() (p spec.Parameter) {
 
 	schema := spec.Schema{}
@@ -305,6 +368,13 @@ func NewQueryParametersForMySQLAPI() (ps []spec.Parameter) {
 	ps=append(ps,NewQueryParametersForOutputDields()...)
 	return
 }
+func NewQueryParametersForQueryTableStructure() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.TABLE_NAME, "tableName", "string", true),
+	}
+	return
+}
+
 func NewQueryParametersForClearCache() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.KEY_CACHE, "缓存key", "string", true),

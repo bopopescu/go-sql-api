@@ -92,9 +92,55 @@ func (api *MysqlAPI) GetDatabaseMetadata() *DataBaseMetadata {
 				t.Comment = view["view_des"].(string)
 			}
 
+
+
+
+
 		}
 	}
 	return meta
+}
+
+func (api *MysqlAPI) GetDatabaseTableMetadata(tableName string) *TableMetadata {
+	meta:=api.databaseMetadata
+
+		if meta.GetTableMeta(tableName)!=nil {
+			//给视图的列显示comment(mysql view不支持添加列的comment 除非原始表里面有comment 如果原始表没有 则没有comment内容)
+
+			wMap:= map[string]WhereOperation{}
+			wMap["view_name"] = WhereOperation{
+				Operation: "eq",
+				Value:     tableName,
+			}
+
+			for _,item:=range meta.GetTableMeta(tableName).Columns{
+				columnName:=item.ColumnName
+				wMap["view_column"] = WhereOperation{
+					Operation: "eq",
+					Value:     columnName,
+				}
+				option := QueryOption{Wheres: wMap, Table: "view_detail_config"}
+				if item.Comment==""{
+					dataDetail, errorMessage := api.Select(option)
+					fmt.Printf("dataDetail", dataDetail)
+					fmt.Printf("errorMessage", errorMessage)
+					var viewColumnComment string
+					for _,view:=range dataDetail {
+						viewColumnComment = view["column_comment"].(string)
+						item.Comment=viewColumnComment
+						break
+					}
+
+				}
+
+			}
+
+
+
+
+			}
+
+	return meta.GetTableMeta(tableName)
 }
 
 // UpdateAPIMetadata use to update the metadata of the MySQLAPI instance
