@@ -337,7 +337,14 @@ func GetParametersFromCreateTableStructure() (p spec.Parameter) {
 			Default:     "",
 		},
 	}
-
+	schemaProps.Properties["isReport"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "是否是报表(1 是 0 不是)",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
 	schemaProps.Properties["tableFields"] = spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Type:        spec.StringOrArray{"string"},
@@ -365,6 +372,7 @@ func GetParametersFromCreateTableStructure() (p spec.Parameter) {
 func NewQueryParametersForMySQLAPI() (ps []spec.Parameter) {
 	ps=append(NewQueryParametersForCustomPaging(),NewQueryParametersForFilter()...)
 	ps=append(ps,NewQueryParametersForOrder()...)
+	ps=append(ps,NewQueryParametersForGroup()...)
 	ps=append(ps,NewQueryParametersForOutputDields()...)
 	return
 }
@@ -397,13 +405,23 @@ func NewQueryParametersForCustomPaging() (ps []spec.Parameter) {
 func NewQueryParametersForFilter() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.KEY_QUERY_SEARCH, "全表查找字符串", "string", false),
+		NewQueryParameter(key.GROUP_FUNC, "聚合函数(SUM(tableName.column))", "string", false),
 		NewQueryArrayParameter(key.KEY_QUERY_WHERE, "指定一个或多个字段筛选 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt\\](字段值)", "string", false),
 	}
 	return
 }
+
+
 func NewQueryParametersForOrder() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryArrayParameter(key.KEY_QUERY_ORDER, "指定一个或多个字段排序 如:\"表名.字段名\"(排序值(默认是升序，desc/asc))", "string", false),
+	}
+	return
+}
+// GroupFields
+func NewQueryParametersForGroup() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryArrayParameter(key.GROUP_BY, "指定一个或多个字段分组", "string", false),
 	}
 	return
 }

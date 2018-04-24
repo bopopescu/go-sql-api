@@ -74,12 +74,18 @@ type QueryOption struct {
 	Limit  int                       // record limit
 	Offset int                       // start offset
 	Fields []string                  // select fields
+	GroupFunc    string				// 聚合函数查询
+	GroupFields    []string	// 分组查询
 	Links  []string                  // auto join table
 	Wheres map[string]WhereOperation // field -> { operation, value }
 	Orders map[string]string // field -> { operation, value }
 	Search string                    // fuzzy query word
 }
-
+// 聚合函数 MAX() MIN() SUM() AVG() COUNT()
+//type GroupFunc struct {
+//	FuncName string
+//	Value     interface{}
+//}
 type WhereOperation struct {
 	Operation string
 	Value     interface{}
@@ -158,6 +164,9 @@ func (d *DataBaseMetadata) TableHaveField(sTableName string, sFieldName string) 
 	if(strings.Contains(sFieldName,".")){
 		t=d.GetTableMeta(strings.Split(sFieldName,".")[0])
 		sFieldName=strings.Split(sFieldName,".")[1]
+	}
+	if strings.Contains(sFieldName,"SUM")||strings.Contains(sFieldName,"MAX")||strings.Contains(sFieldName,"MIN")||strings.Contains(sFieldName,"AVG"){
+		return true
 	}
 	if t == nil {
 		return false

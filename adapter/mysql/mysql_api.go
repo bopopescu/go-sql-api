@@ -292,6 +292,10 @@ func (api *MysqlAPI) retriveTableColumnsMetadataFromInfoSchema(databaseName, tab
 // Query by sql
 func (api *MysqlAPI) query(sql string, args ...interface{}) (rs []map[string]interface{}, errorMessage *ErrorMessage) {
 	lib.Logger.Debugf("query sql: '%s'", sql)
+	//sql="SELECT `user_id`, `SUM(account_log`.`account_funds) as totalFunds` FROM `account_log`"
+//	stmt,error:=api.connection.Prepare(sql)
+  //  rows0,error:=stmt.Query(sql)
+//	fmt.Printf("rows1",rows0,error)
 	rows, err := api.connection.Query(sql, args...)
 	if err != nil {
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}

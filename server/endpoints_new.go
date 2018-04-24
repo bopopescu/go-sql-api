@@ -37,6 +37,7 @@ import (
 
 )
 
+
 // mountEndpoints to echo server
 func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisHost string) {
 	s.GET("/api/"+databaseName+"/clear/cache/", endpointTableClearCacheSpecific(api,redisHost)).Name = "clear cache"
@@ -73,6 +74,9 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost)).Name = "create table structure"
 	//查询
 	s.GET("/api/"+databaseName+"/table/", endpointGetMetadataByTable(api)).Name = "query table structure"
+	//查询
+	s.DELETE("/api/"+databaseName+"/table/", endpointDeleteMetadataByTable(api)).Name = "delete table structure"
+
 
 	//添加列
 	s.POST("/api/"+databaseName+"/table/column/", endpointTableColumnCreate(api,redisHost)).Name = "add table column"
@@ -659,8 +663,8 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	for f,v :=range option.Wheres{
 		if strings.Contains(f,".farm_id")&&v.Value!=nil{
 			orgId=v.Value.(string)
-			masterTableName=string(f[0:strings.Index(f,".farm_id")])
-			slaveTableName=masterTableName+"_detail"
+			masterTableName="report_head"
+			slaveTableName=string(f[0:strings.Index(f,".farm_id")])
 			break
 		}
 	}
@@ -1670,13 +1674,58 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		tableName := payload["tableName"].(string)
 		tableNameDesc := payload["tableNameDesc"].(string)
 		tableFields:=payload["tableFields"].(string)
-        sql:="create table if not exists "+tableName+"("+tableFields+")comment '"+tableNameDesc+"';"
+		isReport:=payload["isReport"].(string)
+		sql:="create table if not exists "+tableName+"("+tableFields+")comment '"+tableNameDesc+"';"
+		tableFields=strings.Replace(tableFields,"PRIMARY KEY (`id`)","",-1)
+		tableFields=strings.Replace(tableFields,"PRIMARY KEY","",-1)
+		tableNameDesc=strings.Replace(tableNameDesc,"模板","",-1)
+		tableNameDesc=tableNameDesc+"详情"
+		detailSql:="create table if not exists "+tableName+"_detail("+tableFields+",id VARCHAR(128)  NOT NULL COMMENT 'id',report_id VARCHAR(128)  NOT NULL COMMENT 'report_id',PRIMARY KEY (id)"+")comment '"+tableNameDesc+"';"
+		var reportConfig=make(map[string]interface{})
+		reportConfig["template_config_id"]=uuid.NewV4().String()
+		reportConfig["report_name"]=tableName
+		reportConfig["report_name_des"]=tableNameDesc
+		reportConfig["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+
+
+
+		if isReport=="1"{
+			// 如果是报表 插入报表配置  且创建报表模板表和报表详情表
+			_,errorMessage=api.Create("report_template_config",reportConfig)
+			errorMessage=api.CreateTableStructure(detailSql)
+
+		}
+
+
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			fmt.Printf("errorMessage",errorMessage)
+			return c.String(http.StatusInternalServerError, errorMessage.Error())
 		}
 		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, "ok")
+	}
+}
+
+
+func endpointDeleteMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		//sql:="create table test1( id varchar(128) comment 'id',pass varchar(128) comment '密码') comment '测试表';"
+		tableName:=c.QueryParam(key.TABLE_NAME)
+
+        sql:="drop table if exists "+tableName+";"
+		errorMessage:=api.CreateTableStructure(sql)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+			return c.String(http.StatusBadRequest, errorMessage.Error())
+		}else{
+			var deleteMap=make(map[string]interface{})
+			deleteMap["report_name"]=tableName
+			api.Delete("report_template_config",nil,deleteMap)
+			api.UpdateAPIMetadata()
+			return c.String(http.StatusOK, "ok")
+		}
+
 	}
 }
 
@@ -1963,6 +2012,10 @@ func bodySliceOf(c echo.Context) (jsonSlice []interface{}, errorMessage *ErrorMe
 func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMessage) {
 	option = QueryOption{}
 	queryParam := c.QueryParams()
+	groupFunc :=c.QueryParam(key.GROUP_FUNC)
+
+	//fmt.Printf("groupFunc",groupFunc)
+	option.GroupFunc=groupFunc
 	//option.Index, option.Limit, option.Offset, option.Fields, option.Wheres, option.Links, err = parseQueryParams(c)
 	option.Limit, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGESIZE))  // _limit
 	option.Index, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGEINDEX)) // _skip
@@ -1991,6 +2044,15 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 			}
 		}
 	}
+	option.GroupFields = make([]string, 0)
+	if queryParam[key.GROUP_BY] != nil { // _fields
+		for _, f := range queryParam[key.GROUP_BY] {
+			if (f != "") {
+				option.GroupFields = append(option.GroupFields, f)
+			}
+		}
+	}
+
 	if queryParam[key.KEY_QUERY_LINK] != nil { // _link
 		option.Links = make([]string, 0)
 		for _, f := range queryParam[key.KEY_QUERY_LINK] {

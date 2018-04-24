@@ -48,6 +48,29 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 		return
 	}
 	sql, _, err = builder.ToSql()
+	if opt.GroupFields!=nil{
+		var count int
+		var groupFields string
+		for _, f := range opt.GroupFields {
+			if count==(len(opt.GroupFields)-1){
+				groupFields = groupFields+f
+			}else{
+				groupFields = f+","
+			}
+			count=count+1
+		}
+		if strings.Contains(sql,"order by"){
+			sql=strings.Replace(sql,"order by","group by "+groupFields+" order by",-1)
+		}else if strings.Contains(sql,"ORDER BY"){
+			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
+		}else{
+			sql=sql+" "+"group by "+groupFields
+		}
+
+	}
+
+	//替换掉` 兼容聚合函数求出的值 作为新的列
+	sql=strings.Replace(sql,"`","",-1)
 	return
 }
 func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
@@ -62,6 +85,7 @@ func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
 	builder = builder.ClearOffset()
 	sql, _, err = builder.ToSql()
 	sql=strings.Replace(sql,"`_placeholder_`","COUNT(*) as TotalCount",-1)
+	//sql="SELECT `user_id`, SUM(account_log.account_funds) as totalFunds FROM `account_log`"
 	return
 }
 
@@ -90,6 +114,28 @@ func (s *SQL) GetByTableAndID(opt QueryOption) (sql string, err error) {
 		return
 	}
 	sql, _, err = builder.ToSql()
+	if opt.GroupFields!=nil{
+		var count int
+		var groupFields string
+		for _, f := range opt.GroupFields {
+			if count==(len(opt.GroupFields)-1){
+				groupFields = groupFields+f
+			}else{
+				groupFields = f+","
+			}
+			count=count+1
+		}
+		if strings.Contains(sql,"order by"){
+			sql=strings.Replace(sql,"order by","group by "+groupFields+" order by",-1)
+		}else if strings.Contains(sql,"ORDER BY"){
+			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
+		}else{
+			sql=sql+" "+"group by "+groupFields
+		}
+
+	}
+
+	sql=strings.Replace(sql,"`","",-1)
 	return sql, err
 }
 
@@ -193,19 +239,40 @@ func (s *SQL) DeleteByTableAndId(tableName string, id interface{}) (sql string, 
 
 func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption) (rs *goqu.Dataset,err error) {
 	rs = builder
+	//rs.Pluck("","SUM(account_funds)")
+	//rs.As("SUM(account_funds)")
 	if opt.Limit != 0 {
 		rs = rs.Limit(uint(opt.Limit))
 	}
 	if opt.Offset != 0 {
 		rs = rs.Offset(uint(opt.Offset))
 	}
+
+	fs := make([]interface{}, len(opt.Fields))
+	 if opt.GroupFunc!=""{
+		 fs = make([]interface{}, len(opt.Fields)+1)
+	}
+	var index int
 	if opt.Fields != nil {
-		fs := make([]interface{}, len(opt.Fields))
 		for idx, f := range opt.Fields {
 			fs[idx] = f
+			index=idx
 		}
+
+	}
+	if opt.GroupFunc!=""{
+		if len(opt.Fields)>0{
+			fs[index+1] = opt.GroupFunc
+		}else{
+			fs[index] = opt.GroupFunc
+		}
+
+		rs = rs.Select(fs...)
+	}else{
 		rs = rs.Select(fs...)
 	}
+
+
 	for f, w := range opt.Wheres {
 		// check field exist
 		if strings.Contains(f,".gt"){

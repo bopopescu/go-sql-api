@@ -95,6 +95,20 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 			},
 		},
 	)
+	patchCreateTablePath.Delete=NewOperation(
+		"create table structure",
+		fmt.Sprintf("删除表结构"),
+		fmt.Sprintf("删除表结构"),
+
+		NewQueryParametersForQueryTableStructure(),
+
+		fmt.Sprintf("删除表结构"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
 	paths["/api/"+databaseName+"/table/"]=patchCreateTablePath
 
 
