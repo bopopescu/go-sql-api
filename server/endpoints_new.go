@@ -659,15 +659,56 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	var biz_class string
 	var  masterTableName string
 	var  slaveTableName string
+	masterTableName="report_head"
 	option ,errorMessage:= parseWhereParams(where)
 	for f,v :=range option.Wheres{
 		if strings.Contains(f,".farm_id")&&v.Value!=nil{
 			orgId=v.Value.(string)
-			masterTableName="report_head"
-			slaveTableName=string(f[0:strings.Index(f,".farm_id")])
+			//slaveTableName=string(f[0:strings.Index(f,".farm_id")])
 			break
 		}
 	}
+
+	// 根据key查询操作配置
+	operates,errorMessage:=	SelectOperaInfoByAsyncKey(api,asyncKey)
+	var operate_condition string
+	var operateConditionJsonMap map[string]interface{}
+	var conditionFieldKey string
+	var operate_content string
+	var operate_type string
+	var operate_table string
+	var action_type string
+	var conditionFiledArr [5]string
+	var cronTable string
+	for _,operate:=range operates {
+		operate_content = operate["operate_content"].(string)
+		operate_condition = operate["operate_condition"].(string)
+		cronTable= operate["cond_table"].(string)
+		cronTable=strings.Replace(cronTable,api.GetDatabaseMetadata().DatabaseName+".","",-1)
+		slaveTableName=cronTable
+	}
+	fmt.Printf("option=",option,",errorMessage=",errorMessage)
+	if (operate_condition != "") {
+		json.Unmarshal([]byte(operate_condition), &operateConditionJsonMap)
+	}
+
+	if operateConditionJsonMap!=nil{
+		conditionFieldKey = operateConditionJsonMap["conditionFieldKey"].(string)
+		fmt.Printf("conditionFieldKey",conditionFieldKey)
+		conditionFileds:=operateConditionJsonMap["conditionFields"].(string)
+		json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+	}
+
+	var operateCondContentJsonMap map[string]interface{}
+	if (operate_content != "") {
+		json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+	}
+	if operateCondContentJsonMap!=nil{
+		operate_type = operateCondContentJsonMap["operate_type"].(string)
+		operate_table = operateCondContentJsonMap["operate_table"].(string)
+		action_type = operateCondContentJsonMap["action_type"].(string)
+	}
+
 
 	// 查询审核过的组织业务类型
 	whereOption := map[string]WhereOperation{}
@@ -743,9 +784,12 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		masterId=uuid.NewV4().String()
 		masterMap[masterIdColumnName]=masterId
 		masterMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		 report_type :=operate_table
+		masterMap["report_type"]=report_type
 		for _, col := range masterTableColumns {
 
 			for f,w:=range option.Wheres{
+				//用从表判断是否相同字段
 				if((masterTableName+"."+col.ColumnName)==f){
 					masterMap[col.ColumnName]=strings.Replace(w.Value.(string),"%","",-1)
 					break
@@ -754,45 +798,57 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 			}
 
 		}
+
+		//从报表模板里查询报表title
+		var optionC0 QueryOption
+		var wheres0 map[string]WhereOperation
+		wheres0=make(map[string]WhereOperation)
+
+		optionC0.Table="report_template_config"
+			wheres0["report_name"] = WhereOperation{
+				Operation: "eq",
+				Value:     report_type,
+
+		}
+		optionC0.Wheres=wheres0
+		dataC0, errorMessage := api.Select(optionC0)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage",errorMessage)
+		}else{
+			for _,item:=range dataC0{
+				if item["report_name_des"]!=nil{
+					masterMap["report_title"]=item["report_name_des"]
+					break
+				}
+			}
+		}
+		// 查询农场名字 farm_list_view
+		var optionC1 QueryOption
+		var wheres1 map[string]WhereOperation
+		wheres1=make(map[string]WhereOperation)
+
+		optionC1.Table="farm_list_view"
+		wheres1["id"] = WhereOperation{
+			Operation: "eq",
+			Value:     orgId,
+
+		}
+		optionC1.Wheres=wheres1
+		dataC1, errorMessage := api.Select(optionC1)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage",errorMessage)
+		}else{
+			for _,item:=range dataC1{
+				if item["producer_name"]!=nil{
+					masterMap["farm_name"]=item["producer_name"]
+					break
+				}
+			}
+		}
 		api.Create(masterTableName,masterMap)
 
 	}
 
-	fmt.Printf("option=",option,",errorMessage=",errorMessage)
-// 根据key查询操作配置
-	operates,errorMessage:=	SelectOperaInfoByAsyncKey(api,asyncKey)
-	var operate_condition string
-	var operateConditionJsonMap map[string]interface{}
-	var conditionFieldKey string
-	var operate_content string
-	var operate_type string
-	var operate_table string
-	var action_type string
-	var conditionFiledArr [5]string
-	for _,operate:=range operates {
-		operate_content = operate["operate_content"].(string)
-		operate_condition = operate["operate_condition"].(string)
-	}
-	if (operate_condition != "") {
-		json.Unmarshal([]byte(operate_condition), &operateConditionJsonMap)
-	}
-
-	if operateConditionJsonMap!=nil{
-		conditionFieldKey = operateConditionJsonMap["conditionFieldKey"].(string)
-		fmt.Printf("conditionFieldKey",conditionFieldKey)
-		conditionFileds:=operateConditionJsonMap["conditionFields"].(string)
-		json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
-	}
-
-	var operateCondContentJsonMap map[string]interface{}
-	if (operate_content != "") {
-		json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
-	}
-	if operateCondContentJsonMap!=nil{
-		operate_type = operateCondContentJsonMap["operate_type"].(string)
-		operate_table = operateCondContentJsonMap["operate_table"].(string)
-		action_type = operateCondContentJsonMap["action_type"].(string)
-	}
 
 
 	if operate_type!="" && operate_type=="RELATED_QUERY"{
