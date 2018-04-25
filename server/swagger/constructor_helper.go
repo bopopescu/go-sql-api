@@ -267,6 +267,15 @@ func GetParametersFromCreateTableColumn() (p spec.Parameter) {
 			Default:     "",
 		},
 	}
+	// beforeColumnName
+	schemaProps.Properties["beforeColumnName"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "前一列的列名",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
 
 	schemaProps.Properties["columnType"] = spec.Schema{
 		SchemaProps: spec.SchemaProps{

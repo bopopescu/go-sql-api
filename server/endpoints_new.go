@@ -1645,14 +1645,19 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		fmt.Printf("errorMessage=",errorMessage)
 		tableName := payload["tableName"].(string)
 		column := payload["columnName"].(string)
+		beforeColumnName := payload["beforeColumnName"].(string)
 		columnType:=payload["columnType"].(string)
 		defaultValue:=payload["defaultValue"]
 		columnDes:=payload["columnDes"].(string)
-		sql:="alter table "+tableName+" add column "+column+" "+columnType+" comment '"+columnDes+"';"
+		sql:="alter table "+tableName+" add column "+column+" "+columnType+" comment '"+columnDes+"'"
 
 		if defaultValue!=""{
-			sql="alter table "+tableName+" add column "+column+" "+columnType+" default '"+defaultValue.(string)+"' comment '"+columnDes+"';"
+			sql="alter table "+tableName+" add column "+column+" "+columnType+" default '"+defaultValue.(string)+"' comment '"+columnDes+"'"
 		}
+		if beforeColumnName!=""{
+			sql=sql+" after "+beforeColumnName+";"
+		}
+
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
 			fmt.Printf("errorMessage=",errorMessage)

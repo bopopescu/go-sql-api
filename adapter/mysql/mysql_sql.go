@@ -64,7 +64,9 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 		}else if strings.Contains(sql,"ORDER BY"){
 			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
 		}else{
-			sql=sql+" "+"group by "+groupFields
+			if groupFields!=""{
+				sql=sql+" "+"group by "+groupFields
+			}
 		}
 
 	}
@@ -130,7 +132,10 @@ func (s *SQL) GetByTableAndID(opt QueryOption) (sql string, err error) {
 		}else if strings.Contains(sql,"ORDER BY"){
 			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
 		}else{
-			sql=sql+" "+"group by "+groupFields
+			if groupFields!=""{
+				sql=sql+" "+"group by "+groupFields
+			}
+
 		}
 
 	}
