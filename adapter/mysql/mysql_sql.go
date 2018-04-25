@@ -59,9 +59,9 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 			}
 			count=count+1
 		}
-		if strings.Contains(sql,"order by"){
+		if strings.Contains(sql,"order by") &&groupFields!=""{
 			sql=strings.Replace(sql,"order by","group by "+groupFields+" order by",-1)
-		}else if strings.Contains(sql,"ORDER BY"){
+		}else if strings.Contains(sql,"ORDER BY")&&groupFields!=""{
 			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
 		}else{
 			if groupFields!=""{
@@ -127,9 +127,9 @@ func (s *SQL) GetByTableAndID(opt QueryOption) (sql string, err error) {
 			}
 			count=count+1
 		}
-		if strings.Contains(sql,"order by"){
+		if strings.Contains(sql,"order by")&&groupFields!=""{
 			sql=strings.Replace(sql,"order by","group by "+groupFields+" order by",-1)
-		}else if strings.Contains(sql,"ORDER BY"){
+		}else if strings.Contains(sql,"ORDER BY")&&groupFields!=""{
 			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
 		}else{
 			if groupFields!=""{
