@@ -1739,13 +1739,18 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		tableFields:=payload["tableFields"].(string)
 		isReport:=payload["isReport"].(string)
 		sql:="create table if not exists "+tableName+"("+tableFields+")comment '"+tableNameDesc+"';"
-		tableFields=strings.Replace(tableFields,"PRIMARY KEY (`id`)","",-1)
+		tableFields=strings.Replace(tableFields,"PRIMARY KEY(id)","",-1)
 		tableFields=strings.Replace(tableFields,"PRIMARY KEY","",-1)
+		// primary key
+		tableFields=strings.Replace(tableFields,"primary key(id)","",-1)
+		tableFields=strings.Replace(tableFields,"primary key","",-1)
 		tableNameDesc=strings.Replace(tableNameDesc,"模板","",-1)
 		tableNameDesc=tableNameDesc+"详情"
 		detailSql:="create table if not exists "+tableName+"_detail("+tableFields+",id VARCHAR(128)  NOT NULL COMMENT 'id',report_id VARCHAR(128)  NOT NULL COMMENT 'report_id',PRIMARY KEY (id)"+")comment '"+tableNameDesc+"';"
 		var reportConfig=make(map[string]interface{})
-		reportConfig["template_config_id"]=uuid.NewV4().String()
+		var tcid string
+		tcid=uuid.NewV4().String()
+		reportConfig["template_config_id"]=tcid
 		reportConfig["report_name"]=tableName
 		reportConfig["report_name_des"]=tableNameDesc
 		reportConfig["create_time"]=time.Now().Format("2006-01-02 15:04:05")
@@ -1755,14 +1760,22 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		if isReport=="1"{
 			// 如果是报表 插入报表配置  且创建报表模板表和报表详情表
 			_,errorMessage=api.Create("report_template_config",reportConfig)
+			fmt.Printf("tableFields=",tableFields)
+			fmt.Printf("detailSql=",detailSql)
 			errorMessage=api.CreateTableStructure(detailSql)
-
+			if errorMessage!=nil{
+				api.Delete("report_template_config",tcid,nil)
+				api.CreateTableStructure("drop table if exists "+tableName+"_detail;")
+				return c.String(http.StatusInternalServerError, errorMessage.Error())
+			}
 		}
 
 
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
 			fmt.Printf("errorMessage",errorMessage)
+			api.Delete("report_template_config",tcid,nil)
+			api.CreateTableStructure("drop table if exists "+tableName+";")
 			return c.String(http.StatusInternalServerError, errorMessage.Error())
 		}
 		api.UpdateAPIMetadata()
