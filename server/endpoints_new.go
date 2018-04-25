@@ -786,6 +786,8 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		masterMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		 report_type :=operate_table
 		masterMap["report_type"]=report_type
+		masterMap["account_period_num"]=option.Wheres[masterTableName+".account_period_num"].Value
+		masterMap["account_period_year"]=option.Wheres[masterTableName+".account_period_year"].Value
 		for _, col := range masterTableColumns {
 
 			for f,w:=range option.Wheres{
