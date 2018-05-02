@@ -16,7 +16,25 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	patchAsyncPath := spec.PathItem{}
 	patchCreateTablePath := spec.PathItem{}
 	patchCreateTableColumnPath := spec.PathItem{}
+	patchImportPath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+
+	patchImportPath.Post=NewOperation(
+		"import data to template",
+		fmt.Sprintf("按模板导入数据(导入的excel必须是xlsx后缀的文件)"),
+		fmt.Sprintf("按模板导入数据(导入的excel必须是xlsx后缀的文件)"),
+
+		//[]spec.Parameter{ImportParameters(),ImportTemplateParameters()...},//append([]spec.Parameter{ImportTemplateParameter()},spec.FileParam("file")...),// NewQueryParametersForOutputDields()
+		append([]spec.Parameter{ImportParameters()},ImportTemplateParameters()...),// ImportTemplateParameters()
+
+		fmt.Sprintf("按模板导入数据"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/import/"]=patchImportPath
 
 	patchCreateTableColumnPath.Post=NewOperation(
 		"create table structure",

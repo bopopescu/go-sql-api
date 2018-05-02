@@ -15,7 +15,7 @@ import (
 	"strings"
 	"regexp"
 	"github.com/shiyongabc/go-mysql-api/server/key"
-	"github.com/xuri/excelize"
+	"github.com/360EntSecGroup-Skylar/excelize"
 	"os"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
@@ -35,6 +35,8 @@ import (
 //	"github.com/mkideal/pkg/option"
 //	"context"
 
+//	"io"
+	"io"
 )
 
 
@@ -84,6 +86,9 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.PUT("/api/"+databaseName+"/table/column/", endpointTableColumnPut(api,redisHost)).Name = "put table column"
 	//删除列
 	s.DELETE("/api/"+databaseName+"/table/column/", endpointTableColumnDelete(api,redisHost)).Name = "delete table column"
+
+	//导入
+	s.POST("/api/"+databaseName+"/import/", endpointImportData(api,redisHost)).Name = "import data to template"
 
 }
 
@@ -1689,6 +1694,126 @@ func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c ec
 		}
 		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, "ok")
+	}
+}
+
+func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		fileHeader,error:=c.FormFile("file")
+		fmt.Printf("error=",error)
+		templateKey:=c.QueryParam(key.IMPORT_TEMPLATE_KEY)
+		fmt.Printf("templateKey=",templateKey)
+		file,error:=fileHeader.Open()
+
+		//defer file.Close()
+		dst, err := os.Create("./upload/" + fileHeader.Filename)
+		fmt.Printf("err=",err)
+		defer dst.Close()
+
+		//copy the uploaded file to the destination file
+		io.Copy(dst, file)
+		dst.Close()
+
+		//根据导入模板key查询模板基本信息
+		templateWhere := map[string]WhereOperation{}
+		templateWhere["template_key"] = WhereOperation{
+			Operation: "eq",
+			Value:     templateKey,
+		}
+		templateOption := QueryOption{Wheres: templateWhere, Table: "import_template"}
+		data, errorMessage := api.Select(templateOption)
+		fmt.Printf("data", data)
+		fmt.Printf("errorMessage", errorMessage)
+      //   table_name dependency_table
+     var tableName string
+	  for _,item:=range data{
+		if item["table_name"]!=nil{
+			tableName=item["table_name"].(string)
+		}
+		//if  item["dependency_table"]!=nil{
+		//	dependencyTable=item["dependency_table"].(string)
+		//}
+	  //
+	  }
+
+
+		templateDetailWhere := map[string]WhereOperation{}
+		templateDetailWhere["template_key"] = WhereOperation{
+			Operation: "eq",
+			Value:     templateKey,
+		}
+
+
+
+		//主表map
+		 tableMap:=make(map[string]interface{})
+		 //依赖表map
+//		 dependencyTableMap:=make(map[string]interface{})
+
+
+
+
+		xlsx,error := excelize.OpenFile("./upload/"+fileHeader.Filename)
+		if error!=nil{
+			fmt.Printf("error=",error)
+			os.Remove("./upload/"+fileHeader.Filename)
+			os.Exit(1)
+		}
+		rows := xlsx.GetRows("Sheet1")
+
+		for _, row := range rows {
+
+			var colIndex int
+			for _, colCell := range row {
+				// 获取配置数据库表列名和excel列名
+				colIndex=colIndex+1
+
+				templateDetailWhere["column_order_num"] = WhereOperation{
+					Operation: "eq",
+					Value:     colIndex,
+				}
+				templateDetailOption := QueryOption{Wheres: templateDetailWhere, Table: "import_template_detail"}
+				dataDetail, errorMessage := api.Select(templateDetailOption)
+				fmt.Printf("dataDetail", dataDetail)
+				fmt.Printf("errorMessage", errorMessage)
+				//var colOrder string
+				var excelColName string
+				for _,item :=range dataDetail{
+					//colOrder=item["column_order"].(string)
+					excelColName=item["column_name"].(string)
+				}
+
+			//	axis:=colOrder+strconv.Itoa(colIndex)
+			//	colValue:=xlsx.GetCellValue("Sheet1",axis)
+
+			if colCell!=""{
+				tableMap[excelColName]=colCell
+			}
+				fmt.Print(colCell, "\t")
+			}
+			fmt.Println()
+			api.Create(tableName,tableMap)
+		}
+
+
+		// 清除上传的文件
+		os.Remove("./upload/"+fileHeader.Filename)
+		return c.String(http.StatusOK, "ok")
+	}
+}
+func processBlock(line []byte) {
+	os.Stdout.Write(line)
+}
+func ReadAll(filePth string) ([]byte, error) {
+	f, err := os.Open(filePth)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.ReadAll(f)
+}
+func check(e error) {
+	if e != nil {
+		panic(e)
 	}
 }
 func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {

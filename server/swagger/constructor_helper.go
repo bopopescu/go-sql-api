@@ -246,6 +246,46 @@ func GetParametersFromRelatedRecord() (p spec.Parameter) {
 	return
 }
 
+func ImportParameters() (p spec.Parameter) {
+
+	schema := spec.Schema{}
+	schemaProps:=spec.SchemaProps{}
+	schemaProps.Properties=map[string]spec.Schema{}
+	schemaProps.Properties[key.IMPORT_TEMPLATE_KEY] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "导入模板key",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+
+
+	schemaProps.Properties["file"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:         spec.StringOrArray{"string"},
+			Description: "字段类型",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
+
+	schema.SchemaProps=schemaProps
+	p = spec.Parameter{
+		ParamProps: spec.ParamProps{
+			In:     "formData",
+			Name:   "body",
+			Required:true,
+			Description:"导入模板对象",
+			Schema: &schema,
+		},
+//  ParamProps: ParamProps{Name: name, In: "formData"}, SimpleSchema: SimpleSchema{Type: "file"}
+	}
+p=*spec.FileParam("file")
+	return
+}
+
+
 func GetParametersFromCreateTableColumn() (p spec.Parameter) {
 
 	schema := spec.Schema{}
@@ -398,6 +438,13 @@ func NewQueryParametersForClearCache() (ps []spec.Parameter) {
 	}
 	return
 }
+func ImportTemplateParameters() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.IMPORT_TEMPLATE_KEY, "导入模板key", "string", true),
+	}
+	return
+}
+
 func NewQueryParametersForAsync() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.ASYNC_KEY, "asyncKey", "string", true),
@@ -434,6 +481,8 @@ func NewQueryParametersForGroup() (ps []spec.Parameter) {
 	}
 	return
 }
+
+
 func NewQueryParametersForOutputDields() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryArrayParameter(key.KEY_QUERY_FIELDS, "指定输出一个或多个字段", "string", false),
@@ -473,6 +522,20 @@ func NewQueryParameter(paramName, paramDescription, paramType string, required b
 			Name:        paramName,
 			Required:    required,
 			Description: paramDescription,
+		},
+	}
+	return
+}
+func ImportTemplateParameter() (p spec.Parameter) {
+	p = spec.Parameter{
+		SimpleSchema: spec.SimpleSchema{
+			Type: "string",
+		},
+		ParamProps: spec.ParamProps{
+			In:          "query",
+			Name:        key.IMPORT_TEMPLATE_KEY,
+			Required:    true,
+			Description: "导入模板key",
 		},
 	}
 	return
