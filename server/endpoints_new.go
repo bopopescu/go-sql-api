@@ -1234,6 +1234,9 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				Value:     tableName,
 			}
 			optionHeadContent := QueryOption{Wheres: wMapHead, Table: "export_template_detail"}
+			order:=make(map[string]string)
+			order["j"]="asc"
+			optionHeadContent.Orders=order
 			headContent, errorMessage := api.Select(optionHeadContent)
 			fmt.Printf("dataContent", headContent)
 			fmt.Printf("errorMessage", errorMessage)
