@@ -1201,8 +1201,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		if len(data1)>0{
 			//取到表头
 			var keys []string
+			//keys:=list.New()
 			for k, _ := range data1[0] {
+				//默认的列
 				keys = append(keys, k)
+				//keys.PushBack(k)
 			}
 			//写表头 从模本配置里面获取表头信息 模板key就是tableName
 			var headerRows string
@@ -1240,6 +1243,16 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			}
 
 			if  len(headContent)>0{
+				//如果有导出模板信息 覆盖默认的列
+				var keys1 []string
+
+				for _,header:=range headContent {
+					colName:=header["column_name"].(string)
+
+					keys1 = append(keys1, colName)
+
+				}
+				keys=keys1
 				for _,header:=range headContent {
 					i,err:=strconv.Atoi(header["i"].(string))
 					if err!=nil{

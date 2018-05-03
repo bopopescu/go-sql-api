@@ -573,7 +573,7 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	var slaveRowAffect int64
 	var	rs sql.Result
 	var masterId string
-
+	var masterKeyColName string
 	slaveIds := list.New()
 	masterTableName:=obj["masterTableName"].(string)
 	slaveTableName:=obj["slaveTableName"].(string)
@@ -587,7 +587,7 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
-			masterId=col.ColumnName
+			masterKeyColName=col.ColumnName
 			break;//取第一个主键
 		}
 	}
@@ -595,6 +595,7 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
 	}
+	masterId=masterInfoMap[masterKeyColName].(string)
 	//
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	if errorMessage!=nil{
