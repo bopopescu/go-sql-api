@@ -1886,8 +1886,7 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		tableFields=strings.Replace(tableFields,"primary key(id)","",-1)
 		tableFields=strings.Replace(tableFields,"primary key","",-1)
 		tableNameDesc=strings.Replace(tableNameDesc,"模板","",-1)
-		tableNameDesc=tableNameDesc+"详情"
-		detailSql:="create table if not exists "+tableName+"_detail("+tableFields+",id VARCHAR(128)  NOT NULL COMMENT 'id',report_id VARCHAR(128)  NOT NULL COMMENT 'report_id',create_time TIMESTAMP NULL DEFAULT NULL COMMENT '创建时间',update_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',PRIMARY KEY (id)"+")comment '"+tableNameDesc+"';"
+
 		var reportConfig=make(map[string]interface{})
 		var tcid string
 		tcid=uuid.NewV4().String()
@@ -1895,6 +1894,11 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		reportConfig["report_name"]=tableName
 		reportConfig["report_name_des"]=tableNameDesc
 		reportConfig["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+
+
+		tableNameDesc=tableNameDesc+"详情"
+		detailSql:="create table if not exists "+tableName+"_detail("+tableFields+",id VARCHAR(128)  NOT NULL COMMENT 'id',report_id VARCHAR(128)  NOT NULL COMMENT 'report_id',create_time TIMESTAMP NULL DEFAULT NULL COMMENT '创建时间',update_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',PRIMARY KEY (id)"+")comment '"+tableNameDesc+"';"
+
 
 
 
