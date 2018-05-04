@@ -1844,7 +1844,7 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		fmt.Printf("errorMessage=",errorMessage)
 		tableName := payload["tableName"].(string)
 		column := payload["columnName"].(string)
-		beforeColumnName := payload["beforeColumnName"].(string)
+		afterColumnName := payload["afterColumnName"].(string)
 		columnType:=payload["columnType"].(string)
 		defaultValue:=payload["defaultValue"]
 		columnDes:=payload["columnDes"].(string)
@@ -1853,8 +1853,8 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		if defaultValue!=""{
 			sql="alter table "+tableName+" add column "+column+" "+columnType+" default '"+defaultValue.(string)+"' comment '"+columnDes+"'"
 		}
-		if beforeColumnName!=""{
-			sql=sql+" after "+beforeColumnName+";"
+		if afterColumnName!=""{
+			sql=sql+" after "+afterColumnName+";"
 		}
 
 		errorMessage=api.CreateTableStructure(sql)

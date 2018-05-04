@@ -308,10 +308,10 @@ func GetParametersFromCreateTableColumn() (p spec.Parameter) {
 		},
 	}
 	// beforeColumnName
-	schemaProps.Properties["beforeColumnName"] = spec.Schema{
+	schemaProps.Properties["afterColumnName"] = spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Type:        spec.StringOrArray{"string"},
-			Description: "前一列的列名",
+			Description: "指定在哪一列的后面",
 			//Title:       col.ColumnName,
 			Default:     "",
 		},
