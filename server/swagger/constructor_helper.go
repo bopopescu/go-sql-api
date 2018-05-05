@@ -307,6 +307,14 @@ func GetParametersFromCreateTableColumn() (p spec.Parameter) {
 			Default:     "",
 		},
 	}
+	schemaProps.Properties["isFirst"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "是否是第一列",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
 	// beforeColumnName
 	schemaProps.Properties["afterColumnName"] = spec.Schema{
 		SchemaProps: spec.SchemaProps{

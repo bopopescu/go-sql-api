@@ -1845,6 +1845,8 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		tableName := payload["tableName"].(string)
 		column := payload["columnName"].(string)
 		afterColumnName := payload["afterColumnName"].(string)
+		// isFirst
+		isFirst := payload["isFirst"].(string)
 		columnType:=payload["columnType"].(string)
 		defaultValue:=payload["defaultValue"]
 		columnDes:=payload["columnDes"].(string)
@@ -1856,7 +1858,9 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		if afterColumnName!=""{
 			sql=sql+" after "+afterColumnName+";"
 		}
-
+		if isFirst=="1"{
+			sql=sql+" first;"
+		}
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
 			fmt.Printf("errorMessage=",errorMessage)
@@ -1897,6 +1901,9 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 
 
 		tableNameDesc=tableNameDesc+"详情"
+		if strings.Contains(tableName,"_template"){
+			tableName=strings.Replace(tableName,"_template","_report",-1)
+		}
 		detailSql:="create table if not exists "+tableName+"_detail("+tableFields+",id VARCHAR(128)  NOT NULL COMMENT 'id',report_id VARCHAR(128)  NOT NULL COMMENT 'report_id',create_time TIMESTAMP NULL DEFAULT NULL COMMENT '创建时间',update_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',PRIMARY KEY (id)"+")comment '"+tableNameDesc+"';"
 
 
