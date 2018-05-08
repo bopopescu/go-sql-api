@@ -618,16 +618,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							paramStr=concatObjectProperties(funcParamFields,paramsMap)
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
-							rs,error:= api.ExecFunc(calculate_func_sql_str)
-							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-							fmt.Printf("error",error)
-							fmt.Printf("rs",rs)
-							var result string
-							for _,item:=range rs{
-								fmt.Printf("")
-								result=item["result"].(string)
-							}
+							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 							asyncObjectMap[calculate_field]=result
+
 						}
 						api.Create(operate_table,asyncObjectMap)
 
