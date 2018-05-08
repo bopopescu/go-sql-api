@@ -814,7 +814,19 @@ func concatObjectProperties(funcParamFields [10]string,object map[string]interfa
 func buildMapFromBody(properties [10]string,fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
 	for _,item:=range properties{
 		if item!=""&&fromObjec[item]!=nil{
-			disObjec[item]=fromObjec[item].(string)
+
+			switch fromObjec[item].(type) {      //多选语句switch
+			case string:
+				//是字符时做的事情
+				disObjec[item]=fromObjec[item].(string)
+			case float64:
+				//是整数时做的事情
+				disObjec[item]=fromObjec[item].(float64)
+			case int:
+				//是整数时做的事情
+				disObjec[item]=fromObjec[item].(int)
+			}
+
 		}
 	}
 	return disObjec;
