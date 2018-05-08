@@ -641,7 +641,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
-							masterInfoMap["account_period_year"]=result1
+							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=100
@@ -708,7 +708,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
-							masterInfoMap["account_period_year"]=result1
+							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["order_num"]=nil
