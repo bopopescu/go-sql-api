@@ -89,6 +89,9 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 
 	//导入
 	s.POST("/api/"+databaseName+"/import/", endpointImportData(api,redisHost)).Name = "import data to template"
+	//执行func
+	s.POST("/api/"+databaseName+"/func/", endpointFunc(api,redisHost)).Name = "exec function"
+
 
 }
 
@@ -120,16 +123,16 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, errorMessage)
 		}
-		rowesAffected, errorMessage := api.RelatedCreate(payload)
-		// 后置条件处理
 		operates, errorMessage := SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST")
 		var operate_condition string
 		var operate_content string
-
+		var operate_type string
+		var operate_table string
 		for _, operate := range operates {
 			operate_condition = operate["operate_condition"].(string)
 			operate_content = operate["operate_content"].(string)
 		}
+
 		var conditionType string
 		var conditionFileds string
 		var conditionFiledArr [5]string
@@ -146,6 +149,15 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		if (operate_content != "") {
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
 		}
+		if operateCondContentJsonMap!=nil{
+			operate_type = operateCondContentJsonMap["operate_type"].(string)
+			operate_table = operateCondContentJsonMap["operate_table"].(string)
+		}
+
+		rowesAffected, errorMessage := api.RelatedCreate(operates,payload)
+		// 后置条件处理
+
+
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作  如果是OBTAIN_FROM_LOCAL 从参数里面获取
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
 		if "OBTAIN_FROM_LOCAL" == conditionType {
@@ -161,8 +173,6 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 				for _,slave:=range slaveInfoMap{
 					if slave[e.Value.(string)]!=nil{
 						fielVale := slave[e.Value.(string)].(string)
-						operate_type := operateCondContentJsonMap["operate_type"].(string)
-						operate_table := operateCondContentJsonMap["operate_table"].(string)
 
 						// 操作类型级联删除
 						if operate_type == "CASCADE_DELETE" && fielVale != "" {
@@ -1712,6 +1722,23 @@ func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c ec
 		return c.String(http.StatusOK, "ok")
 	}
 }
+func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		// 测试
+		rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+	   if error!=nil{
+		   return c.String(http.StatusOK, error.ErrorDescription)
+	   }
+	    fmt.Printf("error",error)
+	    fmt.Printf("rs",rs)
+	    var result string
+	    for _,item:=range rs{
+	    	fmt.Printf("")
+			result=item["result"].(string)
+		}
+		return c.String(http.StatusOK, result)
+	}
+}
 
 func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
@@ -1883,6 +1910,8 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		tableNameDesc := payload["tableNameDesc"].(string)
 		tableFields:=payload["tableFields"].(string)
 		isReport:=payload["isReport"].(string)
+		// ownerOrgId
+		ownerOrgId:=payload["ownerOrgId"].(string)
 		sql:="create table if not exists "+tableName+"("+tableFields+")comment '"+tableNameDesc+"';"
 		tableFields=strings.Replace(tableFields,"PRIMARY KEY(id)","",-1)
 		tableFields=strings.Replace(tableFields,"PRIMARY KEY","",-1)
@@ -1898,6 +1927,10 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		reportConfig["report_name"]=tableName
 		reportConfig["report_name_des"]=tableNameDesc
 		reportConfig["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		if ownerOrgId!=""{
+			// ownerOrgId
+			reportConfig["owner_org_id"]=ownerOrgId
+		}
 
 
 		tableNameDesc=tableNameDesc+"详情"

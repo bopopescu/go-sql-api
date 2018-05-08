@@ -402,6 +402,14 @@ func GetParametersFromCreateTableStructure() (p spec.Parameter) {
 			Default:     "",
 		},
 	}
+	schemaProps.Properties["ownerOrgId"] = spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type:        spec.StringOrArray{"string"},
+			Description: "报表的拥有者(为空时表示默认是模板报表  不为空则为自定客服的自定义报表)",
+			//Title:       col.ColumnName,
+			Default:     "",
+		},
+	}
 	schemaProps.Properties["tableFields"] = spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Type:        spec.StringOrArray{"string"},
@@ -452,7 +460,12 @@ func ImportTemplateParameters() (ps []spec.Parameter) {
 	}
 	return
 }
-
+func ExecFuncParameters() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.FUNC_KEY, "funcKey", "string", true),
+	}
+	return
+}
 func NewQueryParametersForAsync() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.ASYNC_KEY, "asyncKey", "string", true),

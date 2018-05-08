@@ -17,7 +17,25 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	patchCreateTablePath := spec.PathItem{}
 	patchCreateTableColumnPath := spec.PathItem{}
 	patchImportPath := spec.PathItem{}
+	patchFuncPath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+	patchFuncPath.Post=NewOperation(
+		"exec func",
+		fmt.Sprintf("执行数据库func"),
+		fmt.Sprintf("执行数据库func"),
+
+		//[]spec.Parameter{ImportParameters(),ImportTemplateParameters()...},//append([]spec.Parameter{ImportTemplateParameter()},spec.FileParam("file")...),// NewQueryParametersForOutputDields()
+		append([]spec.Parameter{},ExecFuncParameters()...),// ImportTemplateParameters()
+
+		fmt.Sprintf("执行数据库func"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/func/"]=patchFuncPath
+
 
 	patchImportPath.Post=NewOperation(
 		"import data to template",
