@@ -646,12 +646,11 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
-							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;"
+							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
-							asyncObjectMap["subject_key"]=nil
 							asyncObjectMap["line_number"]=100
 							asyncObjectMap["order_num"]=nil
 							asyncObjectMap["summary"]="本期合计"
@@ -714,12 +713,11 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
-							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;"
+							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
-							asyncObjectMap["subject_key"]=nil
 							asyncObjectMap["order_num"]=nil
 							asyncObjectMap["line_number"]=101
 							asyncObjectMap["summary"]="本年累计"
@@ -801,7 +799,18 @@ func concatObjectProperties(funcParamFields [10]string,object map[string]interfa
 	b := bytes.Buffer{}
 	for _,item:=range funcParamFields{
 		if item!=""&&object[item]!=nil{
-			b.WriteString(object[item].(string)+",")
+			switch object[item].(type) {      //多选语句switch
+			case string:
+				//是字符时做的事情
+				b.WriteString(object[item].(string)+",")
+			case float64:
+				//是整数时做的事情
+				b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64)+",")
+
+			}
+
+
+
 		}
 
 
