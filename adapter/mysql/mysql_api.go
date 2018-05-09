@@ -388,6 +388,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var slaveInfoMap []map[string]interface{}
 	//slaveInfoMap:=make([]map[string]interface{})
 
+
 	masterInfoMap,errorMessage=Json2map(masterTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
@@ -517,12 +518,170 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var funcParamFieldStr string
 	var operateCondJsonMap map[string]interface{}
 	var operateCondContentJsonMap map[string]interface{}
+	var slaveKey string
+	var summary string
 	asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
+	rebuildSlaveObjectMap:=make(map[string]interface{})//构建同步数据对象
+	rebuildSlaveCalMap:=make(map[string]interface{})//存放通过func计算出来值
 	var conditionFiledArr [10]string
 	var conditionFiledArr1 [10]string
 	//conditionFiledArr := list.New()
 	//conditionFiledArr1 := list.New()
 	var funcParamFields [10]string
+
+	// 通过 OperateKey查询前置事件
+	opK,errorMessage:=selectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName)
+    if opK!=nil{
+    	for _,item:=range opK{
+			operate_condition := item["operate_condition"].(string)
+			operate_content := item["operate_content"].(string)
+
+			if (operate_condition != "") {
+				json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+				funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
+				json.Unmarshal([]byte(funcParamFieldStr), &funcParamFields)
+			}
+			if (operate_content != "") {
+				json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+			}
+			if operateCondContentJsonMap!=nil{
+				operate_type = operateCondContentJsonMap["operate_type"].(string)
+				operate_table = operateCondContentJsonMap["operate_table"].(string)
+				calculate_field=operateCondContentJsonMap["calculate_field"].(string)
+				calculate_func=operateCondContentJsonMap["calculate_func"].(string)
+			}
+		}
+
+		//如果是 operate_type KNOTS_PROFIT_LOSS 结转损益
+		var voucher_type string
+		list:=list.New()
+		if masterInfoMap["voucher_type"]!=nil{
+			switch masterInfoMap["voucher_type"].(type) {      //多选语句switch
+			case string:
+				//是字符时做的事情
+				voucher_type=masterInfoMap["voucher_type"].(string)
+
+			case int:
+				//是整数时做的事情
+				voucher_type=strconv.Itoa(masterInfoMap["voucher_type"].(int))
+			}
+		}
+			if "KNOTS_PROFIT_LOSS" == operate_type && voucher_type=="4"  {
+				if len(slaveInfoMap)>0{
+					if slaveInfoMap[0]["knots_subject_key"]!=nil{
+						slaveKey=slaveInfoMap[0]["knots_subject_key"].(string)
+						summary=slaveInfoMap[0]["summary"].(string)
+					}
+
+				}
+				rebuildSlaveObjectMap["subject_key"]=slaveKey
+				rebuildSlaveObjectMap["summary"]=summary
+				laste_date_sql := "SELECT DATE_FORMAT(LAST_DAY('" + masterInfoMap["account_period_year"].(string) + "'),'%Y-%m-%d') AS last_date;"
+				result1 := api.ExecFuncForOne(laste_date_sql, "last_date")
+				masterInfoMap["account_period_year"]=result1
+
+				for _, slave := range slaveInfoMap {
+				var paramStr string
+				paramsMap := make(map[string]interface{})
+				// funcParamFields
+				if calculate_func != "" {
+					//如果执行方法不为空 执行配置中方法
+					paramsMap = buildMapFromBody(funcParamFields, masterInfoMap, paramsMap)
+					paramsMap = buildMapFromBody(funcParamFields, slave, paramsMap)
+					//把对象的所有属性的值拼成字符串
+					paramStr = concatObjectProperties(funcParamFields, paramsMap)
+					list.PushBack(slave["subject_key"].(string))
+					if strings.Contains(calculate_field, ",") {
+						fields := strings.Split(calculate_field, ",")
+						for index, item := range fields {
+							calculate_func_sql_str := "select ROUND(" + calculate_func + "(" + paramStr + ",'" + strconv.Itoa(index+1) + "'" + "),2) as result;"
+							result := api.ExecFuncForOne(calculate_func_sql_str, "result")
+							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+							rebuildSlaveCalMap[slave["subject_key"].(string)+"-"+item] = result
+
+						}
+					}
+
+
+
+
+				}
+
+			}
+
+			    //计算不同方向的累计值
+			    var debitTotal float64
+				var creditTotal float64
+				for e := list.Front(); e != nil; e = e.Next() {
+					whereOption := map[string]WhereOperation{}
+					whereOption["subject_key"] = WhereOperation{
+						Operation: "eq",
+						Value:     e.Value,
+					}
+					whereOption["farm_id"] = WhereOperation{
+						Operation: "eq",
+						Value:     masterInfoMap["farm_id"],
+					}
+					querOption := QueryOption{Wheres: whereOption, Table: "farm_subject"}
+					r, errorMessage:= api.Select(querOption)
+					var direction string
+					if errorMessage!=nil{
+						fmt.Printf("errorMessage", errorMessage)
+					}else{
+						for _,item:=range r{
+							if item["direction"]!=nil{
+								direction=item["direction"].(string)
+								break;
+							}
+
+						}
+						fmt.Printf("rs", r)
+						if direction=="1"{
+							if rebuildSlaveCalMap[e.Value.(string)+"-debit_funds"].(string)!=""{
+								tempTotal,error:=strconv.ParseFloat(rebuildSlaveCalMap[e.Value.(string)+"-debit_funds"].(string), 64)
+								if error!=nil{
+									fmt.Printf("error",error)
+								}
+								debitTotal=debitTotal+tempTotal
+							}
+
+
+
+
+						}else{
+							if rebuildSlaveCalMap[e.Value.(string)+"-credit_funds"].(string)!=""{
+								tempTotal,error:=strconv.ParseFloat(rebuildSlaveCalMap[e.Value.(string)+"-credit_funds"].(string), 64)
+								if error!=nil{
+									fmt.Printf("error",error)
+								}
+								creditTotal=creditTotal+tempTotal
+							}
+
+
+						}
+
+					}
+
+
+				}
+
+				rebuildSlaveObjectMap["debit_funds"]=debitTotal
+				rebuildSlaveObjectMap["credit_funds"]=creditTotal
+				//slaveInfoMap=nil
+
+				var tempMap []map[string]interface{}
+				//tempMap:=make([1]map[string]interface{})
+				tempMap=append(tempMap,rebuildSlaveObjectMap)
+				slaveInfoMap=tempMap
+
+
+		}
+
+
+
+	}
+
+
 
 	for _, slave := range slaveInfoMap {
 		for _, col := range primaryColumns1 {
@@ -619,6 +778,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
 							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+							if result==""{
+								result="0"
+							}
 							asyncObjectMap[calculate_field]=result
 
 						}
@@ -664,7 +826,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
 									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-
+									if result==""{
+										result="0"
+									}
 									asyncObjectMap[item]=result
 
 								}
@@ -731,7 +895,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
 									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-
+									if result==""{
+										result="0"
+									}
 									asyncObjectMap[item]=result
 
 								}
@@ -772,6 +938,25 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rowAaffect=rowAaffect+masterRowAffect
   return rowAaffect,nil
 }
+func selectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
+
+	whereOption := map[string]WhereOperation{}
+	whereOption["operate_key"] = WhereOperation{
+		Operation: "eq",
+		Value:     operate_key,
+	}
+
+	querOption := QueryOption{Wheres: whereOption, Table: "operate_config"}
+	rs, errorMessage= api.Select(querOption)
+	if errorMessage!=nil{
+		fmt.Printf("errorMessage", errorMessage)
+	}else{
+		fmt.Printf("rs", rs)
+	}
+
+	return rs,errorMessage
+}
+
 func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(string){
 	rs,error:= api.ExecFunc(sql)
 	//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
