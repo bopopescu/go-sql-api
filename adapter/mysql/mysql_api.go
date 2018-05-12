@@ -669,7 +669,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				}
 				rebuildSlaveObjectMap1=rebuildSlaveObjectMap
 				rebuildSlaveObjectMap["debit_funds"]=debitTotal
+				rebuildSlaveObjectMap["credit_funds"]="0"
 				rebuildSlaveObjectMap1["credit_funds"]=creditTotal
+				rebuildSlaveObjectMap1["debit_funds"]="0"
 				//slaveInfoMap=nil
 
 				//var tempMap []map[string]interface{}
