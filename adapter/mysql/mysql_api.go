@@ -697,13 +697,13 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 		}
 		//设置主键id
         slave[masterPriKey]=masterId
-		if slavePriId==""{
+		//if slavePriId==""{
 			uuid := uuid.NewV4()
 			slavePriId=uuid.String()
 			slave[slavePriKey]=slavePriId
-		}else {
-			slave[slavePriKey]=slavePriId
-		}
+	//	}else {
+		//	slave[slavePriKey]=slavePriId
+		//}
 
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
@@ -976,6 +976,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
+								asyncObjectMap["id"]=uuid.String()
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
