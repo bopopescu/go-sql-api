@@ -521,6 +521,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var slaveKey string
 	var summary string
 	rebuildSlaveObjectMap:=make(map[string]interface{})//构建同步数据对象
+	rebuildSlaveObjectMap1:=make(map[string]interface{})//构建同步数据对象
 	rebuildSlaveCalMap:=make(map[string]interface{})//存放通过func计算出来值
 	var conditionFiledArr [10]string
 	var conditionFiledArr1 [10]string
@@ -597,7 +598,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							result := api.ExecFuncForOne(calculate_func_sql_str, "result")
 							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 							rebuildSlaveCalMap[slave["subject_key"].(string)+"-"+item] = result
-
+							slave[item]=result
 						}
 					}
 
@@ -663,15 +664,16 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 				}
-
+				rebuildSlaveObjectMap1=rebuildSlaveObjectMap
 				rebuildSlaveObjectMap["debit_funds"]=debitTotal
-				rebuildSlaveObjectMap["credit_funds"]=creditTotal
+				rebuildSlaveObjectMap1["credit_funds"]=creditTotal
 				//slaveInfoMap=nil
 
-				var tempMap []map[string]interface{}
+				//var tempMap []map[string]interface{}
 				//tempMap:=make([1]map[string]interface{})
-				tempMap=append(tempMap,rebuildSlaveObjectMap)
-				slaveInfoMap=tempMap
+				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMap)
+				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMap1)
+
 
 
 		}
