@@ -784,7 +784,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							asyncObjectMap[calculate_field]=result
 
 						}
-						api.Create(operate_table,asyncObjectMap)
+						r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+						fmt.Printf("r=",r,"errorMessage=",errorMessage)
 
 					}
 
@@ -839,7 +840,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
-								api.Create(operate_table,asyncObjectMap)
+								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id
 							   r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
@@ -908,7 +910,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
-								api.Create(operate_table,asyncObjectMap)
+								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id
 								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
@@ -973,7 +976,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
-								api.Create(operate_table,asyncObjectMap)
+								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id
 								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
