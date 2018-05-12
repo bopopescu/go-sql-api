@@ -520,7 +520,6 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var operateCondContentJsonMap map[string]interface{}
 	var slaveKey string
 	var summary string
-	asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
 	rebuildSlaveObjectMap:=make(map[string]interface{})//构建同步数据对象
 	rebuildSlaveCalMap:=make(map[string]interface{})//存放通过func计算出来值
 	var conditionFiledArr [10]string
@@ -736,6 +735,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				slaveRowAffect,err=rs.RowsAffected()
 
 				for _,operate:=range operates {
+					asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
+
+
 					operate_condition := operate["operate_condition"].(string)
 					operate_content := operate["operate_content"].(string)
 
