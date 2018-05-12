@@ -521,7 +521,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var slaveKey string
 	var summary string
 	rebuildSlaveObjectMap:=make(map[string]interface{})//构建同步数据对象
-	rebuildSlaveObjectMap1:=make(map[string]interface{})//构建同步数据对象
+	rebuildSlaveObjectMapp:=make(map[string]interface{})//构建同步数据对象
 	rebuildSlaveCalMap:=make(map[string]interface{})//存放通过func计算出来值
 	var conditionFiledArr [10]string
 	var conditionFiledArr1 [10]string
@@ -667,18 +667,17 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 				}
-				rebuildSlaveObjectMap1=rebuildSlaveObjectMap
+
 				rebuildSlaveObjectMap["debit_funds"]=debitTotal
-				rebuildSlaveObjectMap["credit_funds"]="0"
-				rebuildSlaveObjectMap1["credit_funds"]=creditTotal
-				rebuildSlaveObjectMap1["debit_funds"]="0"
-				//slaveInfoMap=nil
 
-				//var tempMap []map[string]interface{}
-				//tempMap:=make([1]map[string]interface{})
 				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMap)
-				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMap1)
-
+				//rebuildSlaveObjectMapp=rebuildSlaveObjectMap
+				rebuildSlaveObjectMapp["debit_funds"]="0"
+				rebuildSlaveObjectMapp["summary"]=rebuildSlaveObjectMap["summary"]
+				rebuildSlaveObjectMapp["subject_key"]=rebuildSlaveObjectMap["subject_key"]
+				rebuildSlaveObjectMapp["credit_funds"]=creditTotal
+				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMapp)
+				//slaveInfoMap=nil
 
 
 		}
