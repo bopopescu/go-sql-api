@@ -791,8 +791,23 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							asyncObjectMap[calculate_field]=result
 
 						}
-						r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-						fmt.Printf("r=",r,"errorMessage=",errorMessage)
+
+						judgeExistsSql:="select judgeCurrentKnotsExists("+paramStr+") as id;"
+						id:=api.ExecFuncForOne(judgeExistsSql,"id")
+						if id==""{
+							asyncObjectMap["id"]=id
+							r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+							fmt.Printf("r=",r,"errorMessage=",errorMessage)
+						}else{//id不为空 则更新
+							asyncObjectMap["id"]=id
+							r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+							if errorMessage!=nil{
+								fmt.Printf("errorMessage=",errorMessage)
+							}
+							fmt.Printf("rs=",r)
+
+						}
+
 
 					}
 
