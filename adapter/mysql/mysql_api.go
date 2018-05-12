@@ -596,6 +596,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						for index, item := range fields {
 							calculate_func_sql_str := "select ROUND(" + calculate_func + "(" + paramStr + ",'" + strconv.Itoa(index+1) + "'" + "),2) as result;"
 							result := api.ExecFuncForOne(calculate_func_sql_str, "result")
+							if result==""{
+								result="0"
+							}
 							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 							rebuildSlaveCalMap[slave["subject_key"].(string)+"-"+item] = result
 							slave[item]=result
