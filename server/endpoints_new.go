@@ -424,10 +424,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					Operation: "gte",
 					Value:     masterInfoMap["account_period_year"],
 				}
-				whereOption["order_num"] = WhereOperation{
-					Operation: "gt",
-					Value:     masterInfoMap["order_num"],
-				}
+				//whereOption["order_num"] = WhereOperation{
+				//	Operation: "gt",
+				//	Value:     masterInfoMap["order_num"],
+				//}
 
 				querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 
