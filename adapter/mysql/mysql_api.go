@@ -19,6 +19,7 @@ import (
 	"container/list"
 	"github.com/satori/go.uuid"
 	"bytes"
+
 )
 
 // MysqlAPI
@@ -530,7 +531,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var funcParamFields [10]string
 
 	// 通过 OperateKey查询前置事件
-	opK,errorMessage:=selectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName)
+	opK,errorMessage:=SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName)
     if opK!=nil{
     	for _,item:=range opK{
 			operate_condition := item["operate_condition"].(string)
@@ -586,10 +587,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				// funcParamFields
 				if calculate_func != "" {
 					//如果执行方法不为空 执行配置中方法
-					paramsMap = buildMapFromBody(funcParamFields, masterInfoMap, paramsMap)
-					paramsMap = buildMapFromBody(funcParamFields, slave, paramsMap)
+					paramsMap = BuildMapFromBody(funcParamFields, masterInfoMap, paramsMap)
+					paramsMap = BuildMapFromBody(funcParamFields, slave, paramsMap)
 					//把对象的所有属性的值拼成字符串
-					paramStr = concatObjectProperties(funcParamFields, paramsMap)
+					paramStr = ConcatObjectProperties(funcParamFields, paramsMap)
 					list.PushBack(slave["subject_key"].(string))
 					if strings.Contains(calculate_field, ",") {
 						fields := strings.Split(calculate_field, ",")
@@ -768,8 +769,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 					//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
 					if "ASYNC_BATCH_SAVE"==operate_type{
-						asyncObjectMap=buildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-						asyncObjectMap=buildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -779,10 +780,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							//如果执行方法不为空 执行配置中方法
-							paramsMap=buildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-							paramsMap=buildMapFromBody(funcParamFields,slave,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
 							//把对象的所有属性的值拼成字符串
-							paramStr=concatObjectProperties(funcParamFields,paramsMap)
+							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
 							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
@@ -814,8 +815,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 					// ASYNC_BATCH_SAVE_CURRENT_PEROID 计算指定配置的值
 					if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type{
-						asyncObjectMap=buildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-						asyncObjectMap=buildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -835,10 +836,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							asyncObjectMap["summary"]="本期合计"
 							asyncObjectMap["account_period_year"]=result1
 							//如果执行方法不为空 执行配置中方法
-							paramsMap=buildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-							paramsMap=buildMapFromBody(funcParamFields,slave,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
 							//把对象的所有属性的值拼成字符串
-							paramStr=concatObjectProperties(funcParamFields,paramsMap)
+							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
 
 
@@ -884,8 +885,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 					// ASYNC_BATCH_SAVE_CURRENT_YEAR
 					if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type{
-						asyncObjectMap=buildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-						asyncObjectMap=buildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -905,10 +906,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							asyncObjectMap["summary"]="本年累计"
 							asyncObjectMap["account_period_year"]=result1
 							//如果执行方法不为空 执行配置中方法
-							paramsMap=buildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-							paramsMap=buildMapFromBody(funcParamFields,slave,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
 							//把对象的所有属性的值拼成字符串
-							paramStr=concatObjectProperties(funcParamFields,paramsMap)
+							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
 
 
@@ -955,8 +956,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 					// ASYNC_BATCH_SAVE_SUBJECT_LEAVE
 					if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type{
 						asyncObjectMap=make(map[string]interface{})
-						asyncObjectMap=buildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-						asyncObjectMap=buildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -966,10 +967,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							//如果执行方法不为空 执行配置中方法
-							paramsMap=buildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-							paramsMap=buildMapFromBody(funcParamFields,slave,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
 							//把对象的所有属性的值拼成字符串
-							paramStr=concatObjectProperties(funcParamFields,paramsMap)
+							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
 
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
@@ -999,7 +1000,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
-								asyncObjectMap["id"]=uuid.String()
+								asyncObjectMap["id"]=id+"-knots"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
@@ -1031,7 +1032,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rowAaffect=rowAaffect+masterRowAffect
   return rowAaffect,nil
 }
-func selectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
+func SelectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
 	whereOption := map[string]WhereOperation{}
 	whereOption["operate_key"] = WhereOperation{
@@ -1065,7 +1066,7 @@ func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(string){
 	}
 return result
 }
-func concatObjectProperties(funcParamFields [10]string,object map[string]interface{})(string){
+func ConcatObjectProperties(funcParamFields [10]string,object map[string]interface{})(string){
 	var resultStr string
 	b := bytes.Buffer{}
 	for _,item:=range funcParamFields{
@@ -1091,7 +1092,7 @@ func concatObjectProperties(funcParamFields [10]string,object map[string]interfa
 	return resultStr
 }
 
-func buildMapFromBody(properties [10]string,fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
+func BuildMapFromBody(properties [10]string,fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
 	for _,item:=range properties{
 		if item!=""&&fromObjec[item]!=nil{
 
@@ -1112,7 +1113,7 @@ func buildMapFromBody(properties [10]string,fromObjec map[string]interface{},dis
 	return disObjec;
 }
 
-func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
+func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
 	var rowAaffect int64
 	var masterRowAffect int64
 	var slaveRowAffect int64
@@ -1177,6 +1178,7 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 
 	for i, slave := range slaveInfoMap {
 		sql, err := api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
+
 		fmt.Printf("i=",i)
 		slaveIds.PushBack(slave["id"].(string))
 
@@ -1192,8 +1194,379 @@ func (api *MysqlAPI) RelatedUpdate(obj map[string]interface{}) (rowAffect int64,
 				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+errorMessage.Error()}
 				return 0,errorMessage
 			}else{
+
 				slaveRowAffect,err=rs.RowsAffected()
-			}
+				// 处理后置事件
+
+				var operate_type string
+				var operate_table string
+				var calculate_field string
+				var calculate_func string
+				var conditionFileds string
+				var conditionFileds1 string
+				var funcParamFieldStr string
+				var operateCondJsonMap map[string]interface{}
+				var operateCondContentJsonMap map[string]interface{}
+				var repeatCalculateData []map[string]interface{}
+
+				var conditionFiledArr [10]string
+				var conditionFiledArr1 [10]string
+				//conditionFiledArr := list.New()
+				//conditionFiledArr1 := list.New()
+				var funcParamFields [10]string
+
+				// 通过 OperateKey查询前置事件
+				opK,errorMessage:=SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName+"-PUT")
+				fmt.Printf("errorMessage=",errorMessage)
+
+				judgeExistsFundsWhereOption := map[string]WhereOperation{}
+				judgeExistsFundsWhereOption["id"] = WhereOperation{
+					Operation: "eq",
+					Value:     slave["id"],
+				}
+
+				judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
+					Operation: "eq",
+					Value:     slave["debit_funds"],
+				}
+
+				judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+				fundsExists, errorMessage:= api.Select(judgeFundsQuerOption)
+
+				judgeExistsFundsWhereOption1 := map[string]WhereOperation{}
+				judgeExistsFundsWhereOption1["id"] = WhereOperation{
+					Operation: "eq",
+					Value:     slave["id"],
+				}
+
+				judgeExistsFundsWhereOption1["credit_funds"] = WhereOperation{
+					Operation: "eq",
+					Value:     slave["credit_funds"],
+				}
+
+				judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+				fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
+
+// credit_funds
+				if opK!=nil &&(fundsExists!=nil||fundsExists1!=nil){
+					for _, item := range opK {
+						operate_condition := item["operate_condition"].(string)
+						operate_content := item["operate_content"].(string)
+
+						if (operate_condition != "") {
+							json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+
+						}
+						if (operate_content != "") {
+							json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+						}
+						if operateCondContentJsonMap != nil {
+							operate_type = operateCondContentJsonMap["operate_type"].(string)
+							operate_table = operateCondContentJsonMap["operate_table"].(string)
+
+						}
+
+					}
+					//repeatCalculateData=make([]map[string]interface{})
+                    if operate_type=="CALCULATE_DEPENDY_LEAVE_FUNDS"{
+                    	//先更新明细表中记录  id和详情id一样 除了合计、累计id
+						sql, err := api.sql.UpdateByTableAndId(operate_table,slave["id"].(string), slave)
+						if err!=nil{
+							// 回滚已经插入的数据
+							errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+							return 0,errorMessage
+						}else {
+							rs, errorMessage = api.exec(sql)
+						}
+
+                	   // 查询当前后同一科目的记录
+					  whereOption := map[string]WhereOperation{}
+					  whereOption["subject_key"] = WhereOperation{
+						  Operation: "eq",
+						  Value:     slave["subject_key"],
+					  }
+					  whereOption["farm_id"] = WhereOperation{
+						  Operation: "eq",
+						  Value:     masterInfoMap["farm_id"],
+					  }
+					  whereOption["account_period_year"] = WhereOperation{
+						  Operation: "gte",
+						  Value:     masterInfoMap["account_period_year"],
+					  }
+					  whereOption["account_period_num"] = WhereOperation{
+						  Operation: "gte",
+						  Value:     masterInfoMap["account_period_num"],
+					  }
+
+					  querOption := QueryOption{Wheres: whereOption, Table: operate_table}
+
+						repeatCalculateData, errorMessage= api.Select(querOption)
+					  fmt.Printf("repeatCalculateData=",repeatCalculateData)
+					  if errorMessage!=nil{
+						  fmt.Printf("errorMessage", errorMessage)
+					  }else{
+						  fmt.Printf("rs", rs)
+					  }
+
+
+				  }
+
+				    for _,repeatItem:=range repeatCalculateData{
+				  	id:=repeatItem["id"]
+					for _,operate:=range operates {
+						asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
+
+
+						operate_condition := operate["operate_condition"].(string)
+						operate_content := operate["operate_content"].(string)
+
+						if (operate_condition != "") {
+							json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+							conditionFileds = operateCondJsonMap["conditionFields"].(string)
+							conditionFileds1 = operateCondJsonMap["conditionFieldss"].(string)
+							funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
+							json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+							json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
+							json.Unmarshal([]byte(funcParamFieldStr), &funcParamFields)
+						}
+						if (operate_content != "") {
+							json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+						}
+						if operateCondContentJsonMap!=nil{
+							operate_type = operateCondContentJsonMap["operate_type"].(string)
+							operate_table = operateCondContentJsonMap["operate_table"].(string)
+							calculate_field=operateCondContentJsonMap["calculate_field"].(string)
+							calculate_func=operateCondContentJsonMap["calculate_func"].(string)
+						}
+
+						//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
+						if "ASYNC_BATCH_SAVE"==operate_type{
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
+
+							fmt.Printf("operate_table",operate_table)
+							fmt.Printf("calculate_field",calculate_field)
+							fmt.Printf("calculate_func",calculate_func)
+							var paramStr string
+							paramsMap:=make(map[string]interface{})
+							// funcParamFields
+							if calculate_func!=""{
+								//如果执行方法不为空 执行配置中方法
+								paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+								paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+								//把对象的所有属性的值拼成字符串
+								paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+								calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
+
+								result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+								if result==""{
+									result="0"
+								}
+								asyncObjectMap[calculate_field]=result
+
+							}
+
+
+								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+								if errorMessage!=nil{
+									fmt.Printf("errorMessage=",errorMessage)
+								}
+								fmt.Printf("rs=",r)
+
+
+						}
+
+						// ASYNC_BATCH_SAVE_CURRENT_PEROID 计算指定配置的值
+						if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type && strings.Contains(id.(string),"-peroid"){
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
+
+							fmt.Printf("operate_table",operate_table)
+							fmt.Printf("calculate_field",calculate_field)
+							fmt.Printf("calculate_func",calculate_func)
+							var paramStr string
+							paramsMap:=make(map[string]interface{})
+							// funcParamFields
+							if calculate_func!=""{
+								// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
+								laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
+								result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+								//masterInfoMap["account_period_year"]=result1
+
+								asyncObjectMap["voucher_type"]=nil
+								asyncObjectMap["line_number"]=100
+								asyncObjectMap["order_num"]=nil
+								asyncObjectMap["summary"]="本期合计"
+								asyncObjectMap["account_period_year"]=result1
+								//如果执行方法不为空 执行配置中方法
+								paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+								paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+								//把对象的所有属性的值拼成字符串
+								paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+
+
+
+
+								if strings.Contains(calculate_field,","){
+									fields:=strings.Split(calculate_field,",")
+									for index,item:=range fields{
+										calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
+										result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+										//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+										if result==""{
+											result="0"
+										}
+										asyncObjectMap[item]=result
+
+									}
+								}
+
+
+
+									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+									if errorMessage!=nil{
+										fmt.Printf("errorMessage=",errorMessage)
+									}
+									fmt.Printf("rs=",r)
+
+
+
+							}
+
+
+						}
+
+						// ASYNC_BATCH_SAVE_CURRENT_YEAR
+						if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type && strings.Contains(id.(string),"-year"){
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
+
+							fmt.Printf("operate_table",operate_table)
+							fmt.Printf("calculate_field",calculate_field)
+							fmt.Printf("calculate_func",calculate_func)
+							var paramStr string
+							paramsMap:=make(map[string]interface{})
+							// funcParamFields
+							if calculate_func!=""{
+								// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
+								laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
+								result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+								//masterInfoMap["account_period_year"]=result1
+
+								asyncObjectMap["voucher_type"]=nil
+								asyncObjectMap["order_num"]=nil
+								asyncObjectMap["line_number"]=101
+								asyncObjectMap["summary"]="本年累计"
+								asyncObjectMap["account_period_year"]=result1
+								//如果执行方法不为空 执行配置中方法
+								paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+								paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+								//把对象的所有属性的值拼成字符串
+								paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+
+
+								if strings.Contains(calculate_field,","){
+									fields:=strings.Split(calculate_field,",")
+									for index,item:=range fields{
+										calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
+										result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+										//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+										if result==""{
+											result="0"
+										}
+										asyncObjectMap[item]=result
+
+									}
+								}
+
+
+
+
+									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+									if errorMessage!=nil{
+										fmt.Printf("errorMessage=",errorMessage)
+									}
+									fmt.Printf("rs=",r)
+
+
+
+							}
+
+
+						}
+
+						// ASYNC_BATCH_SAVE_SUBJECT_LEAVE  -knots
+						leaveWhereOption := map[string]WhereOperation{}
+						leaveWhereOption["id"] = WhereOperation{
+							Operation: "eq",
+							Value:     id.(string)+"-knots",
+						}
+
+						leaveQuerOption := QueryOption{Wheres: leaveWhereOption, Table: operate_table}
+						leaveRs, errorMessage:= api.Select(leaveQuerOption)
+						fmt.Printf("errorMessage=",errorMessage)
+						if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type && leaveRs!=nil{
+							asyncObjectMap=make(map[string]interface{})
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr,leaveRs[0],asyncObjectMap)
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,leaveRs[0],asyncObjectMap)
+
+							fmt.Printf("operate_table",operate_table)
+							fmt.Printf("calculate_field",calculate_field)
+							fmt.Printf("calculate_func",calculate_func)
+							var paramStr string
+							paramsMap:=make(map[string]interface{})
+							// funcParamFields
+							if calculate_func!=""{
+								//如果执行方法不为空 执行配置中方法
+								paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+								paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+								//把对象的所有属性的值拼成字符串
+								paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+
+
+								if strings.Contains(calculate_field,","){
+									fields:=strings.Split(calculate_field,",")
+									for index,item:=range fields{
+										calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
+										result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+										//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+										if result==""{
+											result="0"
+										}
+										asyncObjectMap[item]=result
+
+									}
+								}
+								// end_debit_funds,end_credit_funds   current_debit_funds-begin_debit_funds
+								current_debit_funds,error:=strconv.ParseFloat(asyncObjectMap["current_debit_funds"].(string), 64)
+								begin_debit_funds,error:=strconv.ParseFloat(asyncObjectMap["begin_debit_funds"].(string), 64)
+								current_credit_funds,error:=strconv.ParseFloat(asyncObjectMap["current_credit_funds"].(string), 64)
+								begin_credit_funds,error:=strconv.ParseFloat(asyncObjectMap["begin_credit_funds"].(string), 64)
+								fmt.Printf("error=",error)
+								asyncObjectMap["end_debit_funds"]=strconv.FormatFloat(current_debit_funds-begin_debit_funds, 'f', -1, 64)
+								asyncObjectMap["end_credit_funds"]=strconv.FormatFloat(current_credit_funds-begin_credit_funds, 'f', -1, 64)
+
+								asyncObjectMap["id"]=id.(string)+"-knots"
+								r,errorMessage:= api.Update(operate_table,id.(string)+"-knots",asyncObjectMap)
+									fmt.Printf("r=",r)
+									if errorMessage!=nil{
+										fmt.Printf("errorMessage=",errorMessage)
+									}
+
+
+
+							}
+
+
+						}
+
+					}
+				  }
+				}
+
+
+
+				}
 			rowAaffect=rowAaffect+slaveRowAffect
 		}
 

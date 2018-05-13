@@ -292,6 +292,19 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		if strings.Contains(f,".`lt`"){
 			f=strings.Replace(f,".`lt`","",-1)
 		}
+		if strings.Contains(f,".gte"){
+			f=strings.Replace(f,".gte","",-1)
+		}
+		if strings.Contains(f,".`gte`"){
+			f=strings.Replace(f,".`gte`","",-1)
+		}
+		if strings.Contains(f,".lte"){
+			f=strings.Replace(f,".lte","",-1)
+		}
+		if strings.Contains(f,".`lte`"){
+			f=strings.Replace(f,".`lte`","",-1)
+		}
+
 		rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
 	}
