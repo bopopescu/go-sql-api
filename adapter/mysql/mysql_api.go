@@ -522,7 +522,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var slaveKey string
 	var summary string
 	rebuildSlaveObjectMap:=make(map[string]interface{})//构建同步数据对象
-	rebuildSlaveObjectMapp:=make(map[string]interface{})//构建同步数据对象
+	var rebuildSlaveObjectMapp []map[string]interface{}//构建同步数据对象
 	rebuildSlaveCalMap:=make(map[string]interface{})//存放通过func计算出来值
 	var conditionFiledArr [10]string
 	var conditionFiledArr1 [10]string
@@ -640,7 +640,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 						}
 						fmt.Printf("rs", r)
-						if direction=="1"{
+						if direction=="2"{
 							if rebuildSlaveCalMap[e.Value.(string)+"-debit_funds"].(string)!=""{
 								tempTotal,error:=strconv.ParseFloat(rebuildSlaveCalMap[e.Value.(string)+"-debit_funds"].(string), 64)
 								if error!=nil{
@@ -668,19 +668,36 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 				}
+				for _, slave := range slaveInfoMap {
+					if slave["subject_key"]==slaveKey && slave["line_number"]=="1"{
+						slave["credit_funds"]=debitTotal
+					}
+					if slave["subject_key"]==slaveKey && slave["line_number"]!="1"{
+						slave["debit_funds"]=creditTotal
+					}
+				}
 
-				rebuildSlaveObjectMap["debit_funds"]=debitTotal
-
-				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMap)
-				//rebuildSlaveObjectMapp=rebuildSlaveObjectMap
-				rebuildSlaveObjectMapp["debit_funds"]="0"
-				rebuildSlaveObjectMapp["summary"]=rebuildSlaveObjectMap["summary"]
-				rebuildSlaveObjectMapp["subject_key"]=rebuildSlaveObjectMap["subject_key"]
-				rebuildSlaveObjectMapp["credit_funds"]=creditTotal
-				slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMapp)
+				//rebuildSlaveObjectMap["debit_funds"]=debitTotal
+				//slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMap)
+				////rebuildSlaveObjectMapp=rebuildSlaveObjectMap
+				//rebuildSlaveObjectMapp["debit_funds"]="0"
+				//rebuildSlaveObjectMapp["summary"]=rebuildSlaveObjectMap["summary"]
+				//rebuildSlaveObjectMapp["subject_key"]=rebuildSlaveObjectMap["subject_key"]
+				//rebuildSlaveObjectMapp["credit_funds"]=creditTotal
+				//slaveInfoMap=append(slaveInfoMap,rebuildSlaveObjectMapp)
 				//slaveInfoMap=nil
+				for _, slave := range slaveInfoMap {
+					if slave["credit_funds"]!=nil||slave["debit_funds"]!=nil{
+						//ConverStrFromMap("credit_funds",slave)
+						credit_funds:=ConverStrFromMap("credit_funds",slave)
+						debit_funds:=ConverStrFromMap("debit_funds",slave)
+						if credit_funds!="0"||debit_funds!="0"{
+							rebuildSlaveObjectMapp=append(rebuildSlaveObjectMapp,slave)
+						}
 
-
+					}
+				}
+				slaveInfoMap=rebuildSlaveObjectMapp
 		}
 
 
@@ -826,7 +843,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
-							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
+							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d %h:%i:%s') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
 
@@ -896,7 +913,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
-							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
+							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d %h:%i:%s') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
 
@@ -1066,6 +1083,26 @@ func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(string){
 	}
 return result
 }
+func ConverStrFromMap(key string,mm map[string]interface{})(string){
+	b := bytes.Buffer{}
+
+		if mm!=nil&&mm[key]!=nil{
+			switch mm[key].(type) {      //多选语句switch
+			case string:
+				//是字符时做的事情
+				b.WriteString(mm[key].(string))
+			case float64:
+				//是整数时做的事情
+				b.WriteString(strconv.FormatFloat(mm[key].(float64), 'f', -1, 64))
+
+			}
+
+
+	}
+
+	return b.String()
+}
+
 func ConcatObjectProperties(funcParamFields [10]string,object map[string]interface{})(string){
 	var resultStr string
 	b := bytes.Buffer{}
