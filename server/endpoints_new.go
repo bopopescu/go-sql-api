@@ -1672,6 +1672,29 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				}
 			}
 
+
+			// 如果	hRows大于1  说明有合并单元格 并设置其合并内容
+			if hRows>1{
+				hdMapHeadMerge := map[string]WhereOperation{}
+				hdMapHeadMerge["template_key"] = WhereOperation{
+					Operation: "eq",
+					Value:     tableName,
+				}
+				optionHdMerge := QueryOption{Wheres: hdMapHeadMerge, Table: "export_header_merge_detail"}
+				hdMerge, errorMessage := api.Select(optionHdMerge)
+				fmt.Printf("hdMerge", hdMerge)
+				fmt.Printf("errorMessage", errorMessage)
+				for _,headMergeDeatail:=range hdMerge {
+					//i:= headMergeDeatail["i"].(string)
+					i,err:=strconv.Atoi(headMergeDeatail["i"].(string))
+					j,err := strconv.Atoi(headMergeDeatail["j"].(string))
+					fmt.Printf("err=",err)
+					value:=headMergeDeatail["value"].(string)
+					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
+				}
+
+			}
+
 			//	xlsx.MergeCell("Sheet1","D2","E3")
 			// 合并单元格  从模板里读取合并单元格信息
 
