@@ -814,7 +814,32 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if err!=nil{
 			fmt.Printf("err",err)
 		}
+		// 如果是查询虚拟子表的所有字段
+		if option.FieldsType=="1"{
+			wMapHeadContent := map[string]WhereOperation{}
+			wMapHeadContent["template_key"] = WhereOperation{
+				Operation: "eq",
+				Value:     tableName,
+			}
+			wMapHeadContent["is_slave_field"] = WhereOperation{
+				Operation: "eq",
+				Value:     "1",
+			}
+			optionHeadContent := QueryOption{Wheres: wMapHeadContent, Table: "export_template_detail"}
+			order:=make(map[string]string)
+			order["j"]="asc"
+			optionHeadContent.Orders=order
+			headContent, errorMessage := api.Select(optionHeadContent)
+			fmt.Printf("dataContent", headContent)
+			fmt.Printf("errorMessage", errorMessage)
+			var fields []string
 
+			for _,item:=range headContent{
+				fields=append(fields,item["column_name"].(string))
+			}
+			option.Fields=fields
+
+		}
 		orderParam:=string(orderBytes[:])
 		params:=string(paramBytes[:])
 		params=params+orderParam
@@ -831,6 +856,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		params=strings.Replace(params,"Limit","",-1)
 		params=strings.Replace(params,"Offset","",-1)
 		params=strings.Replace(params,"Fields","",-1)
+		params=strings.Replace(params,"FieldsType","",-1)
 		params=strings.Replace(params,"Links","",-1)
 		params=strings.Replace(params,"Wheres","",-1)
 		params=strings.Replace(params,"Search","",-1)
@@ -1140,6 +1166,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	var slaveIdColumnName string
 	var masterId string
 	var slaveId string
+	var account_period_year string
 	if masterTableName==""{
 		return
 	}
@@ -1186,6 +1213,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		masterMap["report_type"]=report_type
 		masterMap["account_period_num"]=option.Wheres[masterTableName+".account_period_num"].Value
 		masterMap["account_period_year"]=option.Wheres[masterTableName+".account_period_year"].Value
+		account_period_year=option.Wheres[masterTableName+".account_period_year"].Value.(string)
 		for _, col := range masterTableColumns {
 
 			for f,w:=range option.Wheres{
@@ -1305,15 +1333,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						if datac[column.ColumnName]!=nil{
 							caculateValue=datac[column.ColumnName].(string)
 						}
-						//caculateValue="11=account_subject_left_view.current_credit_funds.321"
-						//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
-						//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
-						//caculateValue="6=1+2-3-4-5"
-						//caculateValue="10=9+8"
-						//caculateValue="9=6+7-8"
-						//caculateValue="6=1+2-3-4-5"
-						//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
-						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+
 						if !strings.Contains(caculateValue,"="){
 							continue
 						}
@@ -1326,78 +1346,20 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 							lineNumber=arr[0]
 							caculateValue=arr[1]
 						}
-
-						//numberR := regexp.MustCompile("(^[\\d]+)$")
-						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
-						//totalExpressR := regexp.MustCompile("^([\\d]+[.\\]?[\\d]{0,})([\\+|\\-]?)([\\d]{0,}[.\\]?[\\d]{0,})")
-						// UUID 匹配
-						//totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
-						//numberRb:=numberR.MatchString(caculateValue)
-						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
-					//	totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
-						//totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
-					//	fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
-
-						if  caculateExpressRb {
-							// 计算表达式 account_subject_left_view.begin_debit_funds.101+account_subject_left_view.begin_debit_funds.102
-
-							fmt.Printf("caculateValue=",caculateValue)
-							for{
-								if caculateExpressRb{
-									arr := caculateExpressR.FindStringSubmatch(caculateValue)
-									// account_subject_left_view.end_debit_funds.101
-									// "account_subject_left_view"
-									// "end_debit_funds"
-									// "101"
-									caculateValueItem:=arr[0]
-
-									fmt.Printf("caculateValueItem=",caculateValueItem)
-									// 通过正则匹配查询
-
-									result,errorMessage:=calculateForExpress(api,arr,conditionFieldKey,wheresExp)
-									fmt.Printf("errorMessage=",errorMessage)
-									caculateValue=strings.Replace(caculateValue,caculateValueItem,result,-1)
-									fmt.Printf("caculateValue=",caculateValue)
-									caculateExpressRb=caculateExpressR.MatchString(caculateValue)
-									if !caculateExpressRb{
-										//caculateValue="123.3+2.4-2"
-										//expStr := regexp.MustCompile("^([\\d]+\\.?[\\d]+)([\\-|\\+])([\\d]+\\.?[\\d]+)")
-										//expStr := regexp.MustCompile("[\\-|\\+]")
-										//expArr := expStr.FindStringSubmatch(caculateValue)
-										//
-										//exp,error :=ExpConvert(expArr)
-										//Exp(exp)
-										//fmt.Printf("err=",error)
-
-											calResult,error:=Calculate(caculateValue)
-
-											if error!=nil{
-												fmt.Printf("error=",error)
-											}
-											fmt.Printf("calResult=",calResult)
-
-
-
-										if  !strings.Contains(column.ColumnName,"des"){
-											datac[column.ColumnName]=strconv.FormatFloat(calResult, 'f', -1, 64)
-											// 当期
-											lineValueMap[lineNumber]=calResult
-										}
-										//resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
-										if strings.Contains(column.ColumnName,"begin"){
-											lineValueMap[lineNumber+"b"]=calResult
-										}else if strings.Contains(column.ColumnName,"end"){
-											lineValueMap[lineNumber+"e"]=calResult
-										}
-
-									}
-								}else{
-									break
-								}
-							}
-
-
+						calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,caculateValue)
+						fmt.Printf("errorMessage=",errorMessage)
+						if  !strings.Contains(column.ColumnName,"des"){
+							datac[column.ColumnName]=strconv.FormatFloat(calResult, 'f', -1, 64)
+							// 当期
+							lineValueMap[lineNumber]=calResult
 						}
+						//resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
+						if strings.Contains(column.ColumnName,"begin"){
+							lineValueMap[lineNumber+"b"]=calResult
+						}else if strings.Contains(column.ColumnName,"end"){
+							lineValueMap[lineNumber+"e"]=calResult
+						}
+
 
 					}
 
@@ -1529,6 +1491,36 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 			}
 
 
+			//计算子模板的值并存入库
+			var option QueryOption
+			option.Table="sub_report_template_config"
+			//optionC.Fields=[]string{caculateFromFiled}
+			wheres["template_key"] = WhereOperation{
+				Operation: "eq",
+				Value:     operate_table,
+			}
+			option.Wheres=wheres
+			subData, errorMessage := api.Select(option)
+			for _,item:=range subData{
+				calculateValueStr:=item["column_value"].(string)
+				calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,calculateValueStr)
+				if errorMessage!=nil{
+					fmt.Printf("errorMessage=",errorMessage)
+				}else{
+					item["column_value"]=calResult
+				}
+				item["farm_id"]=orgId
+				item["account_period_year"]=account_period_year
+
+				rr,errorMessage:=api.Create("sub_report_config",item)
+				if errorMessage!=nil{
+					fmt.Printf("errorMessage=",errorMessage)
+				}else{
+					fmt.Printf("rr=",rr)
+				}
+			}
+
+
 		}
 	}
 
@@ -1536,7 +1528,82 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	// 向管道传值
 	c <- 1
 }
+// 根据表达式字符串计算值
+func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,wheres map[string]WhereOperation,caculateValue string)(calResult float64,errorMessage *ErrorMessage){
+	arr:=strings.Split(caculateValue,"=")
+	var lineNumber string
+	if len(arr)>=2{
+		lineNumber=arr[0]
+		caculateValue=arr[1]
+		fmt.Printf("lineNumber=",lineNumber)
+	}
+	//caculateValue="11=account_subject_left_view.current_credit_funds.321"
+	//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
+	//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
+	//caculateValue="6=1+2-3-4-5"
+	//caculateValue="10=9+8"
+	//caculateValue="9=6+7-8"
+	//caculateValue="6=1+2-3-4-5"
+	//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
+	//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+	//numberR := regexp.MustCompile("(^[\\d]+)$")
+	caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
+	//totalExpressR := regexp.MustCompile("^([\\d]+[.\\]?[\\d]{0,})([\\+|\\-]?)([\\d]{0,}[.\\]?[\\d]{0,})")
+	// UUID 匹配
+	//totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
+	//numberRb:=numberR.MatchString(caculateValue)
+	caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
+	//	totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
+	//totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
+	//	fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
 
+	if  caculateExpressRb {
+		// 计算表达式 account_subject_left_view.begin_debit_funds.101+account_subject_left_view.begin_debit_funds.102
+
+		fmt.Printf("caculateValue=", caculateValue)
+		for {
+			if caculateExpressRb {
+				arr := caculateExpressR.FindStringSubmatch(caculateValue)
+				// account_subject_left_view.end_debit_funds.101
+				// "account_subject_left_view"
+				// "end_debit_funds"
+				// "101"
+				caculateValueItem := arr[0]
+
+				fmt.Printf("caculateValueItem=", caculateValueItem)
+				// 通过正则匹配查询
+
+				result, errorMessage := calculateForExpress(api, arr, conditionFiledKey, wheres)
+				fmt.Printf("errorMessage=", errorMessage)
+				caculateValue = strings.Replace(caculateValue, caculateValueItem, result, -1)
+				fmt.Printf("caculateValue=", caculateValue)
+				caculateExpressRb = caculateExpressR.MatchString(caculateValue)
+				if !caculateExpressRb {
+					//caculateValue="123.3+2.4-2"
+					//expStr := regexp.MustCompile("^([\\d]+\\.?[\\d]+)([\\-|\\+])([\\d]+\\.?[\\d]+)")
+					//expStr := regexp.MustCompile("[\\-|\\+]")
+					//expArr := expStr.FindStringSubmatch(caculateValue)
+					//
+					//exp,error :=ExpConvert(expArr)
+					//Exp(exp)
+					//fmt.Printf("err=",error)
+
+					calResult, error := Calculate(caculateValue)
+
+					if error != nil {
+						fmt.Printf("error=", error)
+					}
+					fmt.Printf("calResult=", calResult)
+					return calResult,errorMessage
+				}
+			} else {
+				break
+			}
+		}
+
+	}
+	return 0.0,errorMessage
+}
 // 表达式计算
 func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey string,wheres map[string]WhereOperation)(r string,errorMessage *ErrorMessage){
 	// "account_subject_left_view.begin_debit_funds.101"
@@ -2327,9 +2394,9 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		tableNameDesc=strings.Replace(tableNameDesc,"模板","",-1)
 
 		var reportConfig=make(map[string]interface{})
-		var tcid string
-		tcid=uuid.NewV4().String()
-		reportConfig["template_config_id"]=tcid
+	//	var tcid string
+		//tcid=uuid.NewV4().String()
+		//reportConfig["template_config_id"]=tcid
 		reportConfig["report_name"]=tableName
 		reportConfig["report_name_des"]=tableNameDesc
 		reportConfig["create_time"]=time.Now().Format("2006-01-02 15:04:05")
@@ -2355,7 +2422,7 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 			fmt.Printf("detailSql=",detailSql)
 			errorMessage=api.CreateTableStructure(detailSql)
 			if errorMessage!=nil{
-				api.Delete("report_template_config",tcid,nil)
+				api.Delete("report_template_config",tableName,nil)
 				api.CreateTableStructure("drop table if exists "+tableName+"_detail;")
 				return c.String(http.StatusInternalServerError, errorMessage.Error())
 			}
@@ -2365,7 +2432,7 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
 			fmt.Printf("errorMessage",errorMessage)
-			api.Delete("report_template_config",tcid,nil)
+			api.Delete("report_template_config",tableName,nil)
 			api.CreateTableStructure("drop table if exists "+tableName+";")
 			return c.String(http.StatusInternalServerError, errorMessage.Error())
 		}
@@ -2680,7 +2747,8 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	option = QueryOption{}
 	queryParam := c.QueryParams()
 	groupFunc :=c.QueryParam(key.GROUP_FUNC)
-
+    fieldsType:=c.QueryParam(key.KEY_QUERY_FIELDS_TYPE)
+    option.FieldsType=fieldsType
 	//fmt.Printf("groupFunc",groupFunc)
 	option.GroupFunc=groupFunc
 	//option.Index, option.Limit, option.Offset, option.Fields, option.Wheres, option.Links, err = parseQueryParams(c)

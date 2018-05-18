@@ -74,6 +74,7 @@ type QueryOption struct {
 	Limit  int                       // record limit
 	Offset int                       // start offset
 	Fields []string                  // select fields
+	FieldsType string                  // select fields type
 	GroupFunc    string				// 聚合函数查询
 	GroupFields    []string	// 分组查询
 	Links  []string                  // auto join table

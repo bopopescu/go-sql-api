@@ -507,6 +507,7 @@ func NewQueryParametersForGroup() (ps []spec.Parameter) {
 func NewQueryParametersForOutputDields() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryArrayParameter(key.KEY_QUERY_FIELDS, "指定输出一个或多个字段", "string", false),
+		NewQueryParameter(key.KEY_QUERY_FIELDS_TYPE, "0 默认查询该表所有字段 1 自定义报表虚拟子表的所有字段", "string", false),
 		NewQueryArrayParameter(key.KEY_QUERY_LINK, "以单一主键内联的一个或多个表名", "string", false),
 	}
 	return
