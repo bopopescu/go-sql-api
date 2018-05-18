@@ -921,6 +921,13 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
+			// 如果有虚拟子表 把子表内容
+			data=obtainSubVirtualData(api,tableName,"",data)
+
+
+
+
+
 			// 无分页的后置事件
 			if isNeedPostEvent==1{
 				postEvent(api,tableName,"GET",data,option)
@@ -976,6 +983,67 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 		}
 	}
+}
+
+func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroidYear string,data []map[string]interface{})([]map[string]interface{}){
+	var optionSub QueryOption
+	subWheres:=make(map[string]WhereOperation)
+	orders:=make(map[string]string)
+	optionSub.Table="sub_report_config"
+	//optionC.Fields=[]string{caculateFromFiled}
+	subVirtualName:=tableName
+	subVirtualName=strings.Replace(subVirtualName,"_report_detail","_template",-1)
+	subWheres["template_key"] = WhereOperation{
+		Operation: "eq",
+		Value: subVirtualName    ,
+	}
+	//  account_period_year
+	if accountPeroidYear!=""{
+		subWheres["account_period_year"] = WhereOperation{
+			Operation: "eq",
+			Value: accountPeroidYear    ,
+		}
+	}
+	optionSub.Wheres=subWheres
+	orders["order_num"]="asc"
+	optionSub.Orders=orders
+
+	subData, errorMessage := api.Select(optionSub)
+	b := bytes.Buffer{}
+    if errorMessage!=nil{
+    	fmt.Printf("errorMessage=",errorMessage)
+	}else{
+		var subSqlStr string
+		b.WriteString("select ")
+		for index,item:=range subData{
+			column_name:=item["column_name"].(string)
+			column_value:=item["column_value"].(string)
+			if index<len(subData)-1{
+				b.WriteString(column_value+" as "+column_name+",")
+			}else{
+				b.WriteString(column_value+" as "+column_name)
+			}
+
+
+		}
+		subSqlStr=b.String()
+		rs,errorMessage:=api.ExecFunc(subSqlStr)
+		if errorMessage!=nil{
+			fmt.Printf("errorMessage=",errorMessage)
+		}else{
+
+			for _,item:=range data{
+				for _,subItem:=range subData{
+					columnName:=subItem["column_name"].(string)
+					item[columnName]=rs[0][columnName]
+
+				}
+			}
+		}
+
+
+	}
+return data
 }
 //后置事件处理
 func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption)(rs []map[string]interface{},errorMessage *ErrorMessage){
@@ -1492,15 +1560,16 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 
 			//计算子模板的值并存入库
-			var option QueryOption
-			option.Table="sub_report_template_config"
+			var optionSub QueryOption
+			subWheres:=make(map[string]WhereOperation)
+			optionSub.Table="sub_report_template_config"
 			//optionC.Fields=[]string{caculateFromFiled}
-			wheres["template_key"] = WhereOperation{
+			subWheres["template_key"] = WhereOperation{
 				Operation: "eq",
 				Value:     operate_table,
 			}
-			option.Wheres=wheres
-			subData, errorMessage := api.Select(option)
+			optionSub.Wheres=subWheres
+			subData, errorMessage := api.Select(optionSub)
 			for _,item:=range subData{
 				calculateValueStr:=item["column_value"].(string)
 				calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,calculateValueStr)
@@ -1510,6 +1579,9 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 					item["column_value"]=calResult
 				}
 				item["farm_id"]=orgId
+				if strings.Contains(account_period_year,"%"){
+					account_period_year=strings.Replace(account_period_year,"%","-12-01",-1)
+				}
 				item["account_period_year"]=account_period_year
 
 				rr,errorMessage:=api.Create("sub_report_config",item)
