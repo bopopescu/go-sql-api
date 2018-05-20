@@ -1012,7 +1012,7 @@ func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroi
 	b := bytes.Buffer{}
     if errorMessage!=nil{
     	fmt.Printf("errorMessage=",errorMessage)
-	}else{
+	}else if len(subData)>0{
 		var subSqlStr string
 		b.WriteString("select ")
 		for index,item:=range subData{

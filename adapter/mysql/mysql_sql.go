@@ -267,9 +267,9 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	}
 	if opt.GroupFunc!=""{
 		if len(opt.Fields)>0{
-			fs[index+1] = opt.GroupFunc
+			fs[index+1] = opt.GroupFunc+" as p"
 		}else{
-			fs[index] = opt.GroupFunc
+			fs[index] = opt.GroupFunc+" as p"
 		}
 
 		rs = rs.Select(fs...)
