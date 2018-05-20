@@ -922,8 +922,8 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
 			// 如果有虚拟子表 把子表内容
-			data=obtainSubVirtualData(api,tableName,"",data)
 
+			data=obtainSubVirtualData(api,tableName,option.Wheres["account_period_year"],data)
 
 
 
@@ -985,7 +985,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 	}
 }
 
-func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroidYear string,data []map[string]interface{})([]map[string]interface{}){
+func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroidYear interface{},data []map[string]interface{})([]map[string]interface{}){
 	var optionSub QueryOption
 	subWheres:=make(map[string]WhereOperation)
 	orders:=make(map[string]string)
@@ -998,51 +998,54 @@ func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroi
 		Value: subVirtualName    ,
 	}
 	//  account_period_year
-	if accountPeroidYear!=""{
+	if accountPeroidYear!=nil{
 		subWheres["account_period_year"] = WhereOperation{
 			Operation: "eq",
 			Value: accountPeroidYear    ,
 		}
 	}
+
 	optionSub.Wheres=subWheres
 	orders["order_num"]="asc"
 	optionSub.Orders=orders
 
-	subData, errorMessage := api.Select(optionSub)
-	b := bytes.Buffer{}
-    if errorMessage!=nil{
-    	fmt.Printf("errorMessage=",errorMessage)
-	}else if len(subData)>0{
-		var subSqlStr string
-		b.WriteString("select ")
-		for index,item:=range subData{
-			column_name:=item["column_name"].(string)
-			column_value:=item["column_value"].(string)
-			if index<len(subData)-1{
-				b.WriteString(column_value+" as "+column_name+",")
-			}else{
-				b.WriteString(column_value+" as "+column_name)
-			}
+		for _,item:=range data{
+				// template_detail_id
+				if item["id"]!=""{
+					subWheres["template_detail_id"] = WhereOperation{
+						Operation: "eq",
+						Value: item["id"]    ,
+					}
+				}
 
+				subData, errorMessage := api.Select(optionSub)
+				b := bytes.Buffer{}
+				var rs []map[string]interface{}
+				if errorMessage!=nil{
+					fmt.Printf("errorMessage=",errorMessage)
+				}else if len(subData)>0{
+					var subSqlStr string
+					b.WriteString("select ")
+					for index,item:=range subData{
+						column_name:=item["column_name"].(string)
+						column_value:=item["column_value"].(string)
+						if index<len(subData)-1{
+							b.WriteString(column_value+" as "+column_name+",")
+						}else{
+							b.WriteString(column_value+" as "+column_name)
+						}
+					}
+					subSqlStr=b.String()
+					rs,errorMessage=api.ExecFunc(subSqlStr)
+				}
 
-		}
-		subSqlStr=b.String()
-		rs,errorMessage:=api.ExecFunc(subSqlStr)
-		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
-		}else{
-
-			for _,item:=range data{
 				for _,subItem:=range subData{
 					columnName:=subItem["column_name"].(string)
 					item[columnName]=rs[0][columnName]
 
 				}
 			}
-		}
 
-
-	}
 return data
 }
 //后置事件处理
