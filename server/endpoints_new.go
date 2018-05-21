@@ -815,11 +815,12 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			fmt.Printf("err",err)
 		}
 		// 如果是查询虚拟子表的所有字段
+		var fields []string
 		if option.FieldsType=="1"{
 			wMapHeadContent := map[string]WhereOperation{}
 			wMapHeadContent["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     tableName,
+				Value:     strings.Replace(tableName,"_report_detail","_template",-1),
 			}
 			wMapHeadContent["is_slave_field"] = WhereOperation{
 				Operation: "eq",
@@ -832,12 +833,12 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			headContent, errorMessage := api.Select(optionHeadContent)
 			fmt.Printf("dataContent", headContent)
 			fmt.Printf("errorMessage", errorMessage)
-			var fields []string
+
 
 			for _,item:=range headContent{
 				fields=append(fields,item["column_name"].(string))
 			}
-			option.Fields=fields
+			//option.Fields=fields
 
 		}
 		orderParam:=string(orderBytes[:])
@@ -923,7 +924,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			data, errorMessage := api.Select(option)
 			// 如果有虚拟子表 把子表内容
 
-			data=obtainSubVirtualData(api,tableName,option.Wheres["account_period_year"],data)
+			data=obtainSubVirtualData(api,tableName,option.Wheres["account_period_year"].Value,data,option.FieldsType)
 
 
 
@@ -985,7 +986,8 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 	}
 }
 
-func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroidYear interface{},data []map[string]interface{})([]map[string]interface{}){
+func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroidYear interface{},data []map[string]interface{},isQuerySlaves string)([]map[string]interface{}){
+	var tempMap []map[string]interface{}
 	var optionSub QueryOption
 	subWheres:=make(map[string]WhereOperation)
 	orders:=make(map[string]string)
@@ -1005,7 +1007,7 @@ func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroi
 		}
 	}
 
-	optionSub.Wheres=subWheres
+	//optionSub.Wheres=subWheres
 	orders["order_num"]="asc"
 	optionSub.Orders=orders
 
@@ -1017,7 +1019,7 @@ func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroi
 						Value: item["id"]    ,
 					}
 				}
-
+			optionSub.Wheres=subWheres
 				subData, errorMessage := api.Select(optionSub)
 				b := bytes.Buffer{}
 				var rs []map[string]interface{}
@@ -1038,13 +1040,17 @@ func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroi
 					subSqlStr=b.String()
 					rs,errorMessage=api.ExecFunc(subSqlStr)
 				}
-
+                 tempItem:=make(map[string]interface{})
 				for _,subItem:=range subData{
 					columnName:=subItem["column_name"].(string)
 					item[columnName]=rs[0][columnName]
-
+					tempItem[columnName]=rs[0][columnName]
 				}
+			   tempMap=append(tempMap,tempItem)
 			}
+if isQuerySlaves=="1"{
+	return tempMap
+}
 
 return data
 }
@@ -1677,7 +1683,14 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 		}
 
 	}
-	return 0.0,errorMessage
+	var result float64
+	resultF,error:=strconv.ParseFloat(caculateValue, 64)
+	if error !=nil{
+		result=0
+	}else{
+		result=resultF
+	}
+	return result,errorMessage
 }
 // 表达式计算
 func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey string,wheres map[string]WhereOperation)(r string,errorMessage *ErrorMessage){
