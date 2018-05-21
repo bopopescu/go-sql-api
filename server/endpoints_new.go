@@ -1854,9 +1854,9 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			// 合并单元格  从模板里读取合并单元格信息
 
 			wMapHeadMerge := map[string]WhereOperation{}
-			wMapHeadContent["template_key"] = WhereOperation{
+			wMapHeadMerge["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     tableName,
+				Value:     strings.Replace(tableName,"_report_detail","_template",-1),
 			}
 			optionHeadMerge := QueryOption{Wheres: wMapHeadMerge, Table: "export_header_merge"}
 			headMerge, errorMessage := api.Select(optionHeadMerge)
