@@ -1760,7 +1760,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			wMapHead := map[string]WhereOperation{}
 			wMapHead["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     tableName,
+				Value:     strings.Replace(tableName,"_report_detail","_template",-1),
 			}
 			optionHead := QueryOption{Wheres: wMapHead, Table: "export_template"}
 			data, errorMessage := api.Select(optionHead)
@@ -1779,7 +1779,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			wMapHeadContent := map[string]WhereOperation{}
 			wMapHeadContent["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     tableName,
+				Value:     strings.Replace(tableName,"_report_detail","_template",-1),//special_fund_report_detail
 			}
 			optionHeadContent := QueryOption{Wheres: wMapHead, Table: "export_template_detail"}
 			order:=make(map[string]string)
@@ -1833,7 +1833,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				hdMapHeadMerge := map[string]WhereOperation{}
 				hdMapHeadMerge["template_key"] = WhereOperation{
 					Operation: "eq",
-					Value:     tableName,
+					Value:     strings.Replace(tableName,"_report_detail","_template",-1),
 				}
 				optionHdMerge := QueryOption{Wheres: hdMapHeadMerge, Table: "export_header_merge_detail"}
 				hdMerge, errorMessage := api.Select(optionHdMerge)

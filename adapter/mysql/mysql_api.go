@@ -691,7 +691,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						//ConverStrFromMap("credit_funds",slave)
 						credit_funds:=ConverStrFromMap("credit_funds",slave)
 						debit_funds:=ConverStrFromMap("debit_funds",slave)
-						if credit_funds!="0"||debit_funds!="0"{
+						if (credit_funds!="0"||debit_funds!="0"){
 							rebuildSlaveObjectMapp=append(rebuildSlaveObjectMapp,slave)
 						}
 
