@@ -3015,8 +3015,8 @@ func parseWhereParams(whereStr string) (option QueryOption, errorMessage *ErrorM
 
 func newPool(server string) *redis.Pool {
 	return &redis.Pool{
-		MaxIdle:     8,
-		MaxActive:   10,
+		MaxIdle:     18,
+		MaxActive:   50,
 		IdleTimeout: 12*3600 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", server)
