@@ -922,9 +922,11 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
-			// 如果有虚拟子表 把子表内容
+			// 如果有虚拟子表 把子表内容  1 支持虚拟子表字段  2 查所有
+			if option.FieldsType=="2" || option.FieldsType=="1"{
+				data=obtainSubVirtualData(api,tableName,option.Wheres["account_period_year"].Value,data,option.FieldsType)
+			}
 
-			data=obtainSubVirtualData(api,tableName,option.Wheres["account_period_year"].Value,data,option.FieldsType)
 
 
 
