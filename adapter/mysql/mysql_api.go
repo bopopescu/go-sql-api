@@ -554,20 +554,20 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 		}
 
 		//如果是 operate_type KNOTS_PROFIT_LOSS 结转损益
-		var voucher_type string
+		//var voucher_type string
 		list:=list.New()
-		if masterInfoMap["voucher_type"]!=nil{
-			switch masterInfoMap["voucher_type"].(type) {      //多选语句switch
-			case string:
-				//是字符时做的事情
-				voucher_type=masterInfoMap["voucher_type"].(string)
 
-			case int:
-				//是整数时做的事情
-				voucher_type=strconv.Itoa(masterInfoMap["voucher_type"].(int))
+		var knots_subject_key string
+		var firstSubjectKey string
+		if len(slaveInfoMap)>0{
+			if slaveInfoMap[0]["knots_subject_key"]!=nil{
+				knots_subject_key=slaveInfoMap[0]["knots_subject_key"].(string)
+				firstSubjectKey=slaveInfoMap[0]["subject_key"].(string)
 			}
+
 		}
-			if "KNOTS_PROFIT_LOSS" == operate_type && voucher_type=="4"  {
+
+			if "KNOTS_PROFIT_LOSS" == operate_type && knots_subject_key==firstSubjectKey  {
 				if len(slaveInfoMap)>0{
 					if slaveInfoMap[0]["knots_subject_key"]!=nil{
 						slaveKey=slaveInfoMap[0]["knots_subject_key"].(string)
