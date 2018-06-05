@@ -7,6 +7,7 @@ import (
 	. "github.com/shiyongabc/go-mysql-api/types"
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
 	"strings"
+
 )
 
 // SQL return sqls by sql builder
@@ -242,7 +243,10 @@ func (s *SQL) DeleteByTableAndId(tableName string, id interface{}) (sql string, 
 
 }
 
+
+
 func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption) (rs *goqu.Dataset,err error) {
+
 	rs = builder
 	//rs.Pluck("","SUM(account_funds)")
 	//rs.As("SUM(account_funds)")
@@ -310,10 +314,132 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 
 
 
-
+		//rs = rs.Where(goqu.Or{f:goqu.Op{w.Operation: w.Value}})
+		//  (("a" = 10) OR ("b" = 11))
+		//rs=rs.Where(goqu.Or(goqu.I("a").Eq(10), goqu.I("b").Eq(11)))
+	//	rs = rs.Where(goqu.Or({f:goqu.Op{w.Operation: w.Value}},f:goqu.Op{w.Operation: w.Value}}))
 		rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
 	}
+	expressTemp:=goqu.I("a").Eq("1")
+
+//	var list [4]goqu.Expression
+	var count int
+	ors := make([]goqu.Expression, len(opt.OrWheres))
+	for f, w := range opt.OrWheres {
+
+		// check field exist
+		if strings.Contains(f,".gte"){
+			f=strings.Replace(f,".gte","",-1)
+		}
+		if strings.Contains(f,".`gte`"){
+			f=strings.Replace(f,".`gte`","",-1)
+		}
+
+		if strings.Contains(f,".gt"){
+			f=strings.Replace(f,".gt","",-1)
+		}
+		if strings.Contains(f,".`gt`"){
+			f=strings.Replace(f,".`gt`","",-1)
+		}
+		if strings.Contains(f,".lte"){
+			f=strings.Replace(f,".lte","",-1)
+		}
+		if strings.Contains(f,".`lte`"){
+			f=strings.Replace(f,".`lte`","",-1)
+		}
+
+		if strings.Contains(f,".lt"){
+			f=strings.Replace(f,".lt","",-1)
+		}
+		if strings.Contains(f,".`lt`"){
+			f=strings.Replace(f,".`lt`","",-1)
+		}
+
+		f=strings.Replace(f,"$"+w.Value.(string),"",-1)
+		//rs = rs.Where(goqu.Or{f:goqu.Op{w.Operation: w.Value}})
+		//  (("a" = 10) OR ("b" = 11))
+
+		if w.Operation=="eq"{
+			expressTemp=goqu.I(f).Eq(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+		}else if w.Operation=="neq"{
+			expressTemp=goqu.I(f).Neq(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+		}else if w.Operation=="is"{
+			expressTemp=goqu.I(f).Is(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+
+		}else if w.Operation=="isNot"{
+			expressTemp=goqu.I(f).IsNot(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+
+		}else if w.Operation=="like"{
+			expressTemp=goqu.I(f).Like(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+		}else if w.Operation=="in"{
+			expressTemp=goqu.I(f).In(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+		}else if w.Operation=="lt"{
+			expressTemp=goqu.I(f).Lt(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+
+		}else if w.Operation=="lte"{
+			expressTemp=goqu.I(f).Lte(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+
+
+		}else if w.Operation=="gte"{
+			expressTemp=goqu.I(f).Gte(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+
+		}else if w.Operation=="gt"{
+			expressTemp=goqu.I(f).Gt(w.Value)
+			ors[count]=expressTemp
+			count=count+1
+			continue
+
+		}
+
+
+
+
+
+		//	rs = rs.Where(goqu.Or({f:goqu.Op{w.Operation: w.Value}},f:goqu.Op{w.Operation: w.Value}}))
+	//	rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
+
+	}
+	//if list[0]!=nil && list[1]!=nil && list[2]!=nil&& list[3]!=nil{
+	//	rs=rs.Where(goqu.Or(list[0], list[1],list[2],list[3]))
+	//}else if list[0]!=nil && list[1]!=nil && list[2]!=nil{
+	//	rs=rs.Where(goqu.Or(list[0], list[1],list[2]))
+	//}else if list[0]!=nil && list[1]!=nil{
+	//	rs=rs.Where(goqu.Or(list[0], list[1]))
+	//}
+
+	if len(ors)>0{
+		rs=rs.Where(goqu.Or(ors...))
+	}
+
+
 	for orderColumn, orderStr := range opt.Orders {
 		// check field exist
 		if "DESC"==strings.ToUpper(orderStr){

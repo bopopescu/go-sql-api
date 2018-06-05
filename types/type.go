@@ -79,6 +79,7 @@ type QueryOption struct {
 	GroupFields    []string	// 分组查询
 	Links  []string                  // auto join table
 	Wheres map[string]WhereOperation // field -> { operation, value }
+	OrWheres map[string]WhereOperation // field -> { operation, value }
 	Orders map[string]string // field -> { operation, value }
 	Search string                    // fuzzy query word
 }
