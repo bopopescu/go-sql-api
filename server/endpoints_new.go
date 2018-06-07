@@ -1079,7 +1079,7 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 			fmt.Printf("data=",data)
 
-		} else if "UPDATE"==operate_type && "QUERY"==conditionType && option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]{
+		} else if "UPDATE"==operate_type && "QUERY"==conditionType && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
 			for _,item:= range conditionFiledArr{
 				if item!=""{
 					fieldList.PushBack(item)
