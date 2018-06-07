@@ -697,7 +697,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 					}
 				}
-				slaveInfoMap=rebuildSlaveObjectMapp
+				if len(rebuildSlaveObjectMapp)>0{
+					slaveInfoMap=rebuildSlaveObjectMapp
+				}
+
 		}
 
 
