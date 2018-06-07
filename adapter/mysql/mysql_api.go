@@ -567,7 +567,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 		}
 
-			if "KNOTS_PROFIT_LOSS" == operate_type && knots_subject_key==firstSubjectKey  {
+			if "KNOTS_PROFIT_LOSS" == operate_type && knots_subject_key!=""&& knots_subject_key==firstSubjectKey  {
 				if len(slaveInfoMap)>0{
 					if slaveInfoMap[0]["knots_subject_key"]!=nil{
 						slaveKey=slaveInfoMap[0]["knots_subject_key"].(string)
