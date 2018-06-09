@@ -618,8 +618,15 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			}
 		}
 		
-		
-		
+		var option QueryOption
+		var arr []map[string]interface{}
+		arr=append(arr,payload)
+		option.ExtendedArr=arr
+
+		option.ExtendedMap=masterInfoMap
+		// 后置事件
+		postEvent(api,slaveTableName,"DELETE",nil,option,"")
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -988,6 +995,8 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var conditionTable string
 	var conditionFileds string
 	var resultFileds string
+    var operate_type string
+    var operate_table string
 	//	var actionType string
 	var conditionFiledArr [5]string
 	var resultFieldsArr [5]string
@@ -1036,8 +1045,8 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
-		operate_type:=operateCondContentJsonMap["operate_type"].(string)
-		operate_table:=operateCondContentJsonMap["operate_table"].(string)
+		operate_type=operateCondContentJsonMap["operate_type"].(string)
+		operate_table=operateCondContentJsonMap["operate_table"].(string)
 		//actionType=operateCondContentJsonMap["action_type"].(string)
 		// 动态添加列 并为每一列计算出值
 		if "DYNAMIC_ADD_COLUMN"==operate_type {
@@ -1079,7 +1088,8 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 			fmt.Printf("data=",data)
 
-		} else if "UPDATE"==operate_type && "QUERY"==conditionType && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
+		}
+		if "UPDATE"==operate_type && "QUERY"==conditionType{
 			for _,item:= range conditionFiledArr{
 				if item!=""{
 					fieldList.PushBack(item)
@@ -1122,15 +1132,16 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}else{
 				fmt.Printf("rs", rsQuery)
 			}
-			operate_type:=operateCondContentJsonMap["operate_type"].(string)
+			//operate_type:=operateCondContentJsonMap["operate_type"].(string)
 			pri_key:=operateCondContentJsonMap["pri_key"].(string)
 			var pri_key_value string
 			action_type:=operateCondContentJsonMap["action_type"].(string)
 			action_fields:=operateCondContentJsonMap["action_fields"].(string)
 			json.Unmarshal([]byte(action_fields), &actionFieldsArr)
 			// 操作类型是更新 动作类型是累加
-			if operate_type=="UPDATE"{
-				actionFiledMap:= map[string]interface{}{}
+			actionFiledMap:=make(map[string]interface{})
+		//	if operate_type=="UPDATE"{
+
 				var conditionFieldKeyValueStr string
 				switch  option.ExtendedArr[0][conditionFieldKey].(type) {
 				case string:
@@ -1139,8 +1150,8 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					conditionFieldKeyValueStr=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
 				}
 				//conditionFieldKeyValueStr:=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
-
-				if action_type=="ACC"  && (conditionFieldKeyValueStr==conditionFieldKeyValue|| option.ExtendedArr[0][conditionFieldKey]==""){
+//   && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey=="")
+				if action_type=="ACC"  && (conditionFieldKeyValueStr==conditionFieldKeyValue|| option.ExtendedArr[0][conditionFieldKey]=="")&& (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
 					for _,rsQ:=range rsQuery {
 						pri_key_value=rsQ[pri_key].(string)
 						for _,field:=range actionFieldsArr{
@@ -1163,7 +1174,8 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 
 					}
-				}else if action_type=="SUB_FROM_CONFIRM_FAIL" && conditionFieldKeyValue==conditionFieldKeyValueStr {
+				}
+				if action_type=="SUB_FROM_CONFIRM_FAIL" && conditionFieldKeyValue==conditionFieldKeyValueStr && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
 
 				//	fmt.Printf("option.ExtendedArr[0][conditionFieldKey]=",option.ExtendedArr[0][conditionFieldKey],",conditionFieldKeyValue=",conditionFieldKeyValue)
 					for _,rsQ:=range rsQuery {
@@ -1174,6 +1186,9 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 								if action_field_value0!=""{
 									action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
 									action_field_value0_int=action_field_value0_int-1
+									if action_field_value0_int<0{
+										action_field_value0_int=0
+									}
 									if err0!=nil{
 										fmt.Printf("err0",err0)
 									}
@@ -1189,6 +1204,33 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 					}
 				}
+				if action_type=="UPDATE_ACCOUNT_RECORD"{
+					updateWhere:=make(map[string]WhereOperation)
+			       if option.ExtendedMap[conditionFieldKey]!=nil{
+					   updateWhere[conditionFieldKey]=WhereOperation{
+						   Operation:"eq",
+						   Value:option.ExtendedMap[conditionFieldKey].(string),
+					   }
+
+				   }
+				   for _,field:=range actionFieldsArr{
+							if strings.Contains(field,"="){
+								arr:=strings.Split(field,"=")
+									actionFiledMap[arr[0]]=arr[1]
+								}
+
+
+							}
+
+					rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
+		            if err!=nil{
+		            	fmt.Printf("err=",err)
+					}
+					fmt.Printf("rsU=",rsU)
+
+					}
+			//	}
+
 
 				if pri_key_value!=""{
 					rsU,err:=	api.Update(operate_table,pri_key_value,actionFiledMap)
@@ -1207,7 +1249,7 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 			}
 
-		} else if "OBTAIN_FROM_LOCAL" == conditionType {
+		if "OBTAIN_FROM_LOCAL" == conditionType {
 			for _, item := range conditionFiledArr {
 				if item != "" {
 					fieldList.PushBack(item)
