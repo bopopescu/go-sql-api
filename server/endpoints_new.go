@@ -385,9 +385,12 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			for _,repeatItem:=range repeatCalculateData{
 				id:=repeatItem["id"]
 				//  删掉 本期合计 本年累计  重新计算
-				api.Delete("account_voucher_detail_category_merge",id.(string)+"-peroid",nil)
-				api.Delete("account_voucher_detail_category_merge",id.(string)+"-year",nil)
-				api.Delete("account_subject_left",id.(string)+"-knots",nil)
+				api.Delete("account_voucher_detail_category_merge",id.(string),nil)
+				//api.Delete("account_voucher_detail_category_merge",id.(string)+"-year",nil)
+				//if !strings.Contains(id.(string),"-year")&&!strings.Contains(id.(string),"-peroid"){
+					api.Delete("account_subject_left",id.(string)+"-knots",nil)
+				//}
+
 				for _,operate:=range operates {
 					asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
 
@@ -614,9 +617,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					fmt.Printf("errorMessage=",errorMessage)
 					if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type {
 						asyncObjectMap=make(map[string]interface{})
-						asyncObjectMap=repeatItem
-					//	asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,leaveRs[0],asyncObjectMap)
-					//	asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,leaveRs[0],asyncObjectMap)
+						//asyncObjectMap=repeatItem
+						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -663,9 +666,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentLeaveExists("+paramStr+") as id;"
-							id:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id==""{
-								asyncObjectMap["id"]=id+"-knots"
+							idLeave:=api.ExecFuncForOne(judgeExistsSql,"id")
+							if idLeave==""{
+								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-knots"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
