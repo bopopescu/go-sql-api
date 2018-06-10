@@ -74,6 +74,7 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 
 	//替换掉` 兼容聚合函数求出的值 作为新的列
 	sql=strings.Replace(sql,"`","",-1)
+	sql=strings.Replace(sql,"\\","",-1)
 	return
 }
 func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
@@ -88,6 +89,7 @@ func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
 	builder = builder.ClearOffset()
 	sql, _, err = builder.ToSql()
 	sql=strings.Replace(sql,"`_placeholder_`","COUNT(*) as TotalCount",-1)
+	sql=strings.Replace(sql,"\\","",-1)
 	//sql="SELECT `user_id`, SUM(account_log.account_funds) as totalFunds FROM `account_log`"
 	return
 }
@@ -142,6 +144,7 @@ func (s *SQL) GetByTableAndID(opt QueryOption) (sql string, err error) {
 	}
 
 	sql=strings.Replace(sql,"`","",-1)
+	sql=strings.Replace(sql,"\\","",-1)
 	return sql, err
 }
 
@@ -318,6 +321,11 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		//  (("a" = 10) OR ("b" = 11))
 		//rs=rs.Where(goqu.Or(goqu.I("a").Eq(10), goqu.I("b").Eq(11)))
 	//	rs = rs.Where(goqu.Or({f:goqu.Op{w.Operation: w.Value}},f:goqu.Op{w.Operation: w.Value}}))
+
+	//switch 	 w.Value.(type){
+	//case string:
+	//	w.Value=strings.Replace(w.Value.(string),"\\","",-1)
+	//}
 		rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
 	}

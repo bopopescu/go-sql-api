@@ -247,6 +247,16 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		slaveInfoMap, errorMessage := api.Select(slaveOption)
 		fmt.Printf("data", slaveInfoMap)
 		fmt.Printf("errorMessage", errorMessage)
+//保存最后一条记录
+		lastSlaveWhere := map[string]WhereOperation{}
+		lastSlaveWhere[masterIdColumnName] = WhereOperation{
+			Operation: "eq",
+			Value:     masterId,
+		}
+		lastSlaveOption := QueryOption{Wheres: lastSlaveWhere, Table: "account_voucher_detail_category_merge"}
+		lastSlaveInfoMap, errorMessage := api.Select(lastSlaveOption)
+		fmt.Printf("lastSlaveInfoMap", lastSlaveInfoMap)
+		fmt.Printf("errorMessage", errorMessage)
 
 		var primaryColumnsSlave []*ColumnMetadata
 		primaryColumnsSlave=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
@@ -328,6 +338,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				inParams=strings.Replace(inParams,",''","",-1)
 				inParams=strings.Replace(inParams,"\\'","'",-1)
 				inParams=strings.Replace(inParams,"''","'",-1)
+				inParams=strings.Replace(inParams,"'","",-1)
+				inParams=strings.Replace(inParams,",","','",-1)
+				//  subject_key IN ('102\',\'501'))
+
 				whereOption["subject_key"] = WhereOperation{
 					Operation: "in",
 					Value:     inParams,
@@ -346,14 +360,17 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					Operation: "gte",
 					Value:     masterInfoMap["account_period_year"],
 				}
-				//whereOption["order_num"] = WhereOperation{
-				//	Operation: "gt",
-				//	Value:     masterInfoMap["order_num"],
-				//}
+				whereOption["order_num"] = WhereOperation{
+					Operation: "gte",
+					Value:     masterInfoMap["order_num"],
+				}
 
 				querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 
 				repeatCalculateData, errorMessage= api.Select(querOption)
+				if len(repeatCalculateData)<=0{
+					repeatCalculateData=lastSlaveInfoMap
+				}
 				fmt.Printf("repeatCalculateData=",repeatCalculateData)
 				if errorMessage!=nil{
 					fmt.Printf("errorMessage", errorMessage)
@@ -367,6 +384,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 			for _,repeatItem:=range repeatCalculateData{
 				id:=repeatItem["id"]
+				//  删掉 本期合计 本年累计  重新计算
+				api.Delete("account_voucher_detail_category_merge",id.(string)+"-peroid",nil)
+				api.Delete("account_voucher_detail_category_merge",id.(string)+"-year",nil)
+				api.Delete("account_subject_left",id.(string)+"-knots",nil)
 				for _,operate:=range operates {
 					asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
 
@@ -377,8 +398,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					if (operate_condition != "") {
 						json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 						conditionFileds = operateCondJsonMap["conditionFields"].(string)
-						conditionFileds1 = operateCondJsonMap["conditionFieldss"].(string)
-						funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
+						if operateCondJsonMap["conditionFieldss"]!=nil{
+							conditionFileds1 = operateCondJsonMap["conditionFieldss"].(string)
+						}
+						if operateCondJsonMap["funcParamFields"]!=nil{
+							funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
+							}
+
 						json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
 						json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
 						json.Unmarshal([]byte(funcParamFieldStr), &funcParamFields)
@@ -389,8 +415,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					if operateCondContentJsonMap!=nil{
 						operate_type = operateCondContentJsonMap["operate_type"].(string)
 						operate_table = operateCondContentJsonMap["operate_table"].(string)
-						calculate_field=operateCondContentJsonMap["calculate_field"].(string)
-						calculate_func=operateCondContentJsonMap["calculate_func"].(string)
+						if operateCondContentJsonMap["calculate_field"]!=nil {
+							calculate_field=operateCondContentJsonMap["calculate_field"].(string)
+						}
+						if operateCondContentJsonMap["calculate_func"]!=nil{
+							calculate_func=operateCondContentJsonMap["calculate_func"].(string)
+						}
+
 					}
 
 					//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
@@ -431,7 +462,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					}
 
 					// ASYNC_BATCH_SAVE_CURRENT_PEROID 计算指定配置的值
-					if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type && strings.Contains(id.(string),"-peroid"){
+					if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type{
 						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -477,11 +508,23 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 
-							r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
-							if errorMessage!=nil{
-								fmt.Printf("errorMessage=",errorMessage)
+							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
+							judgeExistsSql:="select judgeCurrentPeroidExists("+paramStr+") as id;"
+
+							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							if id==""{
+								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
+								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							}else{//id不为空 则更新
+								asyncObjectMap["id"]=id
+								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+								if errorMessage!=nil{
+									fmt.Printf("errorMessage=",errorMessage)
+								}
+								fmt.Printf("rs=",r)
+
 							}
-							fmt.Printf("rs=",r)
 
 
 
@@ -491,7 +534,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					}
 
 					// ASYNC_BATCH_SAVE_CURRENT_YEAR
-					if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type && strings.Contains(id.(string),"-year"){
+					if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type{
 						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -536,12 +579,22 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 
-							r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
-							if errorMessage!=nil{
-								fmt.Printf("errorMessage=",errorMessage)
-							}
-							fmt.Printf("rs=",r)
+							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
+							judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
+							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							if id==""{
+								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
+								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							}else{//id不为空 则更新
+								asyncObjectMap["id"]=id
+								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+								if errorMessage!=nil{
+									fmt.Printf("errorMessage=",errorMessage)
+								}
+								fmt.Printf("rs=",r)
 
+							}
 
 
 						}
@@ -556,13 +609,14 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 						Value:     id.(string)+"-knots",
 					}
 
-					leaveQuerOption := QueryOption{Wheres: leaveWhereOption, Table: operate_table}
-					leaveRs, errorMessage:= api.Select(leaveQuerOption)
+				//	leaveQuerOption := QueryOption{Wheres: leaveWhereOption, Table: operate_table}
+				//	leaveRs, errorMessage:= api.Select(leaveQuerOption)
 					fmt.Printf("errorMessage=",errorMessage)
-					if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type && leaveRs!=nil{
+					if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type {
 						asyncObjectMap=make(map[string]interface{})
-						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,leaveRs[0],asyncObjectMap)
-						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,leaveRs[0],asyncObjectMap)
+						asyncObjectMap=repeatItem
+					//	asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,leaveRs[0],asyncObjectMap)
+					//	asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,leaveRs[0],asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -600,11 +654,28 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							asyncObjectMap["end_debit_funds"]=strconv.FormatFloat(current_debit_funds-begin_debit_funds, 'f', -1, 64)
 							asyncObjectMap["end_credit_funds"]=strconv.FormatFloat(current_credit_funds-begin_credit_funds, 'f', -1, 64)
 
-							asyncObjectMap["id"]=id.(string)+"-knots"
-							r,errorMessage:= api.Update(operate_table,id.(string)+"-knots",asyncObjectMap)
-							fmt.Printf("r=",r)
-							if errorMessage!=nil{
-								fmt.Printf("errorMessage=",errorMessage)
+							//asyncObjectMap["id"]=id.(string)+"-knots"
+							//r,errorMessage:= api.Update(operate_table,id.(string)+"-knots",asyncObjectMap)
+							//fmt.Printf("r=",r)
+							//if errorMessage!=nil{
+							//	fmt.Printf("errorMessage=",errorMessage)
+							//}
+
+							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
+							judgeExistsSql:="select judgeCurrentLeaveExists("+paramStr+") as id;"
+							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							if id==""{
+								asyncObjectMap["id"]=id+"-knots"
+								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							}else{//id不为空 则更新
+								asyncObjectMap["id"]=id
+								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+								if errorMessage!=nil{
+									fmt.Printf("errorMessage=",errorMessage)
+								}
+								fmt.Printf("rs=",r)
+
 							}
 
 
