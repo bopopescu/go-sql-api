@@ -1227,6 +1227,34 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	}
 
 	for i, slave := range slaveInfoMap {
+		judgeExistsFundsWhereOption := map[string]WhereOperation{}
+		judgeExistsFundsWhereOption["id"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["id"],
+		}
+
+		judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["debit_funds"],
+		}
+
+		judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		fundsExists, errorMessage:= api.Select(judgeFundsQuerOption)
+
+		judgeExistsFundsWhereOption1 := map[string]WhereOperation{}
+		judgeExistsFundsWhereOption1["id"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["id"],
+		}
+
+		judgeExistsFundsWhereOption1["credit_funds"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["credit_funds"],
+		}
+
+		judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
+
 		sql, err := api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
 
 		fmt.Printf("i=",i)
@@ -1269,36 +1297,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				opK,errorMessage:=SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName+"-PUT")
 				fmt.Printf("errorMessage=",errorMessage)
 
-				judgeExistsFundsWhereOption := map[string]WhereOperation{}
-				judgeExistsFundsWhereOption["id"] = WhereOperation{
-					Operation: "eq",
-					Value:     slave["id"],
-				}
-
-				judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
-					Operation: "eq",
-					Value:     slave["debit_funds"],
-				}
-
-				judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
-				fundsExists, errorMessage:= api.Select(judgeFundsQuerOption)
-
-				judgeExistsFundsWhereOption1 := map[string]WhereOperation{}
-				judgeExistsFundsWhereOption1["id"] = WhereOperation{
-					Operation: "eq",
-					Value:     slave["id"],
-				}
-
-				judgeExistsFundsWhereOption1["credit_funds"] = WhereOperation{
-					Operation: "eq",
-					Value:     slave["credit_funds"],
-				}
-
-				judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
-				fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
 
 // credit_funds
-				if opK!=nil &&(fundsExists!=nil||fundsExists1!=nil){
+				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0){
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
@@ -1363,7 +1364,15 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
-					for _,operate:=range operates {
+						//  删掉 本期合计 本年累计  重新计算
+						if strings.Contains(id.(string),"-peroid"){
+							api.Delete("account_voucher_detail_category_merge",id.(string),nil)
+						}else if strings.Contains(id.(string),"-year"){
+							api.Delete("account_voucher_detail_category_merge",id.(string),nil)
+						}
+						api.Delete("account_subject_left",id.(string)+"-knots",nil)
+
+						for _,operate:=range operates {
 						asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
 
 
@@ -1427,7 +1436,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 						// ASYNC_BATCH_SAVE_CURRENT_PEROID 计算指定配置的值
-						if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type && strings.Contains(id.(string),"-peroid"){
+						if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type{
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -1473,11 +1482,25 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 
+								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
+								judgeExistsSql:="select judgeCurrentPeroidExists("+paramStr+") as id;"
+
+								id:=api.ExecFuncForOne(judgeExistsSql,"id")
+								if id==""{
+									asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-peroid","",-1)
+									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
+									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								}else{//id不为空 则更新
+									asyncObjectMap["id"]=id
 									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
 									if errorMessage!=nil{
 										fmt.Printf("errorMessage=",errorMessage)
 									}
 									fmt.Printf("rs=",r)
+
+								}
+
 
 
 
@@ -1487,7 +1510,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 						// ASYNC_BATCH_SAVE_CURRENT_YEAR
-						if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type && strings.Contains(id.(string),"-year"){
+						if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type{
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -1532,12 +1555,23 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 
+								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
+								judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
+								id:=api.ExecFuncForOne(judgeExistsSql,"id")
+								if id==""{
+									asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-year","",-1)
+									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
+									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								}else{//id不为空 则更新
+									asyncObjectMap["id"]=id
 									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
 									if errorMessage!=nil{
 										fmt.Printf("errorMessage=",errorMessage)
 									}
 									fmt.Printf("rs=",r)
 
+								}
 
 
 							}
@@ -1596,12 +1630,22 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								asyncObjectMap["end_debit_funds"]=strconv.FormatFloat(current_debit_funds-begin_debit_funds, 'f', -1, 64)
 								asyncObjectMap["end_credit_funds"]=strconv.FormatFloat(current_credit_funds-begin_credit_funds, 'f', -1, 64)
 
-								asyncObjectMap["id"]=id.(string)+"-knots"
-								r,errorMessage:= api.Update(operate_table,id.(string)+"-knots",asyncObjectMap)
-									fmt.Printf("r=",r)
+								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
+								judgeExistsSql:="select judgeCurrentLeaveExists("+paramStr+") as id;"
+								idLeave:=api.ExecFuncForOne(judgeExistsSql,"id")
+								if idLeave==""{
+									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-knots"
+									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								}else{//id不为空 则更新
+									asyncObjectMap["id"]=id
+									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
 									if errorMessage!=nil{
 										fmt.Printf("errorMessage=",errorMessage)
 									}
+									fmt.Printf("rs=",r)
+
+								}
 
 
 

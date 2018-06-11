@@ -387,7 +387,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				//  删掉 本期合计 本年累计  重新计算
 				if strings.Contains(id.(string),"-peroid"){
 					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
-				}else if strings.Contains(id.(string),"-peroid"){
+				}else if strings.Contains(id.(string),"-year"){
 					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
 				}
 
