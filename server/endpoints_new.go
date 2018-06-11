@@ -360,10 +360,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					Operation: "gte",
 					Value:     masterInfoMap["account_period_year"],
 				}
-				whereOption["order_num"] = WhereOperation{
-					Operation: "gte",
-					Value:     masterInfoMap["order_num"],
-				}
+				//whereOption["order_num"] = WhereOperation{
+				//	Operation: "gte",
+				//	Value:     masterInfoMap["order_num"],
+				//}
 
 				querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 
@@ -385,7 +385,12 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			for _,repeatItem:=range repeatCalculateData{
 				id:=repeatItem["id"]
 				//  删掉 本期合计 本年累计  重新计算
-				api.Delete("account_voucher_detail_category_merge",id.(string),nil)
+				if strings.Contains(id.(string),"-peroid"){
+					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
+				}else if strings.Contains(id.(string),"-peroid"){
+					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
+				}
+
 				//api.Delete("account_voucher_detail_category_merge",id.(string)+"-year",nil)
 				//if !strings.Contains(id.(string),"-year")&&!strings.Contains(id.(string),"-peroid"){
 					api.Delete("account_subject_left",id.(string)+"-knots",nil)
@@ -455,12 +460,21 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 						}
 
 
-						r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
-						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
-						}
-						fmt.Printf("rs=",r)
+						//judgeExistsSql:="select judgeCurrentKnotsExists("+paramStr+") as id;"
+						//id:=api.ExecFuncForOne(judgeExistsSql,"id")
+						//if id==""{
+						//	//asyncObjectMap["id"]=repea["id"]
+						//	r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+						//	fmt.Printf("r=",r,"errorMessage=",errorMessage)
+						//}else{//id不为空 则更新
+						//	asyncObjectMap["id"]=id
+							r,errorMessage:= api.Update(operate_table,asyncObjectMap["id"],asyncObjectMap)
+							if errorMessage!=nil{
+								fmt.Printf("errorMessage=",errorMessage)
+							}
+							fmt.Printf("rs=",r)
 
+						//}
 
 					}
 
@@ -516,6 +530,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
+								asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-peroid","",-1)
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -586,6 +601,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id==""{
+								asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-year","",-1)
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
