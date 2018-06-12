@@ -383,6 +383,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	masterTableName:=obj["masterTableName"].(string)
 	slaveTableName:=obj["slaveTableName"].(string)
 	masterTableInfo:=obj["masterTableInfo"].(string)
+
 	slaveTableInfo:=obj["slaveTableInfo"].(string)
 	fmt.Printf("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
@@ -473,21 +474,30 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	}
 	fmt.Printf("slaveTableName",slaveTableName)
 	fmt.Printf("slaveInfoMap",slaveInfoMap)
+	var sql string
+	var err error
+    if obj["isCreated"]==nil{
+		sql, err = api.sql.InsertByTable(masterTableName, masterInfoMap)
+		rs,errorMessage=api.exec(sql)
+		masterRowAffect,err=rs.RowsAffected()
+		if err != nil {
 
-	sql, err := api.sql.InsertByTable(masterTableName, masterInfoMap)
-
-	if err != nil {
-
-		// 回滚已经插入的数据
-	//	api.Delete(masterTableName,masterId,nil)
-	//	for e := slaveIds.Front(); e != nil; e = e.Next() {
-	//		api.Delete(slaveTableName,e.Value,nil)
-	//	}
-		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
-		return 0,errorMessage
+			// 回滚已经插入的数据
+			//	api.Delete(masterTableName,masterId,nil)
+			//	for e := slaveIds.Front(); e != nil; e = e.Next() {
+			//		api.Delete(slaveTableName,e.Value,nil)
+			//	}
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return 0,errorMessage
+		}
+		fmt.Printf("err=",err)
 	}
 
-	rs,errorMessage=api.exec(sql)
+
+
+
+
+
 	fmt.Printf("batch-master-err=",errorMessage)
 	if errorMessage != nil  {
 		// 回滚已经插入的数据
@@ -499,7 +509,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
        return 0,errorMessage
 	}
 
-	masterRowAffect,err=rs.RowsAffected()
+
 	if err != nil {
 		fmt.Printf("batch-master-getrows-err",err)
 		// 回滚已经插入的数据
@@ -1226,6 +1236,39 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		return 0,errorMessage
 	}
 	masterOrderNum,err:=strconv.Atoi(masterInfoMap["order_num"].(string))
+	// 查询 被删除id
+	b := bytes.Buffer{}
+	for _, slave := range slaveInfoMap {
+		if slave["id"]!=nil{
+			b.WriteString(slave["id"].(string)+",")
+		}
+
+	}
+	inParams:="'"+strings.Replace(b.String(),",","','",-1)+"'"
+	inParams=strings.Replace(inParams,",''","",-1)
+	inParams=strings.Replace(inParams,"\\'","'",-1)
+	inParams=strings.Replace(inParams,"''","'",-1)
+	inParams=strings.Replace(inParams,"'","",-1)
+	inParams=strings.Replace(inParams,",","','",-1)
+	//  subject_key IN ('102\',\'501'))
+	var queryOption0 QueryOption
+	whereOption:=make(map[string]WhereOperation)
+	whereOption["id"] = WhereOperation{
+		Operation: "notIn",
+		Value:     inParams,
+	}
+	whereOption[masterKeyColName] = WhereOperation{
+		Operation: "eq",
+		Value:     masterInfoMap[masterKeyColName],
+	}
+	queryOption0.Wheres=whereOption
+	rr,errorMessage:=api.Select(queryOption0)
+	for _,item:=range rr{
+		rs,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
+		fmt.Printf("rs=",rs," errorMessage=",errorMessage)
+		api.Delete("account_voucher_detail_category_merge",item["id"],nil)
+		api.Delete("account_subject_left",item["id"],nil)
+	}
 	for i, slave := range slaveInfoMap {
 		
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
@@ -1256,7 +1299,26 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption1, Table: slaveTableName}
 		fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
 
-		sql, err := api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
+		var updateSql string
+		if slave["id"]!=nil{
+			updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
+			rs,errorMessage=api.exec(updateSql)
+			fmt.Printf("err=",err)
+		}else{
+			slave["id"]=uuid.NewV4().String()
+			//rs,errorMessage=api.Create(slaveTableName,slave)
+
+			objCreate:=make(map[string]interface{})
+			objCreate=obj
+			var createSlaveMap []map[string]interface{}
+			createSlaveMap=append(createSlaveMap,slave)
+			byte,error:=json.Marshal(createSlaveMap)
+			fmt.Printf("error=",error)
+			objCreate["slaveTableInfo"]=string(byte[:])
+			objCreate["isCreated"]="1"
+			api.RelatedCreate(operates,objCreate)
+			fmt.Printf("rsCreate=",rs)
+		}
 
 		fmt.Printf("i=",i)
 		slaveIds.PushBack(slave["id"].(string))
@@ -1266,7 +1328,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 			return 0,errorMessage
 		}else{
-			rs,errorMessage=api.exec(sql)
+
 			
 			if errorMessage != nil {
 
