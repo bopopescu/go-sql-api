@@ -1225,8 +1225,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 		return 0,errorMessage
 	}
-
+	masterOrderNum,err:=strconv.Atoi(masterInfoMap["order_num"].(string))
 	for i, slave := range slaveInfoMap {
+		
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
 			Operation: "eq",
@@ -1252,7 +1253,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			Value:     slave["credit_funds"],
 		}
 
-		judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption1, Table: slaveTableName}
 		fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
 
 		sql, err := api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
@@ -1328,6 +1329,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							return 0,errorMessage
 						}else {
 							rs, errorMessage = api.exec(sql)
+							if errorMessage!=nil{
+								fmt.Printf("errorMessage=",errorMessage)
+							}
 						}
 
                 	   // 查询当前后同一科目的记录
@@ -1350,7 +1354,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					  }
 
 					  querOption := QueryOption{Wheres: whereOption, Table: operate_table}
-
+					   orders:=make(map[string]string)
+						orders["1-account_period_num"]="ASC"
+						orders["2-account_period_year"]="ASC"
+						orders["3-order_num"]="ASC"
+						orders["4-line_number"]="ASC"
+						querOption.Orders=orders
 						repeatCalculateData, errorMessage= api.Select(querOption)
 					  fmt.Printf("repeatCalculateData=",repeatCalculateData)
 					  if errorMessage!=nil{
@@ -1365,9 +1374,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
 						//  删掉 本期合计 本年累计  重新计算
-						if strings.Contains(id.(string),"-peroid"){
-							api.Delete("account_voucher_detail_category_merge",id.(string),nil)
-						}else if strings.Contains(id.(string),"-year"){
+                      // order_num为空说明是累计数
+						if repeatItem["order_num"]==nil{
 							api.Delete("account_voucher_detail_category_merge",id.(string),nil)
 						}
 						api.Delete("account_subject_left",id.(string)+"-knots",nil)
@@ -1397,9 +1405,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							calculate_field=operateCondContentJsonMap["calculate_field"].(string)
 							calculate_func=operateCondContentJsonMap["calculate_func"].(string)
 						}
+							var repeatOrderNum int
+							if repeatItem["order_num"]!=nil{
+								repeatOrderNum,err=strconv.Atoi(repeatItem["order_num"].(string))
+								if err!=nil{
+									fmt.Printf("err=",err)
+								}
+						}
 
 						//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
-						if "ASYNC_BATCH_SAVE"==operate_type{
+						if "ASYNC_BATCH_SAVE"==operate_type && repeatOrderNum>=masterOrderNum {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -1586,13 +1601,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							Value:     id.(string)+"-knots",
 						}
 
-						leaveQuerOption := QueryOption{Wheres: leaveWhereOption, Table: operate_table}
-						leaveRs, errorMessage:= api.Select(leaveQuerOption)
+
 						fmt.Printf("errorMessage=",errorMessage)
-						if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type && leaveRs!=nil{
+						if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type  {
 							asyncObjectMap=make(map[string]interface{})
-							asyncObjectMap=BuildMapFromBody(conditionFiledArr,leaveRs[0],asyncObjectMap)
-							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,leaveRs[0],asyncObjectMap)
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
 							fmt.Printf("operate_table",operate_table)
 							fmt.Printf("calculate_field",calculate_field)

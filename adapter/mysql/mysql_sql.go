@@ -8,6 +8,8 @@ import (
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
 	"strings"
 
+	"sort"
+	"regexp"
 )
 
 // SQL return sqls by sql builder
@@ -448,16 +450,33 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	}
 
 
-	for orderColumn, orderStr := range opt.Orders {
-		// check field exist
-		if "DESC"==strings.ToUpper(orderStr){
-			rs=rs.OrderAppend(goqu.I(orderColumn).Desc())
+	var newMp = make([]string, 0)
+	for k, _ := range opt.Orders {
+		newMp = append(newMp, k)
+	}
+	sort.Strings(newMp)
+	for _, key := range newMp {
+		//fmt.Println("根据key排序后的新集合》》   key:", key, "    value:", opt.Orders[key])
+		columnName:=key
+		r := regexp.MustCompile("^[0-9]\\-([\\w]+)")
+	//	r.FindString(columnName)
+		if r.FindString(columnName)!=""{
+			columnName=columnName[2:]
+			if "DESC"==strings.ToUpper(opt.Orders[key]){
+				rs=rs.OrderAppend(goqu.I(columnName).Desc())
+			}else{
+				rs=rs.OrderAppend(goqu.I(columnName).Asc())
+			}
 		}else{
-			rs=rs.OrderAppend(goqu.I(orderColumn).Asc())
+			if "DESC"==strings.ToUpper(opt.Orders[key]){
+				rs=rs.OrderAppend(goqu.I(key).Desc())
+			}else{
+				rs=rs.OrderAppend(goqu.I(key).Asc())
+			}
 		}
 
-
 	}
+
 
 
 	for _, l := range opt.Links {
