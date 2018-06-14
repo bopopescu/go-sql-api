@@ -1966,23 +1966,30 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 	optionC.Table=caculateFromTable
 	optionC.Fields=[]string{caculateFromFiled}
 	wheres[conditionFiledKey] = WhereOperation{
-		Operation: "eq",
-		Value:     caculateConFieldValue,
+		Operation: "like",
+		Value:     caculateConFieldValue+"%",
 	}
 
 	optionC.Wheres=wheres
 	var result string
-
+    var resultFloat float64
 	dataC, errorMessage := api.Select(optionC)
 	for _,value:=range dataC{
 		resultIterface:=value[caculateFromFiled]
 		if resultIterface!=nil{
-			result=resultIterface.(string)
-			return result,nil
+
+			switch resultIterface.(type) {
+			case float64:
+				resultFloat=resultFloat+resultIterface.(float64)
+			}
 		}
 
 	}
-	return "0",nil
+	result=strconv.FormatFloat(resultFloat, 'f', -1, 64)
+	if result==""{
+		result="0"
+	}
+	return result,nil
 
 }
 func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,isNeedCache int) error{
