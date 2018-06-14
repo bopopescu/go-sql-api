@@ -367,10 +367,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 				querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 				orders:=make(map[string]string)
-				orders["1-account_period_num"]="ASC"
-				orders["2-account_period_year"]="ASC"
-				orders["3-order_num"]="ASC"
-				orders["4-line_number"]="ASC"
+				orders["N1account_period_num"]="ASC"
+				orders["N2account_period_year"]="ASC"
+				orders["N3order_num"]="ASC"
+				orders["N4line_number"]="ASC"
 				querOption.Orders=orders
 				repeatCalculateData, errorMessage= api.Select(querOption)
 				if len(repeatCalculateData)<=0{
