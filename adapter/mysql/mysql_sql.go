@@ -458,7 +458,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	for _, key := range newMp {
 		//fmt.Println("根据key排序后的新集合》》   key:", key, "    value:", opt.Orders[key])
 		columnName:=key
-		r := regexp.MustCompile("^[N][0-9]([\\w]+)")
+		r := regexp.MustCompile("^N[0-9]([\\w]+)")
 	//	r.FindString(columnName)
 		if r.FindString(columnName)!=""{
 			columnName=columnName[2:]
