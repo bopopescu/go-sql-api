@@ -458,14 +458,24 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	for _, key := range newMp {
 		//fmt.Println("根据key排序后的新集合》》   key:", key, "    value:", opt.Orders[key])
 		columnName:=key
-		r := regexp.MustCompile("^N[0-9]([\\w]+)")
+		var columnTemp string
+		columnTemp=columnName
+		var orderTable string
+
+		if strings.Contains(columnName,"."){
+			arr:=strings.Split(columnName,".")
+			orderTable=arr[0]
+			columnTemp=arr[1]
+		}
+		r := regexp.MustCompile("^(N)[0-9]([\\w]+)")
 	//	r.FindString(columnName)
-		if r.FindString(columnName)!=""{
-			columnName=columnName[2:]
+		if r.FindString(columnTemp)!=""{
+			columnName=columnTemp[2:]
+			orderColumn:=orderTable+"."+columnName
 			if "DESC"==strings.ToUpper(opt.Orders[key]){
-				rs=rs.OrderAppend(goqu.I(columnName).Desc())
+				rs=rs.OrderAppend(goqu.I(orderColumn).Desc())
 			}else{
-				rs=rs.OrderAppend(goqu.I(columnName).Asc())
+				rs=rs.OrderAppend(goqu.I(orderColumn).Asc())
 			}
 		}else{
 			if "DESC"==strings.ToUpper(opt.Orders[key]){
