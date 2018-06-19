@@ -471,7 +471,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	//	r.FindString(columnName)
 		if r.FindString(columnTemp)!=""{
 			columnName=columnTemp[2:]
-			if "line_number"==columnName{
+			if "line_number"==columnName && !strings.Contains(opt.Table,"merge"){
 				orderTable=orderTable+"_detail"
 			}
 			orderColumn:=orderTable+"."+columnName

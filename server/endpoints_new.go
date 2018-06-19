@@ -536,9 +536,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 
-							id:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id==""{
-								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
+							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+							if id0==""{
+								asyncObjectMap["id"]=id.(string)+"-beginperoid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}else{//id不为空 则更新
@@ -1213,8 +1213,14 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 		if(operate_condition!=""){
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
-			conditionType=operateCondJsonMap["conditionType"].(string)
-			conditionFileds=operateCondJsonMap["conditionFields"].(string)
+			if operateCondJsonMap["conditionType"]!=nil{
+				conditionType=operateCondJsonMap["conditionType"].(string)
+			}
+
+			if operateCondJsonMap["conditionFields"]!=nil{
+				conditionFileds=operateCondJsonMap["conditionFields"].(string)
+			}
+
 			if operateCondJsonMap["resultFields"]!=nil{
 				resultFileds=operateCondJsonMap["resultFields"].(string)
 			}
