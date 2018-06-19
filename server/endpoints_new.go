@@ -328,6 +328,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				for _,slave:=range slaveInfoMap{
 					b.WriteString(slave["subject_key"].(string)+",")
 					api.Delete("account_voucher_detail_category_merge",slave["id"],nil)
+					api.Delete("account_voucher_detail_category_merge",slave["id"].(string)+"-beginperoid",nil)
 					api.Delete("account_voucher_detail_category_merge",slave["id"].(string)+"-peroid",nil)
 					api.Delete("account_voucher_detail_category_merge",slave["id"].(string)+"-year",nil)
 					// knots
@@ -489,8 +490,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					}
 					// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
 					if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type{
-						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
@@ -510,10 +511,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							asyncObjectMap["summary"]="期初余额"
 							asyncObjectMap["account_period_year"]=result1
 							//如果执行方法不为空 执行配置中方法
-							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
+							paramsMap=mysql.BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=mysql.BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 							//把对象的所有属性的值拼成字符串
-							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+							paramStr=mysql.ConcatObjectProperties(funcParamFields,paramsMap)
 
 
 
