@@ -537,7 +537,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id0==""{
+							if id0=="" && strings.Contains(id.(string),"-beginperoid"){
 								asyncObjectMap["id"]=id.(string)+"-beginperoid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
