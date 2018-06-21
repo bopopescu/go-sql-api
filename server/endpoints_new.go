@@ -267,10 +267,14 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				break;//取第一个主键
 			}
 		}
-       var ids []string
+		var option QueryOption
+
 		for _,slaveInfo:=range slaveInfoMap {
 			slaveId:= slaveInfo[slaveColumnName].(string)
+			var ids []string
 			ids=append(ids,slaveId)
+			option.Ids=ids
+			preEvent(api,slaveTableName,"DELETE",nil,option,"")
 			api.Delete(slaveTableName,slaveId,nil)
 			count=count+1
 		}
@@ -822,13 +826,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			}
 		}
 		
-		var option QueryOption
+
 		var arr []map[string]interface{}
 		arr=append(arr,payload)
 		option.ExtendedArr=arr
 
 		option.ExtendedMap=masterInfoMap
-		option.Ids=ids
+
 		// 后置事件
 		postEvent(api,slaveTableName,"DELETE",nil,option,"")
 
