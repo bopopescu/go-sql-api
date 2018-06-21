@@ -1526,48 +1526,47 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	fmt.Printf("async-test0",time.Now())
 	// 模拟异步处理耗费的时间
 	//time.Sleep(5*time.Second)
-	var orgId string
-	var biz_class string
-	var  masterTableName string
-	var  slaveTableName string
-	masterTableName="report_head"
+
 	option ,errorMessage:= parseWhereParams(where)
-	for f,v :=range option.Wheres{
-		if strings.Contains(f,".farm_id")&&v.Value!=nil{
-			orgId=v.Value.(string)
-			//slaveTableName=string(f[0:strings.Index(f,".farm_id")])
-			break
-		}
-	}
 
 	// 根据key查询操作配置
 	operates,errorMessage:=	SelectOperaInfoByAsyncKey(api,asyncKey)
 	var operate_condition string
 	var operateConditionJsonMap map[string]interface{}
+	var operateContentJsonMap map[string]interface{}
 	var conditionFieldKey string
 	var operate_content string
 	var operate_type string
-	var operate_table string
+	var operate_report_type string
 	var action_type string
 	var conditionFiledArr [5]string
-	var cronTable string
+
+	// report_diy_table_info:="report_diy_info"
+	 report_diy_table_cell:="report_diy_cells"
+	report_diy_table_cell_value:="report_diy_cells_value"
 	for _,operate:=range operates {
 		operate_content = operate["operate_content"].(string)
 		operate_condition = operate["operate_condition"].(string)
-		cronTable= operate["cond_table"].(string)
-		cronTable=strings.Replace(cronTable,api.GetDatabaseMetadata().DatabaseName+".","",-1)
-		slaveTableName=cronTable
 	}
 	fmt.Printf("option=",option,",errorMessage=",errorMessage)
 	if (operate_condition != "") {
 		json.Unmarshal([]byte(operate_condition), &operateConditionJsonMap)
 	}
-
+	if (operate_content != "") {
+		json.Unmarshal([]byte(operate_content), &operateContentJsonMap)
+	}
 	if operateConditionJsonMap!=nil{
 		conditionFieldKey = operateConditionJsonMap["conditionFieldKey"].(string)
 		fmt.Printf("conditionFieldKey",conditionFieldKey)
+		// operate_report_type
 		conditionFileds:=operateConditionJsonMap["conditionFields"].(string)
 		json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+	}
+	if operateContentJsonMap!=nil{
+		if operateContentJsonMap["operate_report_type"]!=nil{
+			operate_report_type=operateContentJsonMap["operate_report_type"].(string)
+		}
+
 	}
 
 	var operateCondContentJsonMap map[string]interface{}
@@ -1576,153 +1575,10 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	}
 	if operateCondContentJsonMap!=nil{
 		operate_type = operateCondContentJsonMap["operate_type"].(string)
-		operate_table = operateCondContentJsonMap["operate_table"].(string)
 		action_type = operateCondContentJsonMap["action_type"].(string)
 	}
 
 
-	// 查询审核过的组织业务类型
-	whereOption := map[string]WhereOperation{}
-	whereOption["farm_id"] = WhereOperation{
-		Operation: "eq",
-		Value:     orgId,
-	}
-	whereOption["is_approval"] = WhereOperation{
-		Operation: "eq",
-		Value:     1,
-	}
-	querOption := QueryOption{Wheres: whereOption, Table: "service_farm_list"}
-	data, errorMessage:= api.Select(querOption)
-	fmt.Printf("data", data)
-
-	for _,item := range data{
-		if item["biz_class"]!=nil{
-			biz_class=item["biz_class"].(string)
-		}
-
-	}
-// 构建主表信息并入库
-// 1 先判断是否已经存在（根据传入的条件）
-// 2 如果已经存在 则删除
-// 3 把构建的主表信息插入db
-
-//获取主键信息
-	var masterTableColumns []*ColumnMetadata
-	var slaveTableColumns []*ColumnMetadata
-	var masterIdColumnName string
-	var slaveIdColumnName string
-	var masterId string
-	var slaveId string
-	var account_period_year string
-	if masterTableName==""{
-		return
-	}
-	masterTableColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).Columns
-
-	for _, col := range masterTableColumns {
-		if col.Key == "PRI" {
-			masterIdColumnName=col.ColumnName
-			break;//取第一个主键
-		}
-	}
-
-	slaveTableColumns=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).Columns
-	for _, col := range slaveTableColumns {
-		if col.Key == "PRI" {
-			slaveIdColumnName=col.ColumnName
-			break;//取第一个主键
-		}
-	}
-	option.Table=masterTableName
-	masterData, errorMessage:=api.Select(option)
-    if errorMessage!=nil{
-    	fmt.Printf("errorMessage=",errorMessage)
-	}else{
-		if masterData!=nil{
-			for _,item:=range masterData{
-				if item[masterIdColumnName]!=nil{
-					masterId=item[masterIdColumnName].(string)
-				}
-			}
-			//如果已经存在删除主表和从表里的信息
-			api.Delete(masterTableName,masterId,nil)
-			var deleteSlaveMapWhere =make(map[string]interface{})
-			deleteSlaveMapWhere[masterIdColumnName]=masterId
-			api.Delete(slaveTableName,nil,deleteSlaveMapWhere)
-		}
-
-		// 插入主表信息
-		var masterMap=make(map[string]interface{})
-		masterId=uuid.NewV4().String()
-		masterMap[masterIdColumnName]=masterId
-		masterMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-		 report_type :=operate_table
-		masterMap["report_type"]=report_type
-		masterMap["account_period_num"]=option.Wheres[masterTableName+".account_period_num"].Value
-		masterMap["account_period_year"]=option.Wheres[masterTableName+".account_period_year"].Value
-		account_period_year=option.Wheres[masterTableName+".account_period_year"].Value.(string)
-		for _, col := range masterTableColumns {
-
-			for f,w:=range option.Wheres{
-				//用从表判断是否相同字段
-				if((masterTableName+"."+col.ColumnName)==f){
-					masterMap[col.ColumnName]=strings.Replace(w.Value.(string),"%","",-1)
-					break
-				}
-
-			}
-
-		}
-
-		//从报表模板里查询报表title
-		var optionC0 QueryOption
-		var wheres0 map[string]WhereOperation
-		wheres0=make(map[string]WhereOperation)
-
-		optionC0.Table="report_template_config"
-			wheres0["report_name"] = WhereOperation{
-				Operation: "eq",
-				Value:     report_type,
-
-		}
-		optionC0.Wheres=wheres0
-		dataC0, errorMessage := api.Select(optionC0)
-		if errorMessage!=nil{
-			fmt.Printf("errorMessage",errorMessage)
-		}else{
-			for _,item:=range dataC0{
-				if item["report_name_des"]!=nil{
-					masterMap["report_title"]=item["report_name_des"]
-					break
-				}
-			}
-		}
-		// 查询农场名字 farm_list_view
-		var optionC1 QueryOption
-		var wheres1 map[string]WhereOperation
-		wheres1=make(map[string]WhereOperation)
-
-		optionC1.Table="farm_list_view"
-		wheres1["id"] = WhereOperation{
-			Operation: "eq",
-			Value:     orgId,
-
-		}
-		optionC1.Wheres=wheres1
-		dataC1, errorMessage := api.Select(optionC1)
-		if errorMessage!=nil{
-			fmt.Printf("errorMessage",errorMessage)
-		}else{
-			for _,item:=range dataC1{
-				if item["producer_name"]!=nil{
-					masterMap["farm_name"]=item["producer_name"]
-					break
-				}
-			}
-		}
-		api.Create(masterTableName,masterMap)
-
-	}
 
 
 
@@ -1730,63 +1586,89 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		// DEPENDY_CACULATE
 		if action_type!="" && action_type=="DEPENDY_CACULATE"{
 			var optionC QueryOption
-			var wheres map[string]WhereOperation
-			wheres=make(map[string]WhereOperation)
-			var orders map[string]string
-			orders=make(map[string]string)
-			optionC.Table=operate_table
-			if biz_class!=""{
-				wheres["biz_class"] = WhereOperation{
+
+			optionC.Table=report_diy_table_cell
+			whereCell:=make(map[string]WhereOperation)
+			if operate_report_type!=""{
+				whereCell["report_type"] = WhereOperation{
 					Operation: "eq",
-					Value:     biz_class,
+					Value:     operate_report_type,
 				}
 			}
 
-			orders["order_num"]="asc"
+			optionC.Wheres=whereCell
+			orders:=make(map[string]string)
+			orders["N1row"]="asc"
+			orders["N2col"]="asc"
 			optionC.Orders=orders
-			optionC.Wheres=wheres
-			dataC, errorMessage := api.Select(optionC)
+			var dataC []map[string]interface{}
+			dataC, errorMessage= api.Select(optionC)
 			fmt.Printf("dataC",dataC)
-			tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(operate_table)
-			var columns []*ColumnMetadata
-			if tableMetadata!=nil{
-				columns= tableMetadata.Columns
-			}
+			//  如果datac 没有值 查询上期 直到有值为止
+		//	period_num, err := strconv.Atoi(option.Wheres["account_period_num"].Value.(string))
+		//	fmt.Printf("err=",err)
+			//if len(dataC)<=0{
+			//	wheres["account_period_num"] = WhereOperation{
+			//		Operation: "eq",
+			//		Value:    period_num-1,
+			//	}
+			//	optionC.Wheres=wheres
+			//	dataC, errorMessage = api.Select(optionC)
+			//
+			//}
 			//查询公共条件
 			var wheresExp map[string]WhereOperation
 			wheresExp=make(map[string]WhereOperation)
 			for _,item:=range conditionFiledArr{
-				if item!=""&&option.Wheres[masterTableName+"."+item].Value!=nil {
+				if strings.Contains(item,"="){
+					arr:=strings.Split(item,"=")
+					wheresExp[arr[0]] = WhereOperation{
+						Operation:"eq",
+						Value:     arr[1],// 如果是like类型Operation替换掉%
+					}
+				}
+				if item!=""&&option.Wheres[report_diy_table_cell_value+"."+item].Value!=nil {
 					wheresExp[item] = WhereOperation{
-						Operation:option.Wheres[masterTableName+"."+item].Operation,
-						Value:     option.Wheres[masterTableName+"."+item].Value.(string),// 如果是like类型Operation替换掉%
+						Operation:option.Wheres[report_diy_table_cell_value+"."+item].Operation,
+						Value:     option.Wheres[report_diy_table_cell_value+"."+item].Value.(string),// 如果是like类型Operation替换掉%
 					}
 				}
 
 			}
 			var lineValueMap map[string]float64
 			lineValueMap=make(map[string]float64)
+			var dataTempArr []map[string]interface{}
+			var caculateValue string
 			if errorMessage==nil{
 				//计算每一项值 不包括总值
 				for _,datac:=range dataC {
-					// 主表的关联id
-					datac[masterIdColumnName]=masterId
-					// 从表主键id
-					slaveId=uuid.NewV4().String()
-					datac[slaveIdColumnName]=slaveId
+					dataTemp:=make(map[string]interface{})
+
 					datac["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-					for _,column:=range columns{
-						var caculateValue string
-						if datac[column.ColumnName]!=nil{
-							caculateValue=datac[column.ColumnName].(string)
+					dataTemp=datac
+					for _,item:=range conditionFiledArr{
+						if item!=""&&option.Wheres[report_diy_table_cell_value+"."+item].Value!=nil {
+							itemValue:=option.Wheres[report_diy_table_cell_value+"."+item].Value.(string)
+							itemValue=strings.Replace(itemValue,"%","",-1)
+							dataTemp[item]=itemValue
+
 						}
 
+					}
+					if datac["value"] !=nil{//获取表达式
+						switch datac["value"].(type) {
+						case string:
+							caculateValue=datac["value"].(string)
+
+						}
+					}
+
+					if caculateValue!=""{
 						if !strings.Contains(caculateValue,"="){
+							dataTempArr=append(dataTempArr,dataTemp)
 							continue
 						}
-						if strings.Contains(column.ColumnName,"des"){
-							continue
-						}
+
 						arr:=strings.Split(caculateValue,"=")
 						var lineNumber string
 						if len(arr)>=2{
@@ -1795,18 +1677,25 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						}
 						calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,caculateValue)
 						fmt.Printf("errorMessage=",errorMessage)
-						if  !strings.Contains(column.ColumnName,"des"){
-							datac[column.ColumnName]=strconv.FormatFloat(calResult, 'f', -1, 64)
+
+
+						dataTemp["id"]=uuid.NewV4().String()
+
+						dataTempArr=append(dataTempArr,dataTemp)
+						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
+						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
+
+						if caculateExpressRb{
+							datac["value"]=strconv.FormatFloat(calResult, 'f', -1, 64)
+							dataTemp["value"]=calResult
+						}
+						if  lineNumber!="" && caculateExpressRb{
 							// 当期
 							lineValueMap[lineNumber]=calResult
 						}
-						//resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
-						if strings.Contains(column.ColumnName,"begin"){
-							lineValueMap[lineNumber+"b"]=calResult
-						}else if strings.Contains(column.ColumnName,"end"){
-							lineValueMap[lineNumber+"e"]=calResult
-						}
 
+					//	rs,errormessge:=api.Update(report_diy_table_cell,datac["id"],datac)
+					//	fmt.Printf("rs=",rs,"errormessge=",errormessge)
 
 					}
 
@@ -1814,32 +1703,32 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 				}
 				//计算每一项的总值
 				for _,datac:=range dataC {
-					// 主表的关联id
-					datac[masterIdColumnName]=masterId
-					// 从表主键id
-					slaveId=uuid.NewV4().String()
-					datac[slaveIdColumnName]=slaveId
+					//caculateValue="11=account_subject_left_view.current_credit_funds.321"
+					//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
+					//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
+					//caculateValue="6=1+2-3-4-5"
+					//caculateValue="10=9+8"
+					//caculateValue="9=6+7-8"
+					//caculateValue="6=1+2-3-4-5"
+					//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
+					//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+
 					datac["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-					for _,column:=range columns{
-						var caculateValue string
-						if datac[column.ColumnName]!=nil{
-								caculateValue=datac[column.ColumnName].(string)
+					if datac["value"] !=nil{//获取表达式
+						switch datac["value"].(type) {
+						case string:
+							caculateValue=datac["value"].(string)
+
 						}
-						//caculateValue="11=account_subject_left_view.current_credit_funds.321"
-						//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
-						//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
-						//caculateValue="6=1+2-3-4-5"
-						//caculateValue="10=9+8"
-						//caculateValue="9=6+7-8"
-						//caculateValue="6=1+2-3-4-5"
-						//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
-						//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+
+					}
+
+					if caculateValue!=""{
+
 						if !strings.Contains(caculateValue,"="){
 							continue
 						}
-						if strings.Contains(column.ColumnName,"des"){
-							continue
-						}
+
 						arr:=strings.Split(caculateValue,"=")
 						var lineNumber string
 						if len(arr)>=2{
@@ -1860,10 +1749,10 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						//fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
 
 
-						if  column.ColumnName!="order_num"&&!strings.Contains(column.ColumnName,"line_number")&&totalExpressRb&&!totalExpressRb1{
+						if  totalExpressRb&&!totalExpressRb1{
 							var isFirst=true
 							for{
-								if column.ColumnName!="order_num"&&totalExpressRb&&!totalExpressRb1{
+								if totalExpressRb&&!totalExpressRb1{
 									// 总值计算表达式 begin_period_total=9+8
 									//= "8+9"
 									//= "8"
@@ -1880,13 +1769,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									b:=arr[3]
 									var af float64
 									var bf float64
-									if strings.Contains(column.ColumnName,"begin"){
-										af=lineValueMap[a+"b"]
-									}else if strings.Contains(column.ColumnName,"end"){
-										af=lineValueMap[a+"e"]
-									}else{
-										af=lineValueMap[a]
-									}
+									af=lineValueMap[a]
 									if !isFirst{
 										resultF,error:=strconv.ParseFloat(a, 64)
 										if error!=nil{
@@ -1895,14 +1778,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 											af=resultF
 										}
 									}
-									if strings.Contains(column.ColumnName,"begin"){
-										bf=lineValueMap[b+"b"]
-									}else if strings.Contains(column.ColumnName,"end"){
-										bf=lineValueMap[b+"e"]
-									}else{
-										bf=lineValueMap[b]
-									}
-
+									bf=lineValueMap[b]
 									calResult:=Calc(operate,af,bf)
 									resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
 									//if itemValue==resultStr
@@ -1914,7 +1790,29 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									totalExpressRb1=totalExpressR1.MatchString(caculateValue)
 									isFirst=false
 									if itemValue==resultStr||(!totalExpressRb){
-										datac[column.ColumnName]=calResult
+										 dataTemp:=make(map[string]interface{})
+
+										datac["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+										dataTemp=datac
+										for _,item:=range conditionFiledArr{
+											if item!=""&&option.Wheres[report_diy_table_cell_value+"."+item].Value!=nil {
+												itemValue:=option.Wheres[report_diy_table_cell_value+"."+item].Value.(string)
+												itemValue=strings.Replace(itemValue,"%","",-1)
+												dataTemp[item]=itemValue
+
+											}
+
+										}
+
+										datac["value"]=calResult
+										dataTemp["value"]=calResult
+										dataTemp["id"]=uuid.NewV4().String()
+
+										dataTempArr=append(dataTempArr,dataTemp)
+										if  lineNumber!=""{
+											// 当期
+											lineValueMap[lineNumber]=calResult
+										}
 										totalExpressRb=false
 									}
 									//  arr=%!(EXTRA []string=[601 601  ])
@@ -1932,44 +1830,36 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 						}
 					}
-					_, err := api.Create(slaveTableName, datac)
-					fmt.Printf("err=",err)
+
 				}
-			}
-
-
-			//计算子模板的值并存入库
-			var optionSub QueryOption
-			subWheres:=make(map[string]WhereOperation)
-			optionSub.Table="sub_report_template_config"
-			//optionC.Fields=[]string{caculateFromFiled}
-			subWheres["template_key"] = WhereOperation{
-				Operation: "eq",
-				Value:     operate_table,
-			}
-			optionSub.Wheres=subWheres
-			subData, errorMessage := api.Select(optionSub)
-			for _,item:=range subData{
-				calculateValueStr:=item["column_value"].(string)
-				calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,calculateValueStr)
+				// 批量插入计算结果
+				// 先判断是否存在
+				var isExistsWhere map[string]WhereOperation
+				isExistsWhere=option.Wheres
+				isExistsWhere["report_type"]=WhereOperation{
+					Operation:"eq",
+					Value:operate_report_type,
+				}
+				option.Wheres=isExistsWhere
+				option.Table=report_diy_table_cell_value
+				rs, errorMessage:= api.Select(option)
 				if errorMessage!=nil{
 					fmt.Printf("errorMessage=",errorMessage)
-				}else{
-					item["column_value"]=calResult
+					return;
+				}else if len(rs)>0{
+					for _,item:=range rs{
+						_,errorMessage:=api.Delete(report_diy_table_cell_value,item["id"],nil)
+						fmt.Printf("delete-errorMessage:",errorMessage)
+					}
 				}
-				item["farm_id"]=orgId
-				if strings.Contains(account_period_year,"%"){
-					account_period_year=strings.Replace(account_period_year,"%","-12-01",-1)
-				}
-				item["account_period_year"]=account_period_year
 
-				rr,errorMessage:=api.Create("sub_report_config",item)
-				if errorMessage!=nil{
-					fmt.Printf("errorMessage=",errorMessage)
-				}else{
-					fmt.Printf("rr=",rr)
+				for _,item:=range dataTempArr{
+					_, errorMessage:=api.Create(report_diy_table_cell_value,item)
+					fmt.Printf("create-error-errorMessage:",errorMessage)
 				}
+
 			}
+
 
 
 		}
@@ -1981,6 +1871,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 }
 // 根据表达式字符串计算值
 func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,wheres map[string]WhereOperation,caculateValue string)(calResult float64,errorMessage *ErrorMessage){
+	//caculateValue="4=3"
 	arr:=strings.Split(caculateValue,"=")
 	var lineNumber string
 	if len(arr)>=2{
@@ -2038,7 +1929,8 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 					//exp,error :=ExpConvert(expArr)
 					//Exp(exp)
 					//fmt.Printf("err=",error)
-
+					caculateValue=strings.Replace(caculateValue,"+-","-",-1)
+					caculateValue=strings.Replace(caculateValue,"-+","-",-1)
 					calResult, error := Calculate(caculateValue)
 
 					if error != nil {
@@ -2052,6 +1944,8 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 			}
 		}
 
+	}else{
+		return 0,nil
 	}
 	var result float64
 	resultF,error:=strconv.ParseFloat(caculateValue, 64)
@@ -2093,13 +1987,18 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 		if resultIterface!=nil{
 
 			switch resultIterface.(type) {
+			case string:
+				result=resultIterface.(string)
 			case float64:
 				resultFloat=resultFloat+resultIterface.(float64)
 			}
 		}
 
 	}
-	result=strconv.FormatFloat(resultFloat, 'f', -1, 64)
+
+	if result==""{
+		result=strconv.FormatFloat(resultFloat, 'f', -1, 64)
+	}
 	if result==""{
 		result="0"
 	}
