@@ -80,6 +80,7 @@ type QueryOption struct {
 	ExtendedArr    []map[string]interface{}  //扩展数组
 	ExtendedMap    map[string]interface{} // 扩展map
 	ExtendedMapSecond    map[string]interface{} // 扩展map
+	Ids    []string	// ids
 	Links  []string                  // auto join table
 	Wheres map[string]WhereOperation // field -> { operation, value }
 	OrWheres map[string]WhereOperation // field -> { operation, value }

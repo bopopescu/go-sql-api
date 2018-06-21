@@ -267,9 +267,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				break;//取第一个主键
 			}
 		}
-
+       var ids []string
 		for _,slaveInfo:=range slaveInfoMap {
 			slaveId:= slaveInfo[slaveColumnName].(string)
+			ids=append(ids,slaveId)
 			api.Delete(slaveTableName,slaveId,nil)
 			count=count+1
 		}
@@ -827,6 +828,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		option.ExtendedArr=arr
 
 		option.ExtendedMap=masterInfoMap
+		option.Ids=ids
 		// 后置事件
 		postEvent(api,slaveTableName,"DELETE",nil,option,"")
 
@@ -1188,6 +1190,104 @@ if isQuerySlaves=="1"{
 
 return data
 }
+//前置事件处理
+func preEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
+	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod)
+	fmt.Printf("errorMessage=",errorMessage)
+	var operate_condition string
+	var operate_content string
+	var conditionType string
+	var conditionTable string
+	var conditionFileds string
+	var resultFileds string
+	var operate_type string
+	var operate_table string
+	var operateFunc string
+	//	var actionType string
+	var conditionFiledArr [5]string
+	var resultFieldsArr [5]string
+	//var actionFieldsArr [5]string
+	var operateCondJsonMap map[string]interface{}
+	var operateCondContentJsonMap map[string]interface{}
+	fieldList:=list.New()
+	for _,operate:=range operates {
+		operate_condition= operate["operate_condition"].(string)
+		operate_content = operate["operate_content"].(string)
+
+		if(operate_condition!=""){
+			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
+			if operateCondJsonMap["conditionType"]!=nil{
+				conditionType=operateCondJsonMap["conditionType"].(string)
+				fmt.Printf("conditionType=",conditionType)
+			}
+
+			if operateCondJsonMap["conditionFields"]!=nil{
+				conditionFileds=operateCondJsonMap["conditionFields"].(string)
+			}
+
+			if operateCondJsonMap["resultFields"]!=nil{
+				resultFileds=operateCondJsonMap["resultFields"].(string)
+			}
+			if operateCondJsonMap["conditionTable"]!=nil{
+				conditionTable=operateCondJsonMap["conditionTable"].(string)
+			}
+
+			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
+		}
+		if(operate_content!=""){
+			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
+		}
+		for _,item:= range conditionFiledArr{
+			if item!=""{
+				fieldList.PushBack(item)
+			}
+		}
+
+		var conditionFieldKey string
+		if operateCondJsonMap["conditionFieldKey"]!=nil{
+			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
+		}
+		if operateCondContentJsonMap["operate_func"]!=nil{
+			operateFunc=operateCondContentJsonMap["operate_func"].(string)
+		}
+
+		var conditionFieldKeyValue string
+		if strings.Contains(conditionFieldKey,"="){
+			arr:=strings.Split(conditionFieldKey,"=")
+			conditionFieldKey=arr[0]
+			conditionFieldKeyValue=arr[1]
+			fmt.Printf("conditionFieldKeyValue=",conditionFieldKeyValue)
+		}
+
+		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
+		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
+		operate_type=operateCondContentJsonMap["operate_type"].(string)
+		operate_table=operateCondContentJsonMap["operate_table"].(string)
+		fmt.Printf("operate_type=",operate_type)
+		fmt.Printf("operate_table=",operate_table)
+		fmt.Printf("operate_type=",conditionTable)
+		// 前置事件新处理方式   只传参数   逻辑处理在存储过程处理
+		if "CASCADE_DELETE"==operate_type{
+			if operateFunc!=""{
+				ids:=option.Ids
+				for _,item:=range ids{
+					operateFuncSql:="select "+operateFunc+"('"+item+"');"
+					_,errorMessage:=api.ExecFunc(operateFuncSql)
+					fmt.Printf("errorMessage=",errorMessage)
+				}
+
+
+			}
+		}
+	}
+
+	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
+
+	return data,nil;
+}
+
+
 //后置事件处理
 func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod)
@@ -1200,6 +1300,7 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var resultFileds string
     var operate_type string
     var operate_table string
+    var operateFunc string
 	//	var actionType string
 	var conditionFiledArr [5]string
 	var resultFieldsArr [5]string
@@ -1243,6 +1344,10 @@ func postEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var conditionFieldKey string
 		if operateCondJsonMap["conditionFieldKey"]!=nil{
 			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
+		}
+		if operateCondContentJsonMap["operate_func"]!=nil{
+			operateFunc=operateCondContentJsonMap["operate_func"].(string)
+			fmt.Printf("operateFunc=",operateFunc)
 		}
 
 		var conditionFieldKeyValue string
@@ -3063,6 +3168,12 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		id := c.Param("id")
+		var option QueryOption
+		var ids []string
+		ids=append(ids,id)
+		option.Ids=ids
+		// 前置事件
+		preEvent(api,tableName,"DELETE",nil,option,"")
 		rs, errorMessage := api.Delete(tableName, id, nil)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3071,6 +3182,9 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
+		// 后置事件
+
+		postEvent(api,tableName,"DELETE",nil,option,"")
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
