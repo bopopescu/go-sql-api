@@ -1788,7 +1788,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						fmt.Printf("errorMessage=",errorMessage)
 
 
-						dataTemp["id"]=uuid.NewV4().String()
+
 
 						dataTempArr=append(dataTempArr,dataTemp)
 						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
@@ -1963,6 +1963,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 				}
 
 				for _,item:=range dataTempArr{
+					item["id"]=uuid.NewV4().String()
 					_, errorMessage:=api.Create(report_diy_table_cell_value,item)
 					fmt.Printf("create-error-errorMessage:",errorMessage)
 				}
