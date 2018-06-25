@@ -2393,13 +2393,9 @@ func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) 
 func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
-		var primaryColumns []*ColumnMetadata
-		primaryColumns=api.GetDatabaseMetadata().GetTableMeta(tableName).GetPrimaryColumns()
 		var id string
-		if len(primaryColumns)>0{
-			id = c.Param(primaryColumns[0].ColumnName)
-		}
-
+		id = c.Param("id")
+		
 		option ,errorMessage:= parseQueryParams(c)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
