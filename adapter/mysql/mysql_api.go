@@ -1546,7 +1546,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						  Operation: "gte",
 						  Value:     masterInfoMap["account_period_num"],
 					  }
-
+						whereOption["voucher_type"] = WhereOperation{
+							Operation: "gt",
+							Value:     '0',
+						}
 					  querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 					   orders:=make(map[string]string)
 						orders["N1account_period_num"]="ASC"
