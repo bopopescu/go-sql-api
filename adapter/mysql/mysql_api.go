@@ -1548,7 +1548,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					  }
 						whereOption["voucher_type"] = WhereOperation{
 							Operation: "gt",
-							Value:     '0',
+							Value:     "0",
 						}
 					  querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 					   orders:=make(map[string]string)

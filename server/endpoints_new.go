@@ -368,7 +368,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				}
 				whereOption["voucher_type"] = WhereOperation{
 					Operation: "gt",
-					Value:     '0',
+					Value:     "0",
 				}
 
 				querOption := QueryOption{Wheres: whereOption, Table: operate_table}
