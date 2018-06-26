@@ -1147,6 +1147,50 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rowAaffect=rowAaffect+masterRowAffect
   return rowAaffect,nil
 }
+func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
+
+	whereOption := map[string]WhereOperation{}
+	whereOption["cond_table"] = WhereOperation{
+		Operation: "eq",
+		Value:     tableName,
+	}
+	whereOption["api_method"] = WhereOperation{
+		Operation: "eq",
+		Value:     apiMethod,
+	}
+	querOption := QueryOption{Wheres: whereOption, Table: "operate_config"}
+	orders:=make(map[string]string)
+	orders["order_num"]="asc"
+	querOption.Orders=orders
+	rs, errorMessage= api.Select(querOption)
+	if errorMessage!=nil{
+		fmt.Printf("errorMessage", errorMessage)
+	}else{
+		fmt.Printf("rs", rs)
+	}
+
+	return rs,errorMessage
+}
+
+func SelectOperaInfoByAsyncKey(api adapter.IDatabaseAPI,asyncKey string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
+
+	whereOption := map[string]WhereOperation{}
+	whereOption["async_key"] = WhereOperation{
+		Operation: "eq",
+		Value:     asyncKey,
+	}
+
+	querOption := QueryOption{Wheres: whereOption, Table: "operate_config"}
+	rs, errorMessage= api.Select(querOption)
+	if errorMessage!=nil{
+		fmt.Printf("errorMessage", errorMessage)
+	}else{
+		fmt.Printf("rs", rs)
+	}
+
+	return rs,errorMessage
+}
+
 func SelectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
 	whereOption := map[string]WhereOperation{}
@@ -1349,7 +1393,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		api.Delete("account_subject_left",item["id"],nil)
 	}
 	for i, slave := range slaveInfoMap {
-		
+       var preOption QueryOption
+		var ids []string
+		ids=append(ids,slave["id"].(string))
+		preOption.Ids=ids
+		PreEvent(api,slaveTableName,"DELETE",nil,preOption,"")
+
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
 			Operation: "eq",
@@ -1520,9 +1569,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				  	id:=repeatItem["id"]
 						//  删掉 本期合计 本年累计  重新计算
                       // order_num为空说明是累计数
-						if repeatItem["voucher_type"]==nil{
-							api.Delete("account_voucher_detail_category_merge",id.(string),nil)
-						}
+
 
 						for _,operate:=range operates {
 						asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
@@ -1662,8 +1709,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 										r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 										fmt.Printf("r=",r,"errorMessage=",errorMessage)
 									}else{//id不为空 则更新
-										asyncObjectMap["id"]=id
-										r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+										asyncObjectMap["id"]=id0
+										r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
 										if errorMessage!=nil{
 											fmt.Printf("errorMessage=",errorMessage)
 										}
@@ -1736,8 +1783,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}else{//id不为空 则更新
-									asyncObjectMap["id"]=id
-									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+									asyncObjectMap["id"]=id0
+									r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
 									if errorMessage!=nil{
 										fmt.Printf("errorMessage=",errorMessage)
 									}
@@ -1808,8 +1855,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}else{//id不为空 则更新
-									asyncObjectMap["id"]=id
-									r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+									asyncObjectMap["id"]=id0
+									r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
 									if errorMessage!=nil{
 										fmt.Printf("errorMessage=",errorMessage)
 									}
