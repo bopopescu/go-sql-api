@@ -1533,8 +1533,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							if operateCondJsonMap["conditionFieldss"]!=nil{
 								conditionFileds1 = operateCondJsonMap["conditionFieldss"].(string)
 							}
+							if operateCondJsonMap["funcParamFields"]!=nil{
+								funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
+							}
 
-							funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
 							json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
 							json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
 							json.Unmarshal([]byte(funcParamFieldStr), &funcParamFields)
@@ -1545,8 +1547,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						if operateCondContentJsonMap!=nil{
 							operate_type = operateCondContentJsonMap["operate_type"].(string)
 							operate_table = operateCondContentJsonMap["operate_table"].(string)
-							calculate_field=operateCondContentJsonMap["calculate_field"].(string)
-							calculate_func=operateCondContentJsonMap["calculate_func"].(string)
+
+							if operateCondContentJsonMap["calculate_field"]!=nil{
+								calculate_field=operateCondContentJsonMap["calculate_field"].(string)
+							}
+					
 							if operateCondContentJsonMap["operate_func"]!=nil{
 								operate_func = operateCondContentJsonMap["operate_func"].(string)
 							}
