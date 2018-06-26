@@ -1520,10 +1520,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				  	id:=repeatItem["id"]
 						//  删掉 本期合计 本年累计  重新计算
                       // order_num为空说明是累计数
-						if repeatItem["order_num"]==nil{
+						if repeatItem["voucher_type"]==nil{
 							api.Delete("account_voucher_detail_category_merge",id.(string),nil)
 						}
-						api.Delete("account_subject_left",id.(string)+"-knots",nil)
 
 						for _,operate:=range operates {
 						asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
