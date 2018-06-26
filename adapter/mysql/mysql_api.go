@@ -1397,7 +1397,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		var ids []string
 		ids=append(ids,slave["id"].(string))
 		preOption.Ids=ids
-		PreEvent(api,slaveTableName,"DELETE",nil,preOption,"")
+		PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
 
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
