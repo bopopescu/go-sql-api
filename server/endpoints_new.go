@@ -2395,7 +2395,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 		tableName := c.Param("table")
 		var id string
 		id = c.Param("id")
-		
+
 		option ,errorMessage:= parseQueryParams(c)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)

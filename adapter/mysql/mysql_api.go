@@ -1530,7 +1530,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						if (operate_condition != "") {
 							json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 							conditionFileds = operateCondJsonMap["conditionFields"].(string)
-							conditionFileds1 = operateCondJsonMap["conditionFieldss"].(string)
+							if operateCondJsonMap["conditionFieldss"]!=nil{
+								conditionFileds1 = operateCondJsonMap["conditionFieldss"].(string)
+							}
+
 							funcParamFieldStr = operateCondJsonMap["funcParamFields"].(string)
 							json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
 							json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
