@@ -1321,9 +1321,9 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						}
 
 						arr:=strings.Split(caculateValue,"=")
-						var lineNumber string
+
 						if len(arr)>=2{
-							lineNumber=arr[0]
+							//lineNumber=arr[0]
 							caculateValue=arr[1]
 						}
 						calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,caculateValue)
@@ -1340,7 +1340,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 							datac["value"]=strconv.FormatFloat(calResult, 'f', -1, 64)
 							dataTemp["value"]=calResult
 						}
-						if  lineNumber!="" && caculateExpressRb{
+						if cellKey!=""&&caculateExpressRb{
 							// 当期
 							lineValueMap[cellKey]=calResult
 						}
@@ -1401,11 +1401,11 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						}
 
 						arr:=strings.Split(caculateValue,"=")
-						var lineNumber string
+						//var lineNumber string
 						if len(arr)>=2{
-							lineNumber=arr[0]
+							//lineNumber=arr[0]
 							caculateValue=arr[1]
-							fmt.Printf("lineNumber=",lineNumber)
+							//fmt.Printf("lineNumber=",lineNumber)
 						}
 
 						//numberR := regexp.MustCompile("(^[\\d]+)$")
@@ -1491,7 +1491,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 										dataTemp["id"]=uuid.NewV4().String()
 
 										dataTempArr=append(dataTempArr,dataTemp)
-										if  lineNumber!=""{
+										if  cellKey!=""{
 											// 当期
 											lineValueMap[cellKey]=calResult
 										}
