@@ -1172,6 +1172,34 @@ func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string)
 	return rs,errorMessage
 }
 
+func ObtainDefineLocal(api adapter.IDatabaseAPI,defineId string,value string) (rowStr string,errorMessage *ErrorMessage) {
+
+	whereOptionLocal := map[string]WhereOperation{}
+	whereOptionLocal["report_type"] = WhereOperation{
+		Operation: "eq",
+		Value:     defineId,
+	}
+	whereOptionLocal["value"] = WhereOperation{
+		Operation: "eq",
+		Value:     value,
+	}
+	querOptionLocal := QueryOption{Wheres: whereOptionLocal, Table: "report_diy_cells"}
+
+	rsLocal, errorMessage:= api.Select(querOptionLocal)
+	fmt.Printf("errorMessage=",errorMessage)
+	for _,item:=range rsLocal{
+		switch item["row"].(type) {
+		case string:
+			rowStr=item["row"].(string)
+		case int:
+			rowStr=strconv.Itoa(item["row"].(int))
+		}
+
+		break;
+	}
+	return rowStr,errorMessage
+}
+
 func SelectOperaInfoByAsyncKey(api adapter.IDatabaseAPI,asyncKey string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
 	whereOption := map[string]WhereOperation{}

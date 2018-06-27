@@ -332,12 +332,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				//先删除记录  id和详情id一样 除了合计、累计id
 				for _,slave:=range slaveInfoMap{
 					b.WriteString(slave["subject_key"].(string)+",")
-					api.Delete("account_voucher_detail_category_merge",slave["id"],nil)
-					api.Delete("account_voucher_detail_category_merge",slave["id"].(string)+"-beginperoid",nil)
-					api.Delete("account_voucher_detail_category_merge",slave["id"].(string)+"-peroid",nil)
-					api.Delete("account_voucher_detail_category_merge",slave["id"].(string)+"-year",nil)
-					// knots
-					api.Delete("account_subject_left",slave["id"].(string)+"-knots",nil)
+
 				}
 				//  (subject_key IN ('\'40101\',\'102\'')
 				inParams:="'"+strings.Replace(b.String(),",","','",-1)+"'"
@@ -1283,6 +1278,22 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 				//计算每一项值 不包括总值
 				for _,datac:=range dataC {
 					dataTemp:=make(map[string]interface{})
+					// 把单元格的坐标作为计算合计的key
+					var rowStr string
+					var colStr string
+					switch datac["row"].(type) {
+					case string:
+						rowStr=datac["row"].(string)
+					case int:
+						rowStr=strconv.Itoa(datac["row"].(int))
+					}
+					switch datac["col"].(type) {
+					case string:
+						colStr=datac["col"].(string)
+					case int:
+						colStr=strconv.Itoa(datac["col"].(int))
+					}
+					cellKey:="cell"+rowStr+colStr
 
 					datac["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 					dataTemp=datac
@@ -1331,7 +1342,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						}
 						if  lineNumber!="" && caculateExpressRb{
 							// 当期
-							lineValueMap[lineNumber]=calResult
+							lineValueMap[cellKey]=calResult
 						}
 
 					//	rs,errormessge:=api.Update(report_diy_table_cell,datac["id"],datac)
@@ -1343,6 +1354,26 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 				}
 				//计算每一项的总值
 				for _,datac:=range dataC {
+					// 把单元格的坐标作为计算合计的key
+					reportType:=datac["report_type"].(string)
+					var colStr string
+					var rowStr string
+					var cellKey string
+					var aCellKey string
+					var bCellKey string
+					switch datac["col"].(type) {
+					case string:
+						colStr=datac["col"].(string)
+					case int:
+						colStr=strconv.Itoa(datac["col"].(int))
+					}
+					switch datac["row"].(type) {
+					case string:
+						rowStr=datac["row"].(string)
+					case int:
+						rowStr=strconv.Itoa(datac["row"].(int))
+					}
+					cellKey="cell"+rowStr+colStr
 					//caculateValue="11=account_subject_left_view.current_credit_funds.321"
 					//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
 					//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
@@ -1409,7 +1440,11 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									b:=arr[3]
 									var af float64
 									var bf float64
-									af=lineValueMap[a]
+									//根据 定义的line_number查询单元格坐标
+									aRowStr,errorMessage:=mysql.ObtainDefineLocal(api,reportType,a)
+									fmt.Printf("errorMessage=",errorMessage)
+									aCellKey="cell"+aRowStr+colStr
+									af=lineValueMap[aCellKey]
 									if !isFirst{
 										resultF,error:=strconv.ParseFloat(a, 64)
 										if error!=nil{
@@ -1418,7 +1453,14 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 											af=resultF
 										}
 									}
-									bf=lineValueMap[b]
+									var bRowStr string
+									if b!=""{
+										bRowStr,errorMessage=mysql.ObtainDefineLocal(api,reportType,b)
+									}
+
+									fmt.Printf("errorMessage=",errorMessage)
+									bCellKey="cell"+bRowStr+colStr
+									bf=lineValueMap[bCellKey]
 									calResult:=Calc(operate,af,bf)
 									resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
 									//if itemValue==resultStr
@@ -1451,7 +1493,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 										dataTempArr=append(dataTempArr,dataTemp)
 										if  lineNumber!=""{
 											// 当期
-											lineValueMap[lineNumber]=calResult
+											lineValueMap[cellKey]=calResult
 										}
 										totalExpressRb=false
 									}
@@ -1520,7 +1562,7 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 		caculateValue=arr[1]
 		fmt.Printf("lineNumber=",lineNumber)
 	}
-	//caculateValue="11=account_subject_left_view.current_credit_funds.321"
+	//caculateValue="11=account_subject_left_view.current_credit_funds.321.pre"
 	//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
 	//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
 	//caculateValue="6=1+2-3-4-5"
@@ -1530,7 +1572,7 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 	//caculateValue="064c92ac-31a7-11e8-9d9b-0242ac110002"
 	//r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
 	//numberR := regexp.MustCompile("(^[\\d]+)$")
-	caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
+	caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+(\\.pre)?)")
 	//totalExpressR := regexp.MustCompile("^([\\d]+[.\\]?[\\d]{0,})([\\+|\\-]?)([\\d]{0,}[.\\]?[\\d]{0,})")
 	// UUID 匹配
 	//totalExpressR1 := regexp.MustCompile("^([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})$")
@@ -1603,11 +1645,27 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 	// "account_subject_left_view"
 	// "begin_debit_funds"
 	// "101"
+	// 101-PRE-account_period_year
 	caculateValueItem:=arr[0]
 	caculateFromTable:=arr[1]
 	caculateFromFiled:=arr[2]
 	caculateConFieldValue:=arr[3]
-
+	var preWhereKey string
+	if strings.Contains(caculateConFieldValue,"."){
+		arr0:=strings.Split(caculateConFieldValue,".")
+		caculateConFieldValue=arr0[0]
+		if len(arr0)==2{
+			preWhereKey=arr0[1]
+		}
+		if preWhereKey=="pre"{
+			preWhereKey="account_period_year"
+		}
+		yesYear:=api.ExecFuncForOne("SELECT EXTRACT(YEAR FROM DATE_ADD(NOW(), INTERVAL -1 YEAR)) as preYear;","preYear")
+		wheres[preWhereKey]=WhereOperation{
+			Operation:"like",
+			Value: yesYear+"%",
+		}
+	}
 	fmt.Printf("caculateValueItem",caculateValueItem)
 	var optionC QueryOption
 
