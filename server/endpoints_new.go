@@ -525,9 +525,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+") as id;"
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id0==""{
-								continue
-							}
+							
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
@@ -545,7 +543,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 
-							if id0=="1"{
+							if id0==""{
 								asyncObjectMap["id"]=id.(string)+"-beginperoid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -598,9 +596,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							judgeExistsSql:="select judgeCurrentPeroidExists("+paramStr+") as id;"
 
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id0==""{
-								continue
-							}
+
 
 
 
@@ -621,7 +617,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 
-							if id0=="1"{
+							if id0==""{
 								asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-peroid","",-1)
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
@@ -674,9 +670,6 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id0==""{
-								continue
-							}
 
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
@@ -693,7 +686,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							}
 
 
-							if id0=="1"{
+							if id0==""{
 								asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-year","",-1)
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
