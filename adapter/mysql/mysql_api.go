@@ -908,7 +908,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id==""{
+							if id=="" || id=="1"{
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -978,7 +978,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id==""{
+							if id=="" || id=="1"{
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -1048,7 +1048,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
-							if id==""{
+							if id=="" || id=="1"{
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
