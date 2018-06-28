@@ -268,13 +268,15 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			}
 		}
 		var option QueryOption
-
+		var ids []string
 		for _,slaveInfo:=range slaveInfoMap {
 			slaveId:= slaveInfo[slaveColumnName].(string)
-			var ids []string
 			ids=append(ids,slaveId)
 			option.Ids=ids
-			mysql.PreEvent(api,slaveTableName,"DELETE",nil,option,"")
+		}
+		mysql.PreEvent(api,slaveTableName,"DELETE",nil,option,"")
+		for _,slaveInfo:=range slaveInfoMap {
+			slaveId:= slaveInfo[slaveColumnName].(string)
 			api.Delete(slaveTableName,slaveId,nil)
 			count=count+1
 		}
@@ -390,19 +392,6 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 			for _,repeatItem:=range repeatCalculateData{
 				id:=repeatItem["id"]
-				//  删掉 本期合计 本年累计  重新计算
-				if strings.Contains(id.(string),"-peroid"){
-					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
-				}else if strings.Contains(id.(string),"-year"){
-					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
-				}else if strings.Contains(id.(string),"-beginperoid"){
-					api.Delete("account_voucher_detail_category_merge",id.(string),nil)
-				}
-
-				//api.Delete("account_voucher_detail_category_merge",id.(string)+"-year",nil)
-				//if !strings.Contains(id.(string),"-year")&&!strings.Contains(id.(string),"-peroid"){
-					api.Delete("account_subject_left",id.(string)+"-knots",nil)
-				//}
 
 				for _,operate:=range operates {
 					asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
