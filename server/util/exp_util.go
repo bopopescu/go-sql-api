@@ -229,13 +229,21 @@ func Calc(op string,a,b float64)(float64){
 
 	switch(op){
 	case "*":
-		return (a * b)
+		s := fmt.Sprintf("%0.2f", a * b)
+		f, _ := strconv.ParseFloat(s, 64)
+		return f
 	case "/":
-		return (a / b)
+		s := fmt.Sprintf("%0.2f", a / b)
+		f, _ := strconv.ParseFloat(s, 64)
+		return f
 	case "+":
-		return (a + b)
+		s := fmt.Sprintf("%0.2f", a + b)
+		f, _ := strconv.ParseFloat(s, 64)
+		return f
 	case "-":
-		return (a - b)
+		s := fmt.Sprintf("%0.2f", a - b)
+		f, _ := strconv.ParseFloat(s, 64)
+		return f
 	default:
 		return 0
 	}

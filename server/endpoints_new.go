@@ -1337,7 +1337,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
 
 						if caculateExpressRb{
-							datac["value"]=strconv.FormatFloat(calResult, 'f', -1, 64)
+							datac["value"]=strconv.FormatFloat(calResult, 'f', 2, 64)
 							dataTemp["value"]=calResult
 						}
 						if cellKey!=""&&caculateExpressRb{
@@ -1462,7 +1462,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									bCellKey="cell"+bRowStr+colStr
 									bf=lineValueMap[bCellKey]
 									calResult:=Calc(operate,af,bf)
-									resultStr:=strconv.FormatFloat(calResult, 'f', -1, 64)
+									resultStr:=strconv.FormatFloat(calResult, 'f', 2, 64)
 									//if itemValue==resultStr
 									caculateValue=	strings.Replace(caculateValue,itemValue,resultStr,-1)
 									if caculateValue=="0"{
