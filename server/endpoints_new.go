@@ -525,7 +525,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+") as id;"
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-							
+
+							judgeExistsSql1:="select judgeCurrentBeginPeroidExists1("+paramStr+") as id1;"
+							id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
@@ -544,9 +546,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 							if id0==""{
-								asyncObjectMap["id"]=id.(string)+"-beginperoid"
-								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								if id1!=""{
+									asyncObjectMap["id"]=id.(string)+"-beginperoid"
+									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								}
+
+
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id0
 								r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
@@ -597,6 +603,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
 
+							judgeExistsSql1:="select judgeCurrentPeroidExists1("+paramStr+") as id1;"
+
+							id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 
 
 
@@ -618,10 +627,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 							if id0==""{
-								asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-peroid","",-1)
-								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
-								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								if id1!=""{
+									asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-peroid","",-1)
+									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
+									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								}
+
 							}else { //id不为空 则更新
 								asyncObjectMap["id"] = id0
 								_, errorMessage := api.Update(operate_table, id0, asyncObjectMap)
@@ -670,7 +682,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
 							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-
+							judgeExistsSql1:="select judgeCurrentYearExists1("+paramStr+") as id1;"
+							id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
@@ -687,10 +700,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 							if id0==""{
-								asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-year","",-1)
-								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
-								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								if id1!=""{
+									asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-year","",-1)
+									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
+									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								}
+
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id0
 								r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
