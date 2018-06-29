@@ -1431,6 +1431,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			Operation: "eq",
 			Value:     slave["id"],
 		}
+		judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		latestSlave, errorMessage:= api.Select(judgeFundsQuerOption0)
 
 		judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
 			Operation: "eq",
@@ -1533,7 +1535,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 // credit_funds
 				if len(fundsExists2)<=0{
 					PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
-
+					// latestSlave
+					for _,item:=range latestSlave{
+						item=BuildMapFromBody(funcParamFields,masterInfoMap,item)
+						repeatCalculateData=append(repeatCalculateData,item)
+					}
+					slave=BuildMapFromBody(funcParamFields,masterInfoMap,slave)
+					repeatCalculateData=append(repeatCalculateData,slave)
 				}
 				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0){
 					for _, item := range opK {
