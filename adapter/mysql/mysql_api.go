@@ -1301,6 +1301,12 @@ func ConcatObjectProperties(funcParamFields [10]string,object map[string]interfa
 	resultStr=strings.Replace(resultStr,",''","",-1)
 	return resultStr
 }
+func BuildMapFromObj(fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
+	for k,v:=range fromObjec{
+		disObjec[k]=v
+	}
+	return disObjec;
+}
 
 func BuildMapFromBody(properties [10]string,fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
 	for _,item:=range properties{
@@ -1533,16 +1539,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 // credit_funds
-				if len(fundsExists2)<=0{
-					PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
-					// latestSlave
-					for _,item:=range latestSlave{
-						item=BuildMapFromBody(funcParamFields,masterInfoMap,item)
-						repeatCalculateData=append(repeatCalculateData,item)
-					}
-					slave=BuildMapFromBody(funcParamFields,masterInfoMap,slave)
-					repeatCalculateData=append(repeatCalculateData,slave)
-				}
+
 				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0){
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
@@ -1615,6 +1612,17 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					  if errorMessage!=nil{
 						  fmt.Printf("errorMessage", errorMessage)
 					  }else{
+						  if len(fundsExists2)<=0{
+							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
+							  // latestSlave
+							  for _,item:=range latestSlave{
+								  item=BuildMapFromObj(masterInfoMap,item)
+								  repeatCalculateData=append(repeatCalculateData,item)
+							  }
+							  slave=BuildMapFromObj(masterInfoMap,slave)
+
+							  repeatCalculateData=append(repeatCalculateData,slave)
+						  }
 						  fmt.Printf("rs", rs)
 					  }
 
