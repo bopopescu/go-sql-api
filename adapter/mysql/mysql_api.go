@@ -1425,7 +1425,6 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		var ids []string
 		ids=append(ids,slave["id"].(string))
 		preOption.Ids=ids
-		PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
 
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
@@ -1454,6 +1453,20 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 		judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption1, Table: slaveTableName}
 		fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
+
+		judgeExistsFundsWhereOption2 := map[string]WhereOperation{}
+		judgeExistsFundsWhereOption2["id"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["id"],
+		}
+
+		judgeExistsFundsWhereOption2["subject_key"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["subject_key"],
+		}
+
+		judgeFundsQuerOption2 := QueryOption{Wheres: judgeExistsFundsWhereOption2, Table: slaveTableName}
+		fundsExists2, errorMessage:= api.Select(judgeFundsQuerOption2)
 
 		var updateSql string
 		if slave["id"]!=nil{
@@ -1518,7 +1531,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 // credit_funds
-				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0){
+				if len(fundsExists2)<=0{
+					PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
+
+				}
+				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0){
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
