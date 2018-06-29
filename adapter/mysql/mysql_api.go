@@ -1427,10 +1427,6 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		api.Delete("account_subject_left",item["id"],nil)
 	}
 	for i, slave := range slaveInfoMap {
-       var preOption QueryOption
-		var ids []string
-		ids=append(ids,slave["id"].(string))
-		preOption.Ids=ids
 
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
@@ -1613,6 +1609,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						  fmt.Printf("errorMessage", errorMessage)
 					  }else{
 						  if len(fundsExists2)<=0{
+							  var preOption QueryOption
+							  var ids []string
+							  ids=append(ids,slave["id"].(string))
+							  preOption.Ids=ids
+
 							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
 							  // latestSlave
 							  for _,item:=range latestSlave{
