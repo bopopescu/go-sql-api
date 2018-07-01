@@ -1421,10 +1421,14 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	queryOption0.Table=slaveTableName
 	rr,errorMessage:=api.Select(queryOption0)
 	for _,item:=range rr{
-		rs,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
-		fmt.Printf("rs=",rs," errorMessage=",errorMessage)
-		api.Delete("account_voucher_detail_category_merge",item["id"],nil)
-		api.Delete("account_subject_left",item["id"],nil)
+		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
+		fmt.Printf("errorMessage=",errorMessage)
+		var ids []string
+		var deleteEdOption QueryOption
+		ids=append(ids,item["id"].(string))
+		deleteEdOption.Ids=ids
+		PreEvent(api,slaveTableName,"PUT",nil,deleteEdOption,"")
+
 	}
 	for i, slave := range slaveInfoMap {
 
@@ -1433,8 +1437,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			Operation: "eq",
 			Value:     slave["id"],
 		}
-		judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
-		latestSlave, errorMessage:= api.Select(judgeFundsQuerOption0)
+		//judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		//latestSlave, errorMessage:= api.Select(judgeFundsQuerOption0)
 
 		judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
 			Operation: "eq",
@@ -1522,6 +1526,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var operateCondJsonMap map[string]interface{}
 				var operateCondContentJsonMap map[string]interface{}
 				var repeatCalculateData []map[string]interface{}
+				var repeatCalculateData0 []map[string]interface{}
+				var repeatCalculateData1 []map[string]interface{}
 
 				var conditionFiledArr [10]string
 				var conditionFiledArr1 [10]string
@@ -1573,37 +1579,59 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								fmt.Printf("errorMessage=",errorMessage)
 							}
 						}
-
-                	   // 查询当前后同一科目的记录
-					  whereOption := map[string]WhereOperation{}
-					  whereOption["subject_key"] = WhereOperation{
-						  Operation: "eq",
-						  Value:     slave["subject_key"],
-					  }
-					  whereOption["farm_id"] = WhereOperation{
-						  Operation: "eq",
-						  Value:     masterInfoMap["farm_id"],
-					  }
-					  whereOption["account_period_year"] = WhereOperation{
-						  Operation: "gte",
-						  Value:     masterInfoMap["account_period_year"],
-					  }
-					  whereOption["account_period_num"] = WhereOperation{
-						  Operation: "gte",
-						  Value:     masterInfoMap["account_period_num"],
-					  }
+						// 不是同一期查询条件
+						whereOption["subject_key"] = WhereOperation{
+							Operation: "in",
+							Value:     inParams,
+						}
 						whereOption["voucher_type"] = WhereOperation{
 							Operation: "gt",
 							Value:     "0",
 						}
-					  querOption := QueryOption{Wheres: whereOption, Table: operate_table}
-					   orders:=make(map[string]string)
+						whereOption["farm_id"] = WhereOperation{
+							Operation: "eq",
+							Value:     masterInfoMap["farm_id"],
+						}
+						whereOption["account_period_year"] = WhereOperation{
+							Operation: "gt",
+							Value:     masterInfoMap["account_period_year"],
+						}
+						querOption := QueryOption{Wheres: whereOption, Table: operate_table}
+						orders:=make(map[string]string)
 						orders["N1account_period_num"]="ASC"
 						orders["N2account_period_year"]="ASC"
 						orders["N3order_num"]="ASC"
 						orders["N4line_number"]="ASC"
 						querOption.Orders=orders
-						repeatCalculateData, errorMessage= api.Select(querOption)
+						for _,item:=range slaveInfoMap{
+							item=BuildMapFromObj(masterInfoMap,item)
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
+						repeatCalculateData0, errorMessage= api.Select(querOption)
+						for _,item:=range repeatCalculateData0{
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
+						//是同一期的查询条件
+						whereOption["account_period_year"] = WhereOperation{
+							Operation: "eq",
+							Value:     masterInfoMap["account_period_year"],
+						}
+						whereOption["account_period_num"] = WhereOperation{
+							Operation: "eq",
+							Value:     masterInfoMap["account_period_num"],
+						}
+						whereOption["order_num"] = WhereOperation{
+							Operation: "gt",
+							Value:     masterInfoMap["order_num"],
+						}
+
+						repeatCalculateData1, errorMessage= api.Select(querOption)
+						for _,item:=range repeatCalculateData1{
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
+						//if len(repeatCalculateData)<=0{
+
+						//}
 					  fmt.Printf("repeatCalculateData=",repeatCalculateData)
 					  if errorMessage!=nil{
 						  fmt.Printf("errorMessage", errorMessage)
@@ -1616,13 +1644,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
 							  // latestSlave
-							  for _,item:=range latestSlave{
-								  item=BuildMapFromObj(masterInfoMap,item)
-								  repeatCalculateData=append(repeatCalculateData,item)
-							  }
-							  slave=BuildMapFromObj(masterInfoMap,slave)
+							  //for _,item:=range latestSlave{
+								//  item=BuildMapFromObj(masterInfoMap,item)
+								//  repeatCalculateData=append(repeatCalculateData,item)
+							  //}
+							//  slave=BuildMapFromObj(masterInfoMap,slave)
 
-							  repeatCalculateData=append(repeatCalculateData,slave)
+							//  repeatCalculateData=append(repeatCalculateData,slave)
 						  }
 						  fmt.Printf("rs", rs)
 					  }
@@ -1709,13 +1737,31 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								asyncObjectMap[calculate_field]=result
 
 							}
-
-
-								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+							var opertionExists QueryOption
+							var whereOptionExistsId=make(map[string]WhereOperation)
+							whereOptionExistsId["id"] = WhereOperation{
+								Operation: "eq",
+								Value:     id,
+							}
+							opertionExists.Table=operate_table
+							opertionExists.Wheres=whereOptionExistsId
+							existsIds,errorMessage:=api.Select(opertionExists)
+							fmt.Printf("errorMessage=",errorMessage)
+							if len(existsIds)<=0{
+								r,errorMessage:= api.Create(operate_table,asyncObjectMap)
 								if errorMessage!=nil{
 									fmt.Printf("errorMessage=",errorMessage)
 								}
 								fmt.Printf("rs=",r)
+							}else{
+								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
+
+								if errorMessage!=nil{
+									fmt.Printf("errorMessage=",errorMessage)
+								}
+								fmt.Printf("rs=",r)
+							}
+
 
 
 						}
