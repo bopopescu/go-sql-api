@@ -1656,13 +1656,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							  // latestSlave  如果修改前的科目  在同一期的历史凭证存在  需要重新计算
 							  for _,item:=range latestSlave{
 							  	  var optionQueryExists QueryOption
-							  	  var links []string
+
 							  	   maps:=make(map[string]WhereOperation)
-							  	   maps["account_voucher.farm_id"]=WhereOperation{
+							  	   maps["farm_id"]=WhereOperation{
 							  	   	Operation:"eq",
 							  	   	Value:masterInfoMap["farm_id"],
 								   }
-								  maps["account_voucher.account_period_num"]=WhereOperation{
+								  maps["account_period_num"]=WhereOperation{
 									  Operation:"eq",
 									  Value:masterInfoMap["account_period_num"],
 								  }
@@ -1670,24 +1670,22 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									  buffer.WriteString(string(masterInfoMap["account_period_year"].(string)[0:4]))
 									  buffer.WriteString("%")
 
-								  maps["account_voucher.account_period_year"]=WhereOperation{
+								  maps["account_period_year"]=WhereOperation{
 									  Operation:"like",
 									  Value:buffer.String(),//masterInfoMap["account_period_year"],
 								  }
-								  maps["account_voucher.order_num"]=WhereOperation{
+								  maps["order_num"]=WhereOperation{
 									  Operation:"lt",
 									  Value:masterInfoMap["order_num"],
 								  }
 
-								  maps["account_voucher_detail.subject_key"]=WhereOperation{
+								  maps["subject_key"]=WhereOperation{
 									  Operation:"eq",
 									  Value:item["subject_key"],
 								  }
 
 								  optionQueryExists.Wheres=maps
-								  optionQueryExists.Table="account_voucher_detail"
-								  links=append(links,"account_voucher")
-								  optionQueryExists.Links=links
+								  optionQueryExists.Table="account_voucher_detail_category_merge"
 								  rs,errorMessage:=api.Select(optionQueryExists)
 								  if errorMessage!=nil{
 								  	fmt.Printf("errorMessage=",errorMessage)
@@ -1714,6 +1712,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
+				  	fmt.Printf("id=",id)
 						//  删掉 本期合计 本年累计  重新计算
                       // order_num为空说明是累计数
 
@@ -1791,30 +1790,59 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								asyncObjectMap[calculate_field]=result
 
 							}
-							var opertionExists QueryOption
-							var whereOptionExistsId=make(map[string]WhereOperation)
-							whereOptionExistsId["id"] = WhereOperation{
-								Operation: "eq",
-								Value:     id,
+							var optionQueryExists QueryOption
+							var links []string
+							maps:=make(map[string]WhereOperation)
+							maps["farm_id"]=WhereOperation{
+								Operation:"eq",
+								Value:asyncObjectMap["farm_id"],
 							}
-							opertionExists.Table=operate_table
-							opertionExists.Wheres=whereOptionExistsId
-							existsIds,errorMessage:=api.Select(opertionExists)
+							maps["account_period_num"]=WhereOperation{
+								Operation:"eq",
+								Value:asyncObjectMap["account_period_num"],
+							}
+							var buffer bytes.Buffer
+							buffer.WriteString(string(asyncObjectMap["account_period_year"].(string)[0:4]))
+							buffer.WriteString("%")
+
+							maps["account_period_year"]=WhereOperation{
+								Operation:"like",
+								Value:buffer.String(),//masterInfoMap["account_period_year"],
+							}
+							maps["order_num"]=WhereOperation{
+								Operation:"lt",
+								Value:asyncObjectMap["order_num"],
+							}
+							maps["line_number"]=WhereOperation{
+								Operation:"lt",
+								Value:asyncObjectMap["line_number"],
+							}
+							maps["subject_key"]=WhereOperation{
+								Operation:"eq",
+								Value:asyncObjectMap["subject_key"],
+							}
+
+							optionQueryExists.Wheres=maps
+							optionQueryExists.Table="account_voucher_detail"
+							links=append(links,"account_voucher")
+							optionQueryExists.Links=links
+							rs,errorMessage:=api.Select(optionQueryExists)
 							fmt.Printf("errorMessage=",errorMessage)
-							if len(existsIds)<=0{
-								r,errorMessage:= api.Create(operate_table,asyncObjectMap)
+							if len(rs)>0{
+								r,errorMessage:= api.Update(operate_table,asyncObjectMap["id"],asyncObjectMap)
 								if errorMessage!=nil{
 									fmt.Printf("errorMessage=",errorMessage)
 								}
 								fmt.Printf("rs=",r)
 							}else{
-								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
-
+								r,errorMessage:= api.Create(operate_table,asyncObjectMap)
 								if errorMessage!=nil{
 									fmt.Printf("errorMessage=",errorMessage)
 								}
 								fmt.Printf("rs=",r)
 							}
+
+
 
 
 
@@ -1874,7 +1902,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									if id0==""{
 										if id1!=""{
-											asyncObjectMap["id"]=id.(string)+"-beginperoid"
+											asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-beginperoid","",-1)
+											asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
 											r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 											fmt.Printf("r=",r,"errorMessage=",errorMessage)
 										}
