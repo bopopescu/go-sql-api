@@ -1437,8 +1437,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			Operation: "eq",
 			Value:     slave["id"],
 		}
-		//judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
-		//latestSlave, errorMessage:= api.Select(judgeFundsQuerOption0)
+		judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		latestSlave, errorMessage:= api.Select(judgeFundsQuerOption0)
 
 		judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
 			Operation: "eq",
@@ -1603,10 +1603,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						orders["N3order_num"]="ASC"
 						orders["N4line_number"]="ASC"
 						querOption.Orders=orders
-						for _,item:=range slaveInfoMap{
-							item=BuildMapFromObj(masterInfoMap,item)
-							repeatCalculateData=append(repeatCalculateData,item)
-						}
+					//	for _,item:=range slaveInfoMap{
+							slave=BuildMapFromObj(masterInfoMap,slave)
+							repeatCalculateData=append(repeatCalculateData,slave)
+					//	}
 						repeatCalculateData0, errorMessage= api.Select(querOption)
 						for _,item:=range repeatCalculateData0{
 							repeatCalculateData=append(repeatCalculateData,item)
@@ -1640,6 +1640,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							  var preOption QueryOption
 							  var ids []string
 							  ids=append(ids,slave["id"].(string))
+							  for _,item:=range latestSlave{
+								  ids=append(ids,item["id"].(string))
+							  }
 							  preOption.Ids=ids
 
 							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
