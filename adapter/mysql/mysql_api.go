@@ -1681,6 +1681,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								  }
 
 								  optionQueryExists.Wheres=maps
+								  optionQueryExists.Table="account_voucher_detail"
 								  links=append(links,"account_voucher")
 								  optionQueryExists.Links=links
 								  rs,errorMessage:=api.Select(optionQueryExists)
@@ -1692,7 +1693,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 										repeatCalculateData=append(repeatCalculateData,item)
 									}
 								  }
-								  
+
 
 							  }
 							//  slave=BuildMapFromObj(masterInfoMap,slave)
