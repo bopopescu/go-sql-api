@@ -1666,12 +1666,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									  Operation:"eq",
 									  Value:masterInfoMap["account_period_num"],
 								  }
+								     var buffer bytes.Buffer
+									  buffer.WriteString(string(masterInfoMap["account_period_year"].(string)[0:4]))
+									  buffer.WriteString("%")
+
 								  maps["account_voucher.account_period_year"]=WhereOperation{
 									  Operation:"like",
-									  Value:string(masterInfoMap["account_period_year"].(string)[0:4]),//masterInfoMap["account_period_year"],
+									  Value:buffer.String(),//masterInfoMap["account_period_year"],
 								  }
 								  maps["account_voucher.order_num"]=WhereOperation{
-									  Operation:"gt",
+									  Operation:"lt",
 									  Value:masterInfoMap["order_num"],
 								  }
 
