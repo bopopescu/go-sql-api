@@ -1677,7 +1677,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								  maps["account_voucher_detail.subject_key"]=WhereOperation{
 									  Operation:"eq",
-									  Value:masterInfoMap["subject_key"],
+									  Value:item["subject_key"],
 								  }
 
 								  optionQueryExists.Wheres=maps
