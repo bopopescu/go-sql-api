@@ -1850,8 +1850,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 							// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
 						 if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type{
-								asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+								asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
 								fmt.Printf("operate_table",operate_table)
 								fmt.Printf("calculate_field",calculate_field)
@@ -1871,8 +1871,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									asyncObjectMap["summary"]="期初余额"
 									asyncObjectMap["account_period_year"]=result1
 									//如果执行方法不为空 执行配置中方法
-									paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-									paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
+									paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+									paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 									//把对象的所有属性的值拼成字符串
 									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
@@ -1882,7 +1882,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+") as id;"
 									id0:=api.ExecFuncForOne(judgeExistsSql,"id")
 
-									judgeExistsSql1:="select judgeCurrentBeginPeroidExists1("+paramStr+") as id1;"
+									judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 									id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 									if strings.Contains(calculate_field,","){
 										fields:=strings.Split(calculate_field,",")
@@ -1902,8 +1902,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									if id0==""{
 										if id1!=""{
-											asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-beginperoid","",-1)
-											asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
+											asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid"
 											r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 											fmt.Printf("r=",r,"errorMessage=",errorMessage)
 										}
@@ -1979,15 +1978,14 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								id0:=api.ExecFuncForOne(judgeExistsSql,"id")
 
-								judgeExistsSql1:="select judgeCurrentPeroidExists1("+paramStr+") as id1;"
+								judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 
 								id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 
 
 								if id0==""{
 									if id1!=""{
-										asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-peroid","",-1)
-										asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
+										asyncObjectMap["id"]=uuid.NewV4().String()+"-peroid"
 										r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 										fmt.Printf("r=",r,"errorMessage=",errorMessage)
 									}
@@ -2058,12 +2056,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 								judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
 								id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-								judgeExistsSql1:="select judgeCurrentYearExists1("+paramStr+") as id1;"
+								judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 								id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 								if id0==""{
 									if id1!=""{
-										asyncObjectMap["id"]=strings.Replace(asyncObjectMap["id"].(string),"-year","",-1)
-										asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
+										asyncObjectMap["id"]=uuid.NewV4().String()+"-year"
 										r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 										fmt.Printf("r=",r,"errorMessage=",errorMessage)
 									}
