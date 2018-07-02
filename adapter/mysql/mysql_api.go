@@ -1476,6 +1476,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		judgeFundsQuerOption2 := QueryOption{Wheres: judgeExistsFundsWhereOption2, Table: slaveTableName}
 		fundsExists2, errorMessage:= api.Select(judgeFundsQuerOption2)
 
+		if len(fundsExists2)<=0{
+			var preOption QueryOption
+			var ids []string
+			for _,item:=range latestSlave{
+				ids=append(ids,item["id"].(string))
+			}
+			preOption.Ids=ids
+
+			PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
+		}
 		var updateSql string
 		if slave["id"]!=nil{
 			updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
@@ -1640,9 +1650,6 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							  var preOption QueryOption
 							  var ids []string
 							  ids=append(ids,slave["id"].(string))
-							  for _,item:=range latestSlave{
-								  ids=append(ids,item["id"].(string))
-							  }
 							  preOption.Ids=ids
 
 							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
