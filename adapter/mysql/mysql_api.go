@@ -1653,14 +1653,53 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							  preOption.Ids=ids
 
 							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
-							  // latestSlave
-							  //for _,item:=range latestSlave{
-								//  item=BuildMapFromObj(masterInfoMap,item)
-								//  repeatCalculateData=append(repeatCalculateData,item)
-							  //}
+							  // latestSlave  如果修改前的科目  在同一期的历史凭证存在  需要重新计算
+							  for _,item:=range latestSlave{
+							  	  var optionQueryExists QueryOption
+							  	  var links []string
+							  	   maps:=make(map[string]WhereOperation)
+							  	   maps["account_voucher.farm_id"]=WhereOperation{
+							  	   	Operation:"eq",
+							  	   	Value:masterInfoMap["farm_id"],
+								   }
+								  maps["account_voucher.account_period_num"]=WhereOperation{
+									  Operation:"eq",
+									  Value:masterInfoMap["account_period_num"],
+								  }
+								  maps["account_voucher.account_period_year"]=WhereOperation{
+									  Operation:"like",
+									  Value:string(masterInfoMap["account_period_year"].(string)[0:4]),//masterInfoMap["account_period_year"],
+								  }
+								  maps["account_voucher.order_num"]=WhereOperation{
+									  Operation:"gt",
+									  Value:masterInfoMap["order_num"],
+								  }
+
+								  maps["account_voucher_detail.subject_key"]=WhereOperation{
+									  Operation:"eq",
+									  Value:masterInfoMap["subject_key"],
+								  }
+
+								  optionQueryExists.Wheres=maps
+								  links=append(links,"account_voucher")
+								  optionQueryExists.Links=links
+								  rs,errorMessage:=api.Select(optionQueryExists)
+								  if errorMessage!=nil{
+								  	fmt.Printf("errorMessage=",errorMessage)
+								  }else{
+								  	if len(rs)>0{
+										item=BuildMapFromObj(masterInfoMap,item)
+										repeatCalculateData=append(repeatCalculateData,item)
+									}
+								  }
+								  
+
+							  }
 							//  slave=BuildMapFromObj(masterInfoMap,slave)
 
 							//  repeatCalculateData=append(repeatCalculateData,slave)
+
+
 						  }
 						  fmt.Printf("rs", rs)
 					  }
