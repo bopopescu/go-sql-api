@@ -1505,6 +1505,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			objCreate["isCreated"]="1"
 			api.RelatedCreate(operates,objCreate)
 			fmt.Printf("rsCreate=",rs)
+			continue
 		}
 
 		fmt.Printf("i=",i)
@@ -1538,7 +1539,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var repeatCalculateData []map[string]interface{}
 				var repeatCalculateData0 []map[string]interface{}
 				var repeatCalculateData1 []map[string]interface{}
-
+				var repeatCalculateData2 []map[string]interface{}
 				var conditionFiledArr [10]string
 				var conditionFiledArr1 [10]string
 				//conditionFiledArr := list.New()
@@ -1637,6 +1638,27 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 						repeatCalculateData1, errorMessage= api.Select(querOption)
 						for _,item:=range repeatCalculateData1{
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
+						//是同一期的查询条件
+						whereOption["account_period_year"] = WhereOperation{
+							Operation: "eq",
+							Value:     masterInfoMap["account_period_year"],
+						}
+						whereOption["account_period_num"] = WhereOperation{
+							Operation: "eq",
+							Value:     masterInfoMap["account_period_num"],
+						}
+						whereOption["order_num"] = WhereOperation{
+							Operation: "eq",
+							Value:     masterInfoMap["order_num"],
+						}
+						whereOption["line_number"] = WhereOperation{
+							Operation: "gt",
+							Value:     slave["line_number"],
+						}
+						repeatCalculateData2, errorMessage= api.Select(querOption)
+						for _,item:=range repeatCalculateData2{
 							repeatCalculateData=append(repeatCalculateData,item)
 						}
 						//if len(repeatCalculateData)<=0{
