@@ -1444,14 +1444,14 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			subjectKeyExists=fundsExists0
 		}
 
-		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
-		fmt.Printf("errorMessage=",errorMessage)
+
 		var ids []string
 		var deleteEdOption QueryOption
 		ids=append(ids,item["id"].(string))
 		deleteEdOption.Ids=ids
 		PreEvent(api,slaveTableName,"PUT",nil,deleteEdOption,"")
-
+		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
+		fmt.Printf("errorMessage=",errorMessage)
 	}
 
 	for i, slave := range slaveInfoMap {
