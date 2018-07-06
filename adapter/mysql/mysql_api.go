@@ -1779,24 +1779,24 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									  Operation:"eq",
 									  Value:item["subject_key"],
 								  }
-								  maps["order_num"]=WhereOperation{
+								  maps["voucher_type"]=WhereOperation{
 									  Operation:"gt",
-									  Value:masterInfoMap["order_num"],
+									  Value:"0",
 								  }
 
 								  optionQueryExists.Wheres=maps
 								  optionQueryExists.Table="account_voucher_detail_category_merge"
 								  rs,errorMessage:=api.Select(optionQueryExists)
 
-								  maps["order_num"]=WhereOperation{
-									  Operation:"eq",
-									  Value:masterInfoMap["order_num"],
-								  }
-								  maps["line_number"]=WhereOperation{
-									  Operation:"gt",
-									  Value:item["line_number"],
-								  }
-								  rs0,errorMessage:=api.Select(optionQueryExists)
+								  //maps["order_num"]=WhereOperation{
+									//  Operation:"eq",
+									//  Value:masterInfoMap["order_num"],
+								  //}
+								  //maps["line_number"]=WhereOperation{
+									//  Operation:"gt",
+									//  Value:item["line_number"],
+								  //}
+								  //rs0,errorMessage:=api.Select(optionQueryExists)
 
 								  if errorMessage!=nil{
 								  	fmt.Printf("errorMessage=",errorMessage)
@@ -1804,10 +1804,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								  	for _,item:=range rs{
 										repeatCalculateData=append(repeatCalculateData,item)
 									}
-									  for _,item:=range rs0{
-										  repeatCalculateData=append(repeatCalculateData,item)
-									  }
-
+									
 								  }
 
 
