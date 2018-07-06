@@ -1696,26 +1696,39 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									  Operation:"like",
 									  Value:buffer.String(),//masterInfoMap["account_period_year"],
 								  }
-								  //maps["order_num"]=WhereOperation{
-									//  Operation:"lt",
-									//  Value:masterInfoMap["order_num"],
-								  //}
-
 								  maps["subject_key"]=WhereOperation{
 									  Operation:"eq",
 									  Value:item["subject_key"],
+								  }
+								  maps["order_num"]=WhereOperation{
+									  Operation:"gt",
+									  Value:masterInfoMap["order_num"],
 								  }
 
 								  optionQueryExists.Wheres=maps
 								  optionQueryExists.Table="account_voucher_detail_category_merge"
 								  rs,errorMessage:=api.Select(optionQueryExists)
+
+								  maps["order_num"]=WhereOperation{
+									  Operation:"eq",
+									  Value:masterInfoMap["order_num"],
+								  }
+								  maps["line_number"]=WhereOperation{
+									  Operation:"gt",
+									  Value:item["line_number"],
+								  }
+								  rs0,errorMessage:=api.Select(optionQueryExists)
+
 								  if errorMessage!=nil{
 								  	fmt.Printf("errorMessage=",errorMessage)
 								  }else{
-								  	if len(rs)>0{
-										item=BuildMapFromObj(masterInfoMap,item)
+								  	for _,item:=range rs{
 										repeatCalculateData=append(repeatCalculateData,item)
 									}
+									  for _,item:=range rs0{
+										  repeatCalculateData=append(repeatCalculateData,item)
+									  }
+
 								  }
 
 
@@ -1813,41 +1826,15 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 							}
 							var optionQueryExists QueryOption
-							var links []string
 							maps:=make(map[string]WhereOperation)
-							maps["farm_id"]=WhereOperation{
+							maps["id"]=WhereOperation{
 								Operation:"eq",
-								Value:asyncObjectMap["farm_id"],
-							}
-							maps["account_period_num"]=WhereOperation{
-								Operation:"eq",
-								Value:asyncObjectMap["account_period_num"],
-							}
-							var buffer bytes.Buffer
-							buffer.WriteString(string(asyncObjectMap["account_period_year"].(string)[0:4]))
-							buffer.WriteString("%")
-
-							maps["account_period_year"]=WhereOperation{
-								Operation:"like",
-								Value:buffer.String(),//masterInfoMap["account_period_year"],
-							}
-							maps["order_num"]=WhereOperation{
-								Operation:"lt",
-								Value:asyncObjectMap["order_num"],
-							}
-							maps["line_number"]=WhereOperation{
-								Operation:"lt",
-								Value:asyncObjectMap["line_number"],
-							}
-							maps["subject_key"]=WhereOperation{
-								Operation:"eq",
-								Value:asyncObjectMap["subject_key"],
+								Value:asyncObjectMap["id"],
 							}
 
 							optionQueryExists.Wheres=maps
-							optionQueryExists.Table="account_voucher_detail"
-							links=append(links,"account_voucher")
-							optionQueryExists.Links=links
+							optionQueryExists.Table=operate_table
+
 							rs,errorMessage:=api.Select(optionQueryExists)
 							fmt.Printf("errorMessage=",errorMessage)
 							if len(rs)>0{
