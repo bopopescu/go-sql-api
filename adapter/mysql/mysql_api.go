@@ -1428,7 +1428,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			Value:     masterInfoMap["account_period_year"],
 		}
 		judgeExistsFundsWhereOption0["account_period_num"] = WhereOperation{
-			Operation: "gt",
+			Operation: "gte",
 			Value:     masterInfoMap["account_period_num"],
 		}
 
@@ -1443,7 +1443,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		if len(fundsExists0)>0{
 			subjectKeyExists=fundsExists0
 		}
-		
+
 		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
 		fmt.Printf("errorMessage=",errorMessage)
 		var ids []string
