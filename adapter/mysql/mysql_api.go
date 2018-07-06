@@ -1430,6 +1430,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		PreEvent(api,slaveTableName,"PUT",nil,deleteEdOption,"")
 
 	}
+	var subjectKeyExists []map[string]interface{}
 	for i, slave := range slaveInfoMap {
 
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
@@ -1476,6 +1477,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		judgeFundsQuerOption2 := QueryOption{Wheres: judgeExistsFundsWhereOption2, Table: slaveTableName}
 		fundsExists2, errorMessage:= api.Select(judgeFundsQuerOption2)
 
+
 		if len(fundsExists2)<=0{
 			var preOption QueryOption
 			var ids []string
@@ -1483,8 +1485,62 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				ids=append(ids,item["id"].(string))
 			}
 			preOption.Ids=ids
-
 			PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
+
+
+			judgeExistsFundsWhereOption3 := map[string]WhereOperation{}
+			judgeExistsFundsWhereOption3["account_period_year"] = WhereOperation{
+				Operation: "gte",
+				Value:     masterInfoMap["account_period_year"],
+			}
+			judgeExistsFundsWhereOption3["account_period_num"] = WhereOperation{
+				Operation: "gt",
+				Value:     masterInfoMap["account_period_num"],
+			}
+
+			judgeExistsFundsWhereOption3["subject_key"] = WhereOperation{
+				Operation: "eq",
+				Value:     slave["subject_key"],
+			}
+
+			judgeFundsQuerOption3 := QueryOption{Wheres: judgeExistsFundsWhereOption3, Table: slaveTableName+"_category_merge"}
+			fundsExists3, errorMessage:= api.Select(judgeFundsQuerOption3)
+			fmt.Printf("errorMessage=",errorMessage)
+			if len(fundsExists3)>0{
+				subjectKeyExists=fundsExists3
+			}else{
+				judgeExistsFundsWhereOption3["account_period_num"] = WhereOperation{
+					Operation: "eq",
+					Value:     masterInfoMap["account_period_num"],
+				}
+				judgeExistsFundsWhereOption3["order_num"] = WhereOperation{
+					Operation: "gt",
+					Value:     masterInfoMap["order_num"],
+				}
+				judgeFundsQuerOption3 := QueryOption{Wheres: judgeExistsFundsWhereOption3, Table: slaveTableName+"_category_merge"}
+				fundsExists4, errorMessage:= api.Select(judgeFundsQuerOption3)
+				fmt.Printf("errorMessage=",errorMessage)
+				if len(fundsExists4)>0{
+					subjectKeyExists=fundsExists4
+				}else{
+					judgeExistsFundsWhereOption3["order_num"] = WhereOperation{
+						Operation: "eq",
+						Value:     masterInfoMap["order_num"],
+					}
+					judgeExistsFundsWhereOption3["line_number"] = WhereOperation{
+						Operation: "gt",
+						Value:     slave["line_number"],
+					}
+					judgeFundsQuerOption3 := QueryOption{Wheres: judgeExistsFundsWhereOption3, Table: slaveTableName+"_category_merge"}
+					fundsExists5, errorMessage:= api.Select(judgeFundsQuerOption3)
+					fmt.Printf("errorMessage=",errorMessage)
+					if len(fundsExists5)>0{
+						subjectKeyExists=fundsExists5
+					}
+				}
+
+			}
+
 		}
 		var updateSql string
 		if slave["id"]!=nil{
@@ -1553,7 +1609,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 // credit_funds
 
-				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0){
+				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0 || len(subjectKeyExists)>0){
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
