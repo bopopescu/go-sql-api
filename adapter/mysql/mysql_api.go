@@ -1420,7 +1420,30 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	queryOption0.Wheres=whereOption
 	queryOption0.Table=slaveTableName
 	rr,errorMessage:=api.Select(queryOption0)
+	var subjectKeyExists []map[string]interface{}
 	for _,item:=range rr{
+		judgeExistsFundsWhereOption0 := map[string]WhereOperation{}
+		judgeExistsFundsWhereOption0["account_period_year"] = WhereOperation{
+			Operation: "gte",
+			Value:     masterInfoMap["account_period_year"],
+		}
+		judgeExistsFundsWhereOption0["account_period_num"] = WhereOperation{
+			Operation: "gt",
+			Value:     masterInfoMap["account_period_num"],
+		}
+
+		judgeExistsFundsWhereOption0["subject_key"] = WhereOperation{
+			Operation: "eq",
+			Value:     item["subject_key"],
+		}
+
+		judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption0, Table: slaveTableName+"_category_merge"}
+		fundsExists0, errorMessage0:= api.Select(judgeFundsQuerOption0)
+		fmt.Printf("errorMessage=",errorMessage0)
+		if len(fundsExists0)>0{
+			subjectKeyExists=fundsExists0
+		}
+		
 		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
 		fmt.Printf("errorMessage=",errorMessage)
 		var ids []string
@@ -1430,7 +1453,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		PreEvent(api,slaveTableName,"PUT",nil,deleteEdOption,"")
 
 	}
-	var subjectKeyExists []map[string]interface{}
+
 	for i, slave := range slaveInfoMap {
 
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
