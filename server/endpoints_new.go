@@ -393,6 +393,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					repeatCalculateData=append(repeatCalculateData,item)
 				}
 
+
 				if len(repeatCalculateData)<=0{
 					repeatCalculateData=lastSlaveInfoMap
 				}

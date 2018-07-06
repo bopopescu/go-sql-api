@@ -1696,10 +1696,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									  Operation:"like",
 									  Value:buffer.String(),//masterInfoMap["account_period_year"],
 								  }
-								  maps["order_num"]=WhereOperation{
-									  Operation:"lt",
-									  Value:masterInfoMap["order_num"],
-								  }
+								  //maps["order_num"]=WhereOperation{
+									//  Operation:"lt",
+									//  Value:masterInfoMap["order_num"],
+								  //}
 
 								  maps["subject_key"]=WhereOperation{
 									  Operation:"eq",
