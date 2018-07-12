@@ -1804,7 +1804,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								  	for _,item:=range rs{
 										repeatCalculateData=append(repeatCalculateData,item)
 									}
-									
+
 								  }
 
 

@@ -2257,6 +2257,8 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		fileHeader,error:=c.FormFile("file")
 		fmt.Printf("error=",error)
 		templateKey:=c.QueryParam(key.IMPORT_TEMPLATE_KEY)
+		where := c.QueryParam(key.KEY_QUERY_WHERE)
+		option ,errorMessage:= parseWhereParams(where)
 		fmt.Printf("templateKey=",templateKey)
 		file,error:=fileHeader.Open()
 
@@ -2277,35 +2279,53 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		}
 		templateOption := QueryOption{Wheres: templateWhere, Table: "import_template"}
 		data, errorMessage := api.Select(templateOption)
-		fmt.Printf("data", data)
 		fmt.Printf("errorMessage", errorMessage)
-      //   table_name dependency_table
-     var tableName string
-	  for _,item:=range data{
-		if item["table_name"]!=nil{
-			tableName=item["table_name"].(string)
-		}
-		//if  item["dependency_table"]!=nil{
-		//	dependencyTable=item["dependency_table"].(string)
-		//}
-	  //
-	  }
+  		var row_start int
+  		var col_start int
+		var master_table string
+  		var dependency_table string
 
+  		var dependTableKey string
+  		var dependTableKeyValue string
+  		var orderNum int
+		orderNum=1
+  		for _,item:=range data{
+			row_start_str:=item["row_start"].(string)
+			row_start,_=strconv.Atoi(row_start_str)
+			col_start_str:=item["col_start"].(string)
+			col_start,_=strconv.Atoi(col_start_str)
+			master_table=item["table_name"].(string)
+			dependency_table=item["dependency_table"].(string)
+
+		}
+
+		primaryColumns:=api.GetDatabaseMetadata().GetTableMeta(dependency_table).GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
+		if len(primaryColumns)>0{
+			dependTableKey=primaryColumns[0].ColumnName
+			dependTableKeyValue=uuid.NewV4().String()
+		}
+
+		// 删除已经导入的数据
+		var existsDependId string
+		if dependency_table!=""{
+			option.Table=dependency_table
+			data,errorMessage:= api.Select(option)
+			fmt.Printf("errorMessage=",errorMessage)
+			for _,item:=range data{
+					existsDependId=item[dependTableKey].(string)
+					api.Delete(dependency_table,existsDependId,nil)
+					deMap:=make(map[string]interface{})
+					deMap[dependTableKey]=existsDependId
+					api.Delete(master_table,nil,deMap)
+				}
+
+		}
 
 		templateDetailWhere := map[string]WhereOperation{}
 		templateDetailWhere["template_key"] = WhereOperation{
 			Operation: "eq",
 			Value:     templateKey,
 		}
-
-
-
-		//主表map
-		 tableMap:=make(map[string]interface{})
-		 //依赖表map
-//		 dependencyTableMap:=make(map[string]interface{})
-
-
 
 
 		xlsx,error := excelize.OpenFile("./upload/"+fileHeader.Filename)
@@ -2315,45 +2335,95 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			os.Exit(1)
 		}
 		rows := xlsx.GetRows("Sheet1")
-
-		for _, row := range rows {
-
-			var colIndex int
-			for _, colCell := range row {
-				// 获取配置数据库表列名和excel列名
-				colIndex=colIndex+1
-
-				templateDetailWhere["column_order_num"] = WhereOperation{
-					Operation: "eq",
-					Value:     colIndex,
-				}
-				templateDetailOption := QueryOption{Wheres: templateDetailWhere, Table: "import_template_detail"}
-				dataDetail, errorMessage := api.Select(templateDetailOption)
-				fmt.Printf("dataDetail", dataDetail)
-				fmt.Printf("errorMessage", errorMessage)
-				//var colOrder string
-				var excelColName string
-				for _,item :=range dataDetail{
-					//colOrder=item["column_order"].(string)
-					excelColName=item["column_name"].(string)
-				}
-
-			//	axis:=colOrder+strconv.Itoa(colIndex)
-			//	colValue:=xlsx.GetCellValue("Sheet1",axis)
-
-			if colCell!=""{
-				tableMap[excelColName]=colCell
-			}
-				fmt.Print(colCell, "\t")
-			}
-			fmt.Println()
-			api.Create(tableName,tableMap)
+        if rows==nil{
+			rows = xlsx.GetRows("汇总表")
 		}
+		    var rowIndex int
+		    if row_start>1{
+				tableMap:=make(map[string]interface{})
+				for key,value:=range option.Wheres{
+					if strings.Contains(key,"."){
+						arr:=strings.Split(key,".")
+						if len(arr)>0{
+							tableMap[arr[1]]=value.Value
+						}
+					}
+
+				}
+				tableMap[dependTableKey]=dependTableKeyValue
+				tableMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+				_,errorMessage:=api.Create(dependency_table,tableMap)
+				fmt.Printf("errorMessage=",errorMessage)
+			}
+	    	rowIndex=0
+			for _, row := range rows {
+				var tableName string
+				rowIndex=rowIndex+1
+				if row_start>rowIndex{
+					continue
+				}
+				templateDetailWhere["row_num"] = WhereOperation{
+					Operation: "gte",
+					Value:     row_start,
+				}
+				//主表map
+				tableMap:=make(map[string]interface{})
+				var colIndex int
+				for _, colCell := range row {
+
+					// 获取配置数据库表列名和excel列名
+					colIndex=colIndex+1
+
+					templateDetailWhere["col_num"] = WhereOperation{
+						Operation: "eq",
+						Value:     colIndex,
+					}
+					templateDetailOption := QueryOption{Wheres: templateDetailWhere, Table: "import_template_detail"}
+					dataDetail, errorMessage := api.Select(templateDetailOption)
+					fmt.Printf("dataDetail", dataDetail)
+					fmt.Printf("errorMessage", errorMessage)
+					//var colOrder string
+
+					for _,item :=range dataDetail{
+						var excelColName string
+						if item["table_name"]!=nil{
+							tableName=item["table_name"].(string)
+						}
+						//colOrder=item["column_order"].(string)
+						excelColName=item["column_name"].(string)
+						if excelColName!="" && colIndex>=col_start{
+							b:=api.GetDatabaseTableMetadata(tableName).HaveField(excelColName)
+							if b==true{
+								tableMap[excelColName]=colCell
+							}
+
+						}
+					}
+
+				}
+				fmt.Println()
+				if len(tableMap)>0{
+					tableMap["id"]=uuid.NewV4().String()
+					tableMap[dependTableKey]=dependTableKeyValue
+					tableMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+					if api.GetDatabaseTableMetadata(tableName).HaveField("order_num"){
+						tableMap["order_num"]=orderNum
+						orderNum=orderNum+1
+					}
+					_,errorMessage:=api.Create(tableName,tableMap)
+					fmt.Printf("errorMessage=",errorMessage)
+
+				}
+
+
+			}
+
+
 
 
 		// 清除上传的文件
 		os.Remove("./upload/"+fileHeader.Filename)
-		return c.String(http.StatusOK, "ok")
+		return c.String(http.StatusOK, strconv.Itoa(orderNum))
 	}
 }
 func processBlock(line []byte) {

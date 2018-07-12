@@ -251,14 +251,16 @@ func ImportParameters() (p spec.Parameter) {
 	schema := spec.Schema{}
 	schemaProps:=spec.SchemaProps{}
 	schemaProps.Properties=map[string]spec.Schema{}
-	schemaProps.Properties[key.IMPORT_TEMPLATE_KEY] = spec.Schema{
-		SchemaProps: spec.SchemaProps{
-			Type:        spec.StringOrArray{"string"},
-			Description: "导入模板key",
-			//Title:       col.ColumnName,
-			Default:     "",
-		},
-	}
+	//schemaProps.Properties[key.IMPORT_TEMPLATE_KEY] = spec.Schema{
+	//	SchemaProps: spec.SchemaProps{
+	//		Type:        spec.StringOrArray{"string"},
+	//		Description: "导入模板key",
+	//		//Title:       col.ColumnName,
+	//		Default:     "",
+	//	},
+	//}
+
+
 
 
 	schemaProps.Properties["file"] = spec.Schema{
@@ -457,6 +459,7 @@ func NewQueryParametersForClearCache() (ps []spec.Parameter) {
 func ImportTemplateParameters() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.IMPORT_TEMPLATE_KEY, "导入模板key", "string", true),
+		NewQueryParameter(key.KEY_QUERY_WHERE, "指定一个或多个字段筛选 如:表名.字段名.[eq,neq,is,isNot,in,notIn,like,lt,gt](字段值)(多个条件用&拼接)", "string", false),
 	}
 	return
 }
