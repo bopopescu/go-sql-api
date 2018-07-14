@@ -1561,6 +1561,79 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		}
 	}
 
+	// 添加汇总报表监控信息  report_diy_info
+	var existsOption QueryOption
+	 existsWhere:=make(map[string]WhereOperation)
+	existsOption.Table="report_diy_info"
+	existsWhere["report_type"]=WhereOperation{
+		Operation:"eq",
+		Value:asyncKey,
+	}
+	existsWhere["report_title"]=WhereOperation{
+		Operation:"like",
+		Value:"汇总%",
+	}
+	existsOption.Wheres=existsWhere
+	rs,errorMessage:=api.Select(existsOption)
+	if len(rs)>0{
+		var existsMonitorOption QueryOption
+		 existsMonitorWhere:=make(map[string]WhereOperation)
+		 var farmId string
+		 if option.Wheres[report_diy_table_cell_value+"."+"farm_id"].Value!=nil{
+		 	farmId=option.Wheres[report_diy_table_cell_value+"."+"farm_id"].Value.(string)
+		 }
+		 existsMonitorWhere["farm_id"]=WhereOperation{
+			Operation:"eq",
+			Value:farmId,
+		}
+		var accountYear string
+		if option.Wheres[report_diy_table_cell_value+"."+"account_period_year"].Value!=nil{
+			accountYear=option.Wheres[report_diy_table_cell_value+"."+"account_period_year"].Value.(string)
+			accountYear=strings.Replace(accountYear,"%","",-1)
+		}
+		existsMonitorWhere["account_year"]=WhereOperation{
+			Operation:"eq",
+			Value:accountYear,
+		}
+		var quarter int
+		if option.Wheres[report_diy_table_cell_value+"."+"account_period_num"].Value!=nil{
+			peroidNum:=option.Wheres[report_diy_table_cell_value+"."+"account_period_num"].Value.(string)
+			quarter=ObtainQuarter(peroidNum)
+		}
+		existsMonitorWhere["quarter"]=WhereOperation{
+			Operation:"eq",
+			Value:quarter,
+		}
+		existsMonitorOption.Table="report_monitor"
+		existsMonitorOption.Wheres=existsMonitorWhere
+		data,errorMessage:= api.Select(existsMonitorOption)
+		fmt.Printf("errorMessage=",errorMessage)
+		var timeOutDays string
+		for _,item:=range data{
+			id:=item["id"].(string)
+			if item["timeout_days"]!=nil{
+				timeOutDays=item["timeout_days"].(string)
+			}
+
+			api.Delete("report_monitor",id,nil)
+
+		}
+
+		monitorMap:=make(map[string]interface{})
+		monitorMap["id"]=uuid.NewV4().String()
+		monitorMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+
+		monitorMap["farm_id"]=farmId
+		monitorMap["account_year"]=accountYear
+		monitorMap["quarter"]=quarter
+		monitorMap["report_status"]="1"
+		if timeOutDays!=""&& timeOutDays!="0"{
+			monitorMap["report_status"]="2"
+		}
+		monitorMap["is_use_account_platform"]="1"
+		_,errorMessage=api.Create("report_monitor",monitorMap)
+		fmt.Printf("errorMessage=",errorMessage)
+	}
 	fmt.Printf("async-test1",time.Now())
 	// 向管道传值
 	c <- 1
@@ -2354,6 +2427,30 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 				tableMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 				_,errorMessage:=api.Create(dependency_table,tableMap)
 				fmt.Printf("errorMessage=",errorMessage)
+				if templateKey=="off_line_report_template"{
+					option.Table="report_monitor"
+					data,errorMessage:= api.Select(option)
+					fmt.Printf("errorMessage=",errorMessage)
+					var timeOutDays string
+					for _,item:=range data{
+						id:=item["id"].(string)
+						if item["timeout_days"]!=""{
+							timeOutDays=item["timeout_days"].(string)
+						}
+						api.Delete("report_monitor",id,nil)
+
+					}
+
+					monitorMap:=make(map[string]interface{})
+					monitorMap=tableMap
+					monitorMap["report_status"]="1"
+					if timeOutDays!=""&& timeOutDays!="0"{
+						monitorMap["report_status"]="2"
+					}
+					monitorMap["is_use_account_platform"]="0"
+					_,errorMessage=api.Create("report_monitor",monitorMap)
+					fmt.Printf("errorMessage=",errorMessage)
+				}
 			}
 	    	rowIndex=0
 			for _, row := range rows {
