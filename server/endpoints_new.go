@@ -512,7 +512,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=0
-							asyncObjectMap["order_num"]=nil
+							asyncObjectMap["order_num"]=100
 							asyncObjectMap["summary"]="期初余额"
 							asyncObjectMap["account_period_year"]=result1
 							//如果执行方法不为空 执行配置中方法
@@ -591,7 +591,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=100
-							asyncObjectMap["order_num"]=nil
+							asyncObjectMap["order_num"]=100
 							asyncObjectMap["summary"]="本期合计"
 							asyncObjectMap["account_period_year"]=result1
 							//如果执行方法不为空 执行配置中方法
@@ -671,7 +671,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
-							asyncObjectMap["order_num"]=nil
+							asyncObjectMap["order_num"]=100
 							asyncObjectMap["line_number"]=101
 							asyncObjectMap["summary"]="本年累计"
 							asyncObjectMap["account_period_year"]=result1
