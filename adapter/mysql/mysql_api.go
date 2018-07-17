@@ -1391,7 +1391,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 		return 0,errorMessage
 	}
-	masterOrderNum,err:=strconv.Atoi(masterInfoMap["order_num"].(string))
+	var masterOrderNum int
+	if masterInfoMap["order_num"]!=nil{
+		masterOrderNum,_=strconv.Atoi(masterInfoMap["order_num"].(string))
+	}
+
 	// 查询 被删除id
 	b := bytes.Buffer{}
 	for _, slave := range slaveInfoMap {
