@@ -1600,7 +1600,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 			peroidNum:=option.Wheres[report_diy_table_cell_value+"."+"account_period_num"].Value.(string)
 			quarter=ObtainQuarter(peroidNum)
 		}
-		existsMonitorWhere["quarter"]=WhereOperation{
+		existsMonitorWhere["account_quarter"]=WhereOperation{
 			Operation:"eq",
 			Value:quarter,
 		}
@@ -1625,7 +1625,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 		monitorMap["farm_id"]=farmId
 		monitorMap["account_year"]=accountYear
-		monitorMap["quarter"]=quarter
+		monitorMap["account_quarter"]=quarter
 		monitorMap["report_status"]="1"
 		if timeOutDays!=""&& timeOutDays!="0"{
 			monitorMap["report_status"]="2"
@@ -2522,11 +2522,16 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		    var rowIndex int
 		    if row_start>1{
 				tableMap:=make(map[string]interface{})
+				 existWhere:=make(map[string]WhereOperation)
 				for key,value:=range option.Wheres{
 					if strings.Contains(key,"."){
 						arr:=strings.Split(key,".")
 						if len(arr)>0{
 							tableMap[arr[1]]=value.Value
+							existWhere[arr[1]]=WhereOperation{
+								Operation:"eq",
+								Value:value.Value,
+							}
 						}
 					}
 
@@ -2537,6 +2542,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 				fmt.Printf("errorMessage=",errorMessage)
 				if templateKey=="off_line_report_template"{
 					option.Table="report_monitor"
+					option.Wheres=existWhere
 					data,errorMessage:= api.Select(option)
 					fmt.Printf("errorMessage=",errorMessage)
 					var timeOutDays string
@@ -2556,6 +2562,21 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 						monitorMap["report_status"]="2"
 					}
 					monitorMap["is_use_account_platform"]="0"
+
+
+					monitorMap["id"]=uuid.NewV4().String()
+					//monitorMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+					//
+					//monitorMap["farm_id"]=farmId
+					//monitorMap["account_year"]=accountYear
+					//monitorMap["quarter"]=quarter
+					//monitorMap["report_status"]="1"
+					//if timeOutDays!=""&& timeOutDays!="0"{
+					//	monitorMap["report_status"]="2"
+					//}
+					//monitorMap["is_use_account_platform"]="1"
+
+
 					_,errorMessage=api.Create("report_monitor",monitorMap)
 					fmt.Printf("errorMessage=",errorMessage)
 				}
