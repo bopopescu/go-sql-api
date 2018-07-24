@@ -2556,6 +2556,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					}
 
 					monitorMap:=make(map[string]interface{})
+					delete(tableMap,"off_line_report_head_id")
 					monitorMap=tableMap
 					monitorMap["report_status"]="1"
 					if timeOutDays!=""&& timeOutDays!="0"{
