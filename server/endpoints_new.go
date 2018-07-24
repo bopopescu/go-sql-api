@@ -1022,7 +1022,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
 			if cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{
-				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost,isNeedCache)
+				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost,isNeedCache,option)
 			}
 
 			//无需分页,直接返回数组
@@ -1043,7 +1043,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c,data,false,tableName,api,params,redisHost,isNeedCache)
+			return responseTableGet(c,data,false,tableName,api,params,redisHost,isNeedCache,option)
 		}else{
 			var cacheTotalCount string
 			if(isNeedCache==1&&redisHost!=""){
@@ -1063,7 +1063,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if err!=nil{
 					fmt.Printf("err",err)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost,isNeedCache)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost,isNeedCache,option)
 
 			}else{
 
@@ -1084,7 +1084,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if errorMessage != nil {
 					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost,isNeedCache)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost,isNeedCache,option)
 
 			}
 
@@ -1790,7 +1790,7 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 	return result,nil
 
 }
-func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,isNeedCache int) error{
+func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,isNeedCache int,headOption QueryOption) error{
 	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
 		if c.QueryParams().Get("filename")!="" {
@@ -1807,6 +1807,21 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		}else {
 			data1=data.([]map[string]interface{})
 		}
+
+		var templateKey string
+		var isDefineMyselfTable bool
+		isDefineMyselfTable=tableName=="report_diy_cells_value"
+		numAar:= [26]string{1: "A", 2: "B",3:"C",4:"D",5:"E",6:"F",7:"G",8:"H",9:"I",10:"J",11:"K",12:"L",13:"M",14:"N",15:"O",16:"P",17:"Q",18:"R",19:"R",20:"S"}
+
+
+		// 如果是自定义表
+		if isDefineMyselfTable{
+			if headOption.Wheres["report_diy_cells_value.report_type"].Value!=nil{
+				templateKey= headOption.Wheres["report_diy_cells_value.report_type"].Value.(string)
+			}
+
+		}
+		var headCols int
 		if len(data1)>0{
 			//取到表头
 			var keys []string
@@ -1821,7 +1836,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			wMapHead := map[string]WhereOperation{}
 			wMapHead["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     strings.Replace(tableName,"_report_detail","_template",-1),
+				Value:     templateKey,
 			}
 			optionHead := QueryOption{Wheres: wMapHead, Table: "export_template"}
 			data, errorMessage := api.Select(optionHead)
@@ -1829,6 +1844,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			fmt.Printf("errorMessage", errorMessage)
 			for _,header:=range data {
 				headerRows= header["header_rows"].(string)
+				headColsStr:=header["header_cols"].(string)
+				headCols,_=strconv.Atoi(headColsStr)
 			}
 			fmt.Printf("headerRows",headerRows)
 			hRows,err:=strconv.Atoi(headerRows)
@@ -1840,7 +1857,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			wMapHeadContent := map[string]WhereOperation{}
 			wMapHeadContent["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     strings.Replace(tableName,"_report_detail","_template",-1),//special_fund_report_detail
+				Value:     templateKey,//special_fund_report_detail
 			}
 			optionHeadContent := QueryOption{Wheres: wMapHead, Table: "export_template_detail"}
 			order:=make(map[string]string)
@@ -1881,32 +1898,42 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					//}
 					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
 				}
-			}else{
+			}
+			if !isDefineMyselfTable && len(headContent)<=0{
 				for j, k:=range keys{
 					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(1), k)
-
 				}
+
 			}
 
 
 			// 如果	hRows大于1  说明有合并单元格 并设置其合并内容
+			var hdMerge ([]map[string]interface{})
 			if hRows>1{
 				hdMapHeadMerge := map[string]WhereOperation{}
 				hdMapHeadMerge["template_key"] = WhereOperation{
 					Operation: "eq",
-					Value:     strings.Replace(tableName,"_report_detail","_template",-1),
+					Value:     templateKey,
 				}
 				optionHdMerge := QueryOption{Wheres: hdMapHeadMerge, Table: "export_header_merge_detail"}
-				hdMerge, errorMessage := api.Select(optionHdMerge)
+				hdMerge, errorMessage = api.Select(optionHdMerge)
 				fmt.Printf("hdMerge", hdMerge)
 				fmt.Printf("errorMessage", errorMessage)
 				for _,headMergeDeatail:=range hdMerge {
 					//i:= headMergeDeatail["i"].(string)
 					i,err:=strconv.Atoi(headMergeDeatail["i"].(string))
-					j,err := strconv.Atoi(headMergeDeatail["j"].(string))
 					fmt.Printf("err=",err)
-					value:=headMergeDeatail["value"].(string)
-					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
+					if headMergeDeatail["i"].(string)!="LASTE"{
+						j,err := strconv.Atoi(headMergeDeatail["j"].(string))
+						fmt.Printf("err=",err)
+						value:=headMergeDeatail["value"].(string)
+						// 有占位符$替换为具体的值
+						if strings.Contains(value,"$"){
+
+						}
+						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
+					}
+
 				}
 
 			}
@@ -1917,7 +1944,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			wMapHeadMerge := map[string]WhereOperation{}
 			wMapHeadMerge["template_key"] = WhereOperation{
 				Operation: "eq",
-				Value:     strings.Replace(tableName,"_report_detail","_template",-1),
+				Value:     templateKey,
 			}
 			optionHeadMerge := QueryOption{Wheres: wMapHeadMerge, Table: "export_header_merge"}
 			headMerge, errorMessage := api.Select(optionHeadMerge)
@@ -1933,17 +1960,61 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			// 写数据 根据模板里的行标开始写数据
 			if hRows!=0{
 				for i,d:=range data1{
-					for j, k:=range keys{
-						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
+					if isDefineMyselfTable{
+						col,_:=strconv.Atoi(d["col"].(string))
+						row,_:=strconv.Atoi(d["row"].(string))
+						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), d["value"].(string))
+					}else{
+						for j, k:=range keys{
+							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
+						}
 					}
+
 				}
 			}else{
 				for i,d:=range data1{
-					for j, k:=range keys{
-						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+2), d[k])
+					if isDefineMyselfTable{
+						col,_:=strconv.Atoi(d["col"].(string))
+						row,_:=strconv.Atoi(d["row"].(string))
+						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), d["value"].(string))
+					}else{
+						for j, k:=range keys{
+							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+2), d[k])
+						}
 					}
+
 				}
 
+			}
+
+			// 写入表位信息
+			for _,headMergeDeatail:=range hdMerge {
+				//i:= headMergeDeatail["i"].(string)
+			//	i,err:=strconv.Atoi(headMergeDeatail["i"].(string))
+				fmt.Printf("err=",err)
+				data1LenStr:=strconv.Itoa(len(data1))
+				data1LenFloat, err:= strconv.ParseFloat(data1LenStr, 64)
+
+				headColsStr:=strconv.Itoa(headCols)
+				headColsFloat, err:= strconv.ParseFloat(headColsStr, 64)
+				fmt.Printf("err=",err)
+				x:=(float64)(data1LenFloat)/(headColsFloat)
+
+				b:=math.Floor(x+0.5)
+				cRows:=int(b)
+				if headMergeDeatail["i"].(string)=="LASTE"{
+					j,err := strconv.Atoi(headMergeDeatail["j"].(string))
+					fmt.Printf("err=",err)
+					value:=headMergeDeatail["value"].(string)
+					// 有占位符$替换为具体的值
+					if strings.Contains(value,"$"){
+
+					}
+					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(hRows+1+cRows+1), value)
+				}
+				startItem:="A"+strconv.Itoa((hRows+1+cRows+1))
+				endItem:=numAar[headCols]+strconv.Itoa((hRows+1+cRows+1))
+				xlsx.MergeCell("Sheet1",startItem,endItem)
 			}
 
 		}
