@@ -1909,6 +1909,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 			// 如果	hRows大于1  说明有合并单元格 并设置其合并内容
 			var hdMerge ([]map[string]interface{})
+			var reportHeadRs []map[string]interface{}
+			var reportHeadItem map[string]interface{}
 			if hRows>1{
 				hdMapHeadMerge := map[string]WhereOperation{}
 				hdMapHeadMerge["template_key"] = WhereOperation{
@@ -1929,7 +1931,39 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 						value:=headMergeDeatail["value"].(string)
 						// 有占位符$替换为具体的值
 						if strings.Contains(value,"$"){
-
+							reportHead := map[string]WhereOperation{}
+							if headOption.Wheres["report_diy_cells_value.farm_id"].Value!=nil{
+								reportHead["farm_id"] = WhereOperation{
+									Operation: "eq",
+									Value:      headOption.Wheres["report_diy_cells_value.farm_id"].Value,
+								}
+							}
+							if headOption.Wheres["report_diy_cells_value.report_type"].Value!=nil{
+								reportHead["report_type"] = WhereOperation{
+									Operation: "eq",
+									Value:      headOption.Wheres["report_diy_cells_value.report_type"].Value,
+								}
+							}
+							if headOption.Wheres["report_diy_cells_value.account_period_year"].Value!=nil{
+								reportHead["account_period_year"] = WhereOperation{
+									Operation: "eq",
+									Value:      headOption.Wheres["report_diy_cells_value.account_period_year"].Value,
+								}
+							}
+							if headOption.Wheres["report_diy_cells_value.account_period_num"].Value!=nil{
+								reportHead["account_period_num"] = WhereOperation{
+									Operation: "eq",
+									Value:      headOption.Wheres["report_diy_cells_value.account_period_num"].Value,
+								}
+							}
+							reportHeadOption := QueryOption{Wheres: reportHead, Table: "report_head"}
+							reportHeadRs, errorMessage= api.Select(reportHeadOption)
+							fmt.Printf("errorMessage=",errorMessage)
+							for _,item:=range reportHeadRs{
+								reportHeadItem=item
+							}
+							value=strings.Replace(value,"$report_head.farm_name",reportHeadItem["farm_name"].(string),-1)
+							value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
 						}
 						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
 					}
@@ -2008,7 +2042,10 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					value:=headMergeDeatail["value"].(string)
 					// 有占位符$替换为具体的值
 					if strings.Contains(value,"$"){
-
+						value=strings.Replace(value,"$report_head.res_person",reportHeadItem["res_person"].(string),-1)
+						// submit_person
+						value=strings.Replace(value,"$report_head.submit_person",reportHeadItem["submit_person"].(string),-1)
+						value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
 					}
 					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(hRows+1+cRows+1), value)
 				}
