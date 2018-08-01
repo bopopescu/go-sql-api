@@ -436,7 +436,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
-			if masterTableName=="order_form"{
+			if masterTableName=="order_form" || masterTableName=="purchase_form"{
 				masterPriKey=col.ColumnName
 				now:=time.Now()
 
