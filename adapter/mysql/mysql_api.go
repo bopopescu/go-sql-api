@@ -447,7 +447,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				//时间戳到具体显示的转化
 				fmt.Println(time.Unix(t, 0).String())
 				timeStr:=time.Unix(t, 0).String()
-				timeStr=string(timeStr[:10])
+				timeStr=string(timeStr[:12])
 				timeStr=strings.Replace(timeStr,"-","",-1)
 				orderid:=timeStr+baseUnix
 				fmt.Printf("tt",orderid)
