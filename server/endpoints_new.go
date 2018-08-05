@@ -394,9 +394,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				}
 
 
-				if len(repeatCalculateData)<=0{
-					repeatCalculateData=lastSlaveInfoMap
-				}
+				//if len(repeatCalculateData)<=0{
+				//	repeatCalculateData=lastSlaveInfoMap
+				//}
 				fmt.Printf("repeatCalculateData=",repeatCalculateData)
 				if errorMessage!=nil{
 					fmt.Printf("errorMessage", errorMessage)
