@@ -1391,10 +1391,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 		return 0,errorMessage
 	}
-	var masterOrderNum int
-	if masterInfoMap["order_num"]!=nil{
-		masterOrderNum,_=strconv.Atoi(masterInfoMap["order_num"].(string))
-	}
+	//var masterOrderNum int
+	//if masterInfoMap["order_num"]!=nil{
+		//masterOrderNum,_=strconv.Atoi(masterInfoMap["order_num"].(string))
+	//}
 
 	// 查询 被删除id
 	b := bytes.Buffer{}
@@ -1413,15 +1413,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	//  subject_key IN ('102\',\'501'))
 	var queryOption0 QueryOption
 	whereOption:=make(map[string]WhereOperation)
-	whereOption["id"] = WhereOperation{
+	whereOption0:=make(map[string]WhereOperation)
+	whereOption0["id"] = WhereOperation{
 		Operation: "notIn",
 		Value:     inParams,
 	}
-	whereOption[masterKeyColName] = WhereOperation{
+	whereOption0[masterKeyColName] = WhereOperation{
 		Operation: "eq",
 		Value:     masterInfoMap[masterKeyColName],
 	}
-	queryOption0.Wheres=whereOption
+	queryOption0.Wheres=whereOption0
 	queryOption0.Table=slaveTableName
 	rr,errorMessage:=api.Select(queryOption0)
 	var subjectKeyExists []map[string]interface{}
@@ -1676,7 +1677,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						// 不是同一期查询条件
 						whereOption["subject_key"] = WhereOperation{
 							Operation: "in",
-							Value:     inParams,
+							Value:     slave["subject_key"],
 						}
 						whereOption["voucher_type"] = WhereOperation{
 							Operation: "gt",
@@ -1875,12 +1876,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							if repeatItem["order_num"]!=nil{
 								repeatOrderNum,err=strconv.Atoi(repeatItem["order_num"].(string))
 								if err!=nil{
-									fmt.Printf("err=",err)
+									fmt.Printf("err=",err,"repeatOrderNum=",repeatOrderNum)
 								}
 						}
 
 						//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
-						if "ASYNC_BATCH_SAVE"==operate_type && repeatOrderNum>=masterOrderNum {
+						if "ASYNC_BATCH_SAVE"==operate_type {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -1956,7 +1957,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									asyncObjectMap["voucher_type"]=nil
 									asyncObjectMap["line_number"]=0
-									asyncObjectMap["order_num"]=nil
+									asyncObjectMap["order_num"]=0
 									asyncObjectMap["summary"]="期初余额"
 									asyncObjectMap["account_period_year"]=result1
 									//如果执行方法不为空 执行配置中方法
@@ -2034,7 +2035,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								asyncObjectMap["voucher_type"]=nil
 								asyncObjectMap["line_number"]=100
-								asyncObjectMap["order_num"]=nil
+								asyncObjectMap["order_num"]=100
 								asyncObjectMap["summary"]="本期合计"
 								asyncObjectMap["account_period_year"]=result1
 								//如果执行方法不为空 执行配置中方法
@@ -2114,7 +2115,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								//masterInfoMap["account_period_year"]=result1
 
 								asyncObjectMap["voucher_type"]=nil
-								asyncObjectMap["order_num"]=nil
+								asyncObjectMap["order_num"]=101
 								asyncObjectMap["line_number"]=101
 								asyncObjectMap["summary"]="本年累计"
 								asyncObjectMap["account_period_year"]=result1
