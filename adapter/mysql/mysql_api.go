@@ -1814,9 +1814,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 							  }
-							//  slave=BuildMapFromObj(masterInfoMap,slave)
+							  slave=BuildMapFromObj(masterInfoMap,slave)
 
-							//  repeatCalculateData=append(repeatCalculateData,slave)
+							  repeatCalculateData=append(repeatCalculateData,slave)
 
 
 						  }
