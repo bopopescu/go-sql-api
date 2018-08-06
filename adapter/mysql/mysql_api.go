@@ -20,6 +20,7 @@ import (
 	"github.com/satori/go.uuid"
 	"bytes"
 
+	"math/rand"
 )
 
 // MysqlAPI
@@ -370,6 +371,11 @@ func  JsonArr2map(jsonArrStr string) (s []map[string]interface{},errorMessage *E
 	}
 	return result, nil
 }
+func GenerateRandnum() int {
+	rand.Seed(time.Now().Unix())
+	randNum := rand.Intn(100)
+	return randNum
+}
 // batch Create related table by Table name and obj map
 func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
 
@@ -447,9 +453,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				//时间戳到具体显示的转化
 				fmt.Println(time.Unix(t, 0).String())
 				timeStr:=time.Unix(t, 0).String()
-				timeStr=string(timeStr[:12])
+				timeStr=string(timeStr[:10])
 				timeStr=strings.Replace(timeStr,"-","",-1)
-				orderid:=timeStr+baseUnix
+				orderid:=timeStr+strconv.Itoa(GenerateRandnum())+baseUnix
 				fmt.Printf("tt",orderid)
 				masterId=orderid //strconv.Itoa(time.Now().Unix())
 			}else{
