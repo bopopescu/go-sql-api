@@ -455,6 +455,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				timeStr:=time.Unix(t, 0).String()
 				timeStr=string(timeStr[:10])
 				timeStr=strings.Replace(timeStr,"-","",-1)
+				timeStr=strings.Replace(timeStr," ","",-1)
 				orderid:=timeStr+strconv.Itoa(GenerateRandnum())+baseUnix
 				fmt.Printf("tt",orderid)
 				masterId=orderid //strconv.Itoa(time.Now().Unix())
