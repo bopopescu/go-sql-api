@@ -65,7 +65,8 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisHost)).Name = "Delete Record By ID"
 	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Update Record By ID"
 	//  根据条件批量修改对象的局部字段
-	s.PATCH("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost)).Name = "Update Record By part field"
+	s.PATCH("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost)).Name = "PATCH Record By part field"
+	s.PUT("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost)).Name = "Update Record By part field"
 	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Put Record By ID"
 
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
@@ -2911,12 +2912,18 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			arr=append(arr,payload)
 			option.ExtendedArr=arr
 			var firstPrimaryKey string
-			masterTableName:=strings.Replace(tableName,"_detail","",-1)
+			 masterTableName:=strings.Replace(tableName,"_detail","",-1)
 			primaryColumns:=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
 			if len(primaryColumns)>0{
 				firstPrimaryKey=primaryColumns[0].ColumnName
+			}else{
+				masterTableName=tableName
+				primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
 			}
-			var option0 QueryOption
+			if len(primaryColumns)>0 {
+				firstPrimaryKey = primaryColumns[0].ColumnName
+			}
+				var option0 QueryOption
 			where0:=make(map[string]WhereOperation)
 			var masterPrimaryKeyValue string
 			where0["id"]=WhereOperation{

@@ -509,6 +509,27 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 
 
 		paths[apiBatchPathPatch] = withoutIDPathPatchItem
+
+		withoutIDPathPatchItem.Put = NewOperation(
+			tName,
+			fmt.Sprintf("从%s表里,更新满足条件的记录", tName),
+			fmt.Sprintf("%s表的主键%s", tName,columnNames(meta.GetPrimaryColumns())),
+			append([]spec.Parameter{NewPathWhereParameter()},NewParamForDefinition(tName)),
+			fmt.Sprintf("执行成功,返回影响行数(注意:以影响行数为判断成功与否的依据)"),
+			&spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: spec.StringOrArray{"integer"},
+				},
+				SwaggerSchemaProps: spec.SwaggerSchemaProps{
+					Example: 0,
+				},
+			},
+		)
+		apipPutPathPatch := fmt.Sprintf("/api/"+databaseName+"/%s/where/", tName,)
+		//apiBatchPath := fmt.Sprintf("/api/"+databaseName+"/%s/batch/", tName)
+
+
+		paths[apipPutPathPatch] = withoutIDPathPatchItem
 	}else {
 		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)
