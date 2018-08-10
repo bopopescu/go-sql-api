@@ -363,9 +363,14 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 					Operation: "eq",
 					Value:     masterInfoMap["farm_id"],
 				}
+				var year string
+				if masterInfoMap["account_period_year"]!=nil{
+					year=masterInfoMap["account_period_year"].(string)[0:4]
+				}
+
 				whereOption["account_period_year"] = WhereOperation{
-					Operation: "gt",
-					Value:     masterInfoMap["account_period_year"],
+					Operation: "like",
+					Value:    year+"%",
 				}
 				whereOption["account_period_num"] = WhereOperation{
 					Operation: "gt",
@@ -380,19 +385,18 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				querOption.Orders=orders
 				repeatCalculateData, errorMessage= api.Select(querOption)
 //是同一期的查询条件
-				whereOption["account_period_year"] = WhereOperation{
-					Operation: "eq",
-					Value:     masterInfoMap["account_period_year"],
-				}
+
+
 				whereOption["account_period_num"] = WhereOperation{
 					Operation: "eq",
 					Value:     masterInfoMap["account_period_num"],
 				}
 				whereOption["order_num"] = WhereOperation{
-					Operation: "gt",
+					Operation: "gte",
 					Value:     masterInfoMap["order_num"],
 				}
-
+				querOption = QueryOption{Wheres: whereOption, Table: operate_table}
+				querOption.Orders=orders
 				repeatCalculateData1, errorMessage= api.Select(querOption)
 				for _,item:=range repeatCalculateData1{
 					repeatCalculateData=append(repeatCalculateData,item)

@@ -1698,9 +1698,14 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							Operation: "eq",
 							Value:     masterInfoMap["farm_id"],
 						}
+						var year string
+						if masterInfoMap["account_period_year"]!=nil{
+							year=masterInfoMap["account_period_year"].(string)[0:4]
+						}
+
 						whereOption["account_period_year"] = WhereOperation{
-							Operation: "gt",
-							Value:     masterInfoMap["account_period_year"],
+							Operation: "like",
+							Value:    year+"%",
 						}
 						whereOption["account_period_num"] = WhereOperation{
 							Operation: "gt",
@@ -1721,11 +1726,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						for _,item:=range repeatCalculateData0{
 							repeatCalculateData=append(repeatCalculateData,item)
 						}
-						//是同一期的查询条件
-						whereOption["account_period_year"] = WhereOperation{
-							Operation: "eq",
-							Value:     masterInfoMap["account_period_year"],
-						}
+						//是同一期的查询条件 但是不同查询凭证字号
+
 						whereOption["account_period_num"] = WhereOperation{
 							Operation: "eq",
 							Value:     masterInfoMap["account_period_num"],
@@ -1734,16 +1736,14 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							Operation: "gt",
 							Value:     masterInfoMap["order_num"],
 						}
-
+						querOption = QueryOption{Wheres: whereOption, Table: operate_table}
+						querOption.Orders=orders
 						repeatCalculateData1, errorMessage= api.Select(querOption)
 						for _,item:=range repeatCalculateData1{
 							repeatCalculateData=append(repeatCalculateData,item)
 						}
-						//是同一期的查询条件
-						whereOption["account_period_year"] = WhereOperation{
-							Operation: "eq",
-							Value:     masterInfoMap["account_period_year"],
-						}
+						//是同一期的查询条件  同一凭证字号 但是不同行号
+
 						whereOption["account_period_num"] = WhereOperation{
 							Operation: "eq",
 							Value:     masterInfoMap["account_period_num"],
@@ -1756,6 +1756,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							Operation: "gt",
 							Value:     slave["line_number"],
 						}
+						querOption = QueryOption{Wheres: whereOption, Table: operate_table}
+						querOption.Orders=orders
 						repeatCalculateData2, errorMessage= api.Select(querOption)
 						for _,item:=range repeatCalculateData2{
 							repeatCalculateData=append(repeatCalculateData,item)
