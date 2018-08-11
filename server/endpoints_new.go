@@ -2921,12 +2921,17 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			option.ExtendedArr=arr
 			var firstPrimaryKey string
 			 masterTableName:=strings.Replace(tableName,"_detail","",-1)
-			primaryColumns:=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
-			if len(primaryColumns)>0{
-				firstPrimaryKey=primaryColumns[0].ColumnName
+			tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+			var primaryColumns []*ColumnMetadata
+			if tableMetadata!=nil{
+				primaryColumns=tableMetadata.GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
 			}else{
 				masterTableName=tableName
 				primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+			}
+			
+			if len(primaryColumns)>0{
+				firstPrimaryKey=primaryColumns[0].ColumnName
 			}
 			if len(primaryColumns)>0 {
 				firstPrimaryKey = primaryColumns[0].ColumnName
