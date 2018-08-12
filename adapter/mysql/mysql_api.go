@@ -1842,7 +1842,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 				  }
-
+					fmt.Printf("repeatCalculateData",repeatCalculateData)
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
 				  	fmt.Printf("id=",id)
