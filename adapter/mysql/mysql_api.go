@@ -21,6 +21,7 @@ import (
 	"bytes"
 
 	"math/rand"
+
 )
 
 // MysqlAPI
@@ -1582,7 +1583,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 		}
 		var updateSql string
-		var isNewCreated bool
+		var isNewCreatedSlaveId string
 		if slave["id"]!=nil{
 			updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
 			rs,errorMessage=api.exec(updateSql)
@@ -1601,7 +1602,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			objCreate["isCreated"]="1"
 			api.RelatedCreate(operates,objCreate)
 			fmt.Printf("rsCreate=",rs)
-			isNewCreated=true
+			isNewCreatedSlaveId=slave["id"].(string)
 			// 新增的也许同步计算
 			// continue
 		}
@@ -1861,6 +1862,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
 				  	fmt.Printf("id=",id)
+				  	if isNewCreatedSlaveId==id{
+				  		continue
+					}
 						//  删掉 本期合计 本年累计  重新计算
                       // order_num为空说明是累计数
 
@@ -1913,7 +1917,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 						//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
-						if "ASYNC_BATCH_SAVE"==operate_type && isNewCreated==false {
+						if "ASYNC_BATCH_SAVE"==operate_type {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -1971,7 +1975,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 							// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
-						 if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type && isNewCreated==false{
+						 if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type {
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -2049,7 +2053,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 							// ASYNC_BATCH_SAVE_CURRENT_PEROID 计算指定配置的值
-						if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type && isNewCreated==false{
+						if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -2130,7 +2134,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 						// ASYNC_BATCH_SAVE_CURRENT_YEAR
-						if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type && isNewCreated==false{
+						if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type{
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -2205,7 +2209,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 
-						if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type  && isNewCreated==false{
+						if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type {
 
 
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
@@ -2236,7 +2240,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 							}
 							// ASYNC_BATCH_SAVE_SUBJECT_TOTAL
-						if "ASYNC_BATCH_SAVE_SUBJECT_TOTAL"==operate_type && isNewCreated==false{
+						if "ASYNC_BATCH_SAVE_SUBJECT_TOTAL"==operate_type{
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 
