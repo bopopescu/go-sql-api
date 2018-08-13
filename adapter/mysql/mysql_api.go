@@ -1706,11 +1706,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						var year string
 						if masterInfoMap["account_period_year"]!=nil{
 							year=masterInfoMap["account_period_year"].(string)[0:4]
-							year=year+"-12-31"
 						}
 						whereOption["account_period_year"] = WhereOperation{
 							Operation: "gt",
-							Value:    year,
+							Value:    year+"-12-31",
 						}
 						querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 						orders:=make(map[string]string)
