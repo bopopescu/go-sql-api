@@ -300,7 +300,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		var repeatCalculateData []map[string]interface{}
 		var repeatCalculateData0 []map[string]interface{}
 		var repeatCalculateData1 []map[string]interface{}
-
+		var repeatCalculateData2 []map[string]interface{}
 		var conditionFiledArr [10]string
 		var conditionFiledArr1 [10]string
 		//conditionFiledArr := list.New()
@@ -351,7 +351,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				inParams=strings.Replace(inParams,"'","",-1)
 				inParams=strings.Replace(inParams,",","','",-1)
 				//  subject_key IN ('102\',\'501'))
-// 不是同一期查询条件
+				// 不同年
 				whereOption["subject_key"] = WhereOperation{
 					Operation: "in",
 					Value:     inParams,
@@ -370,12 +370,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				}
 
 				whereOption["account_period_year"] = WhereOperation{
-					Operation: "like",
-					Value:    year+"%",
-				}
-				whereOption["account_period_num"] = WhereOperation{
 					Operation: "gt",
-					Value:     masterInfoMap["account_period_num"],
+					Value:    year,
 				}
 				querOption := QueryOption{Wheres: whereOption, Table: operate_table}
 				orders:=make(map[string]string)
@@ -384,9 +380,22 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				orders["N3order_num"]="ASC"
 				orders["N4line_number"]="ASC"
 				querOption.Orders=orders
+				repeatCalculateData2, errorMessage= api.Select(querOption)
+
+                // 同年 不是同一期查询条件
+
+				whereOption["account_period_year"] = WhereOperation{
+					Operation: "like",
+					Value:    year+"%",
+				}
+				whereOption["account_period_num"] = WhereOperation{
+					Operation: "gt",
+					Value:     masterInfoMap["account_period_num"],
+				}
+				querOption = QueryOption{Wheres: whereOption, Table: operate_table}
+				querOption.Orders=orders
 				repeatCalculateData0, errorMessage= api.Select(querOption)
 //是同一期的查询条件
-
 
 				whereOption["account_period_num"] = WhereOperation{
 					Operation: "eq",
@@ -405,7 +414,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				for _,item:=range repeatCalculateData0{
 					repeatCalculateData=append(repeatCalculateData,item)
 				}
-
+				for _,item:=range repeatCalculateData2{
+					repeatCalculateData=append(repeatCalculateData,item)
+				}
 				if len(repeatCalculateData)<=0{
 					repeatCalculateData=lastSlaveInfoMap
 				}

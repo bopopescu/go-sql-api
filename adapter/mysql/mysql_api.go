@@ -1635,6 +1635,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var repeatCalculateData0 []map[string]interface{}
 				var repeatCalculateData1 []map[string]interface{}
 				var repeatCalculateData2 []map[string]interface{}
+				var repeatCalculateData3 []map[string]interface{}
 				var conditionFiledArr [10]string
 				var conditionFiledArr1 [10]string
 				//conditionFiledArr := list.New()
@@ -1685,7 +1686,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								fmt.Printf("errorMessage=",errorMessage)
 							}
 						}
-						// 不是同一期查询条件
+						// 不是同一年
 						whereOption["subject_key"] = WhereOperation{
 							Operation: "in",
 							Value:     slave["subject_key"],
@@ -1702,6 +1703,20 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						if masterInfoMap["account_period_year"]!=nil{
 							year=masterInfoMap["account_period_year"].(string)[0:4]
 						}
+						whereOption["account_period_year"] = WhereOperation{
+							Operation: "gt",
+							Value:    year,
+						}
+						querOption := QueryOption{Wheres: whereOption, Table: operate_table}
+						orders:=make(map[string]string)
+						orders["N1account_period_num"]="ASC"
+						orders["N2account_period_year"]="ASC"
+						orders["N3order_num"]="ASC"
+						orders["N4line_number"]="ASC"
+						querOption.Orders=orders
+						repeatCalculateData3, errorMessage= api.Select(querOption)
+
+						// 不是同一期查询条件
 
 						whereOption["account_period_year"] = WhereOperation{
 							Operation: "like",
@@ -1711,13 +1726,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							Operation: "gt",
 							Value:     masterInfoMap["account_period_num"],
 						}
-						querOption := QueryOption{Wheres: whereOption, Table: operate_table}
-						orders:=make(map[string]string)
-						orders["N1account_period_num"]="ASC"
-						orders["N2account_period_year"]="ASC"
-						orders["N3order_num"]="ASC"
-						orders["N4line_number"]="ASC"
-						querOption.Orders=orders
+						querOption= QueryOption{Wheres: whereOption, Table: operate_table}
+
 					//	for _,item:=range slaveInfoMap{
 							slave=BuildMapFromObj(masterInfoMap,slave)
 							repeatCalculateData=append(repeatCalculateData,slave)
@@ -1764,7 +1774,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						for _,item:=range repeatCalculateData0{
 							repeatCalculateData=append(repeatCalculateData,item)
 						}
-
+						for _,item:=range repeatCalculateData3{
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
 					  fmt.Printf("repeatCalculateData=",repeatCalculateData)
 					  if errorMessage!=nil{
 						  fmt.Printf("errorMessage", errorMessage)
