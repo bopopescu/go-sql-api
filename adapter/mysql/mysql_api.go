@@ -1424,7 +1424,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	inParams=strings.Replace(inParams,",","','",-1)
 	//  subject_key IN ('102\',\'501'))
 	var queryOption0 QueryOption
-	whereOption:=make(map[string]WhereOperation)
+
 	whereOption0:=make(map[string]WhereOperation)
 	whereOption0["id"] = WhereOperation{
 		Operation: "notIn",
@@ -1472,7 +1472,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	}
 
 	for i, slave := range slaveInfoMap {
-
+		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
 			Operation: "eq",
@@ -1603,7 +1603,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			api.RelatedCreate(operates,objCreate)
 			fmt.Printf("rsCreate=",rs)
 			isNewCreatedSlaveId=slave["id"].(string)
-			// 新增的也许同步计算
+			// 新增的也y要同步计算
 			// continue
 		}
 
@@ -1706,6 +1706,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						var year string
 						if masterInfoMap["account_period_year"]!=nil{
 							year=masterInfoMap["account_period_year"].(string)[0:4]
+							year=year+"-12-31"
 						}
 						whereOption["account_period_year"] = WhereOperation{
 							Operation: "gt",

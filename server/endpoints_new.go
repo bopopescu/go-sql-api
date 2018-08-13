@@ -367,6 +367,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				var year string
 				if masterInfoMap["account_period_year"]!=nil{
 					year=masterInfoMap["account_period_year"].(string)[0:4]
+					year=year+"-12-31"
 				}
 
 				whereOption["account_period_year"] = WhereOperation{
