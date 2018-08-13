@@ -1600,7 +1600,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			objCreate["isCreated"]="1"
 			api.RelatedCreate(operates,objCreate)
 			fmt.Printf("rsCreate=",rs)
-			continue
+			// 新增的也许同步计算
+			// continue
 		}
 
 		fmt.Printf("i=",i)
