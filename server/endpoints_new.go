@@ -298,6 +298,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		var operateCondJsonMap map[string]interface{}
 		var operateCondContentJsonMap map[string]interface{}
 		var repeatCalculateData []map[string]interface{}
+		var repeatCalculateData0 []map[string]interface{}
 		var repeatCalculateData1 []map[string]interface{}
 
 		var conditionFiledArr [10]string
@@ -383,7 +384,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				orders["N3order_num"]="ASC"
 				orders["N4line_number"]="ASC"
 				querOption.Orders=orders
-				repeatCalculateData, errorMessage= api.Select(querOption)
+				repeatCalculateData0, errorMessage= api.Select(querOption)
 //是同一期的查询条件
 
 
@@ -401,7 +402,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				for _,item:=range repeatCalculateData1{
 					repeatCalculateData=append(repeatCalculateData,item)
 				}
-
+				for _,item:=range repeatCalculateData0{
+					repeatCalculateData=append(repeatCalculateData,item)
+				}
 
 				if len(repeatCalculateData)<=0{
 					repeatCalculateData=lastSlaveInfoMap

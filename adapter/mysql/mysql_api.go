@@ -1723,9 +1723,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							repeatCalculateData=append(repeatCalculateData,slave)
 					//	}
 						repeatCalculateData0, errorMessage= api.Select(querOption)
-						for _,item:=range repeatCalculateData0{
-							repeatCalculateData=append(repeatCalculateData,item)
-						}
+
 						//是同一期的查询条件 但是不同查询凭证字号
 
 						whereOption["account_period_num"] = WhereOperation{
@@ -1739,9 +1737,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						querOption = QueryOption{Wheres: whereOption, Table: operate_table}
 						querOption.Orders=orders
 						repeatCalculateData1, errorMessage= api.Select(querOption)
-						for _,item:=range repeatCalculateData1{
-							repeatCalculateData=append(repeatCalculateData,item)
-						}
+
 						//是同一期的查询条件  同一凭证字号 但是不同行号
 
 						whereOption["account_period_num"] = WhereOperation{
@@ -1762,9 +1758,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						for _,item:=range repeatCalculateData2{
 							repeatCalculateData=append(repeatCalculateData,item)
 						}
-						//if len(repeatCalculateData)<=0{
+						for _,item:=range repeatCalculateData1{
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
+						for _,item:=range repeatCalculateData0{
+							repeatCalculateData=append(repeatCalculateData,item)
+						}
 
-						//}
 					  fmt.Printf("repeatCalculateData=",repeatCalculateData)
 					  if errorMessage!=nil{
 						  fmt.Printf("errorMessage", errorMessage)
