@@ -892,6 +892,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							beginYearSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-01') AS beginYear;"
 							beginYearResult:=api.ExecFuncForOne(beginYearSql,"beginYear")
+
+							latestYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-31') AS beginYear;"
+							latestYearKnots:=api.ExecFuncForOne(latestYearKnotsSql,"beginYear")
 							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
@@ -929,14 +932,11 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							lastYearKnotsId:=api.ExecFuncForOne(judgeIsNeedCreateKnotsSql,"id")
 							//  	asyncObjectMap["summary"]="上年结转"
 							if lastYearKnotsId==""{
-								laste_date_sql_knots:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d %h:%i:%s') AS last_date;"
-								knots_result1:=api.ExecFuncForOne(laste_date_sql_knots,"last_date")
-
 								asyncObjectMap["summary"]="上年结转"
 								lastYearKnotsCurrentPeriod=asyncObjectMap
 								lastYearKnotsCurrentPeriod["line_number"]=100
 								lastYearKnotsCurrentPeriod["summary"]="本期合计"
-								lastYearKnotsCurrentPeriod["account_period_year"]=knots_result1
+								lastYearKnotsCurrentPeriod["account_period_year"]=latestYearKnots
 								lastYearKnotsCurrentPeriod["id"]=lastYearKnotsCurrentPeriod["id"].(string)+"-peroid"
 								r,errorMessage:=api.Create(operate_table,lastYearKnotsCurrentPeriod)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -944,7 +944,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								lastYearKnotsCurrentYear=asyncObjectMap
 								lastYearKnotsCurrentYear["line_number"]=101
 								lastYearKnotsCurrentYear["summary"]="本年累计"
-								lastYearKnotsCurrentYear["account_period_year"]=knots_result1
+								lastYearKnotsCurrentYear["account_period_year"]=latestYearKnots
 								lastYearKnotsCurrentYear["id"]=lastYearKnotsCurrentYear["id"].(string)+"-year"
 								r1,errorMessage1:=api.Create(operate_table,lastYearKnotsCurrentYear)
 								fmt.Printf("r=",r1,"errorMessage=",errorMessage1)
@@ -955,6 +955,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								if asyncObjectMap["summary"]=="期初余额"{
 									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
 								}else{
+									asyncObjectMap["account_period_year"]=latestYearKnots
 									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid-knots"
 								}
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
@@ -1064,7 +1065,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
-							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d %h:%i:%s') AS last_date;"
+							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
 
@@ -1101,11 +1102,14 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							judgeIsNeedCreateNextKnotsSql:="select judgeNeedCreateNextKnots("+paramStr+") as id"
 							nextYearKnotsId:=api.ExecFuncForOne(judgeIsNeedCreateNextKnotsSql,"id")
 							nextYearKnots:=make(map[string]interface{})
-							if nextYearKnotsId==""{
+							nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
+							nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+							if nextYearKnotsId=="" && nextYearKnotsResult==result1{
+
 								nextYearKnots=asyncObjectMap
 								nextYearKnots["line_number"]=102
 								nextYearKnots["summary"]="结转下年"
-								nextYearKnots["account_period_year"]=result1
+								nextYearKnots["account_period_year"]=nextYearKnotsResult
 								nextYearKnots["id"]=nextYearKnots["id"].(string)+"-year-hnots"
 								r,errorMessage:=api.Create(operate_table,nextYearKnots)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
