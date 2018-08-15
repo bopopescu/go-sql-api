@@ -940,24 +940,27 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								r0,errorMessage0:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r0,"errorMessage=",errorMessage0)
 
-								lastYearKnotsCurrentPeriod=asyncObjectMap
-								lastYearKnotsCurrentPeriod["line_number"]=100
-								lastYearKnotsCurrentPeriod["summary"]="本期合计"
-								lastYearKnotsCurrentPeriod["account_period_year"]=latestYearKnots
-								lastYearKnotsCurrentPeriod["account_period_num"]="1"
-								lastYearKnotsCurrentPeriod["id"]=lastYearKnotsCurrentPeriod["id"].(string)+"-peroid"
-								r,errorMessage:=api.Create(operate_table,lastYearKnotsCurrentPeriod)
-								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+								if beginYearResult!=result1{
+									lastYearKnotsCurrentPeriod=asyncObjectMap
+									lastYearKnotsCurrentPeriod["line_number"]=100
+									lastYearKnotsCurrentPeriod["summary"]="本期合计"
+									lastYearKnotsCurrentPeriod["account_period_year"]=latestYearKnots
+									lastYearKnotsCurrentPeriod["account_period_num"]="1"
+									lastYearKnotsCurrentPeriod["id"]=lastYearKnotsCurrentPeriod["id"].(string)+"-peroid"
+									r,errorMessage:=api.Create(operate_table,lastYearKnotsCurrentPeriod)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 
-								lastYearKnotsCurrentYear=asyncObjectMap
-								lastYearKnotsCurrentYear["line_number"]=101
-								lastYearKnotsCurrentYear["summary"]="本年累计"
-								lastYearKnotsCurrentYear["account_period_year"]=latestYearKnots
-								lastYearKnotsCurrentYear["account_period_num"]="1"
-								lastYearKnotsCurrentYear["order_num"]=0
-								lastYearKnotsCurrentYear["id"]=lastYearKnotsCurrentYear["id"].(string)+"-year"
-								r1,errorMessage1:=api.Create(operate_table,lastYearKnotsCurrentYear)
-								fmt.Printf("r=",r1,"errorMessage=",errorMessage1)
+									lastYearKnotsCurrentYear=asyncObjectMap
+									lastYearKnotsCurrentYear["line_number"]=101
+									lastYearKnotsCurrentYear["summary"]="本年累计"
+									lastYearKnotsCurrentYear["account_period_year"]=latestYearKnots
+									lastYearKnotsCurrentYear["account_period_num"]="1"
+									lastYearKnotsCurrentYear["order_num"]=0
+									lastYearKnotsCurrentYear["id"]=lastYearKnotsCurrentYear["id"].(string)+"-year"
+									r1,errorMessage1:=api.Create(operate_table,lastYearKnotsCurrentYear)
+									fmt.Printf("r=",r1,"errorMessage=",errorMessage1)
+								}
+
 							}
 
 
@@ -2054,6 +2057,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									laste_date_sql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y-%m'),'-01') AS first_date;"
 									result1:=api.ExecFuncForOne(laste_date_sql,"first_date")
 									//masterInfoMap["account_period_year"]=result1
+									beginYearSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-01') AS beginYear;"
+									beginYearResult:=api.ExecFuncForOne(beginYearSql,"beginYear")
+									lastDaySql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-31') AS lastDay;"
+									lastDayResult:=api.ExecFuncForOne(lastDaySql,"lastDay")
 
 									asyncObjectMap["voucher_type"]=nil
 									asyncObjectMap["line_number"]=0
@@ -2063,6 +2070,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									//如果执行方法不为空 执行配置中方法
 									paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 									paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+									//如果是一月份
+									if result1==beginYearResult{
+										asyncObjectMap["summary"]="上年结转"
+									}
+
 									//把对象的所有属性的值拼成字符串
 									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
@@ -2107,6 +2119,56 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 										fmt.Printf("rs=",r)
 
 									}
+
+
+									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
+									judgeNeedUpdateLatestKnotsSql:="select judgeNeedUpdateLatestKnots("+paramStr+",'1') as id;"
+									judgeNeedUpdateLatestKnotsId:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql,"id")
+									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId!=""{
+										asyncObjectMap["summary"]="上年结转"
+										asyncObjectMap["line_number"]=0
+										asyncObjectMap["order_num"]=0
+										asyncObjectMap["account_period_year"]=beginYearResult
+										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId
+										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId,asyncObjectMap)
+										if errorMessage!=nil{
+											fmt.Printf("errorMessage=",errorMessage)
+										}
+										fmt.Printf("rs=",r)
+									}
+
+									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
+									judgeNeedUpdateLatestKnotsSql2:="select judgeNeedUpdateLatestKnots("+paramStr+",'2') as id;"
+									judgeNeedUpdateLatestKnotsId2:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql2,"id")
+									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId2!=""{
+										asyncObjectMap["summary"]="本期合计"
+										asyncObjectMap["line_number"]=100
+										asyncObjectMap["order_num"]=0
+										asyncObjectMap["account_period_year"]=lastDayResult
+										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId2
+										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId2,asyncObjectMap)
+										if errorMessage!=nil{
+											fmt.Printf("errorMessage=",errorMessage)
+										}
+										fmt.Printf("rs=",r)
+									}
+
+									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
+									judgeNeedUpdateLatestKnotsSql3:="select judgeNeedUpdateLatestKnots("+paramStr+",'3') as id;"
+									judgeNeedUpdateLatestKnotsId3:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql3,"id")
+									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId3!=""{
+										asyncObjectMap["summary"]="本年累计"
+										asyncObjectMap["line_number"]=101
+										asyncObjectMap["order_num"]=0
+										asyncObjectMap["account_period_year"]=lastDayResult
+										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId3
+										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId3,asyncObjectMap)
+										if errorMessage!=nil{
+											fmt.Printf("errorMessage=",errorMessage)
+										}
+										fmt.Printf("rs=",r)
+									}
+
 
 
 
@@ -2263,6 +2325,24 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									}
 									fmt.Printf("rs=",r)
 
+								}
+
+
+
+								// 判断是否需要新增上年结转记录
+								judgeNeedUpdateNextKnotsSql:="select judgeNeedUpdateNextKnots("+paramStr+") as id"
+								judgeNeedUpdateNextKnotsId:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
+								nextYearKnots:=make(map[string]interface{})
+								nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
+								nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+								if judgeNeedUpdateNextKnotsId!=""{
+									nextYearKnots=asyncObjectMap
+									nextYearKnots["line_number"]=102
+									nextYearKnots["summary"]="结转下年"
+									nextYearKnots["account_period_year"]=nextYearKnotsResult
+									nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
+									r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
+									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
 
 
