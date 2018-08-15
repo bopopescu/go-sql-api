@@ -1134,7 +1134,6 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
 							nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
 							if nextYearKnotsId=="" && nextYearKnotsResult==result1{
-
 								nextYearKnots=asyncObjectMap
 								nextYearKnots["line_number"]=102
 								nextYearKnots["summary"]="结转下年"
@@ -1143,6 +1142,22 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								r,errorMessage:=api.Create(operate_table,nextYearKnots)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
 							}
+
+
+							// 判断是否需要新增上年结转记录
+							judgeNeedUpdateNextKnotsSql:="select judgeNeedUpdateNextKnots("+paramStr+") as id"
+							judgeNeedUpdateNextKnotsId:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
+
+							if judgeNeedUpdateNextKnotsId!=""{
+								nextYearKnots=asyncObjectMap
+								nextYearKnots["line_number"]=102
+								nextYearKnots["summary"]="结转下年"
+								nextYearKnots["account_period_year"]=nextYearKnotsResult
+								nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
+								r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							}
+
 
 
 						}
@@ -2346,6 +2361,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
+
 
 
 
