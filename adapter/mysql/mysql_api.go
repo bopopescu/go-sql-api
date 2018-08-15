@@ -2098,7 +2098,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 									// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
-									judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+") as id;"
+									judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+",'2') as id;"
 									id0:=api.ExecFuncForOne(judgeExistsSql,"id")
 
 									judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
