@@ -944,7 +944,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								lastYearKnotsCurrentPeriod["line_number"]=100
 								lastYearKnotsCurrentPeriod["summary"]="本期合计"
 								lastYearKnotsCurrentPeriod["account_period_year"]=latestYearKnots
-								asyncObjectMap["account_period_num"]="1"
+								lastYearKnotsCurrentPeriod["account_period_num"]="1"
 								lastYearKnotsCurrentPeriod["id"]=lastYearKnotsCurrentPeriod["id"].(string)+"-peroid"
 								r,errorMessage:=api.Create(operate_table,lastYearKnotsCurrentPeriod)
 								fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -953,7 +953,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								lastYearKnotsCurrentYear["line_number"]=101
 								lastYearKnotsCurrentYear["summary"]="本年累计"
 								lastYearKnotsCurrentYear["account_period_year"]=latestYearKnots
-								asyncObjectMap["account_period_num"]="1"
+								lastYearKnotsCurrentYear["account_period_num"]="1"
+								lastYearKnotsCurrentYear["order_num"]=0
 								lastYearKnotsCurrentYear["id"]=lastYearKnotsCurrentYear["id"].(string)+"-year"
 								r1,errorMessage1:=api.Create(operate_table,lastYearKnotsCurrentYear)
 								fmt.Printf("r=",r1,"errorMessage=",errorMessage1)
@@ -965,6 +966,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								if  lastYearKnotsId=="" && beginYearResult!=result1{
 									asyncObjectMap["line_number"]=0
 									asyncObjectMap["account_period_year"]=result1
+									asyncObjectMap["order_num"]=0
 									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
 									asyncObjectMap["account_period_num"]=masterInfoMap["account_period_num"]
 									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
