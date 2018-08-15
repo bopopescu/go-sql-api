@@ -973,6 +973,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id
+								asyncObjectMap["summary"]="期初余额"
 								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
 								if errorMessage!=nil{
 									fmt.Printf("errorMessage=",errorMessage)
