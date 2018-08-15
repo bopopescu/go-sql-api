@@ -1109,22 +1109,6 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								}
 							}
 
-							// 判断是否需要新增上年结转记录
-							judgeIsNeedCreateNextKnotsSql:="select judgeNeedCreateNextKnots("+paramStr+") as id"
-							nextYearKnotsId:=api.ExecFuncForOne(judgeIsNeedCreateNextKnotsSql,"id")
-							nextYearKnots:=make(map[string]interface{})
-							nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
-							nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
-							if nextYearKnotsId=="" && nextYearKnotsResult==result1{
-
-								nextYearKnots=asyncObjectMap
-								nextYearKnots["line_number"]=102
-								nextYearKnots["summary"]="结转下年"
-								nextYearKnots["account_period_year"]=nextYearKnotsResult
-								nextYearKnots["id"]=nextYearKnots["id"].(string)+"-year-hnots"
-								r,errorMessage:=api.Create(operate_table,nextYearKnots)
-								fmt.Printf("r=",r,"errorMessage=",errorMessage)
-							}
 
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id=="" {
@@ -1141,6 +1125,24 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							}
 
+
+
+							// 判断是否需要新增上年结转记录
+							judgeIsNeedCreateNextKnotsSql:="select judgeNeedCreateNextKnots("+paramStr+") as id"
+							nextYearKnotsId:=api.ExecFuncForOne(judgeIsNeedCreateNextKnotsSql,"id")
+							nextYearKnots:=make(map[string]interface{})
+							nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
+							nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+							if nextYearKnotsId=="" && nextYearKnotsResult==result1{
+
+								nextYearKnots=asyncObjectMap
+								nextYearKnots["line_number"]=102
+								nextYearKnots["summary"]="结转下年"
+								nextYearKnots["account_period_year"]=nextYearKnotsResult
+								nextYearKnots["id"]=nextYearKnots["id"].(string)+"-year-hnots"
+								r,errorMessage:=api.Create(operate_table,nextYearKnots)
+								fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							}
 
 
 						}
