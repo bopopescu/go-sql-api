@@ -2141,12 +2141,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 									judgeNeedUpdateLatestKnotsSql:="select judgeNeedUpdateLatestKnots("+paramStr+",'1') as id;"
 									judgeNeedUpdateLatestKnotsId:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql,"id")
+									//var latestKnotsFunds string
 									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId!=""{
 										asyncObjectMap["summary"]="上年结转"
 										asyncObjectMap["line_number"]=0
 										asyncObjectMap["order_num"]=0
 										asyncObjectMap["account_period_year"]=beginYearResult
+										asyncObjectMap["account_period_num"]="1"
 										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId
+										asyncObjectMap=CallFunc(api,calculate_field,calculate_func,paramStr,asyncObjectMap)
+										//latestKnotsFunds=asyncObjectMap["leave_funds"].(string)
 										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId,asyncObjectMap)
 										if errorMessage!=nil{
 											fmt.Printf("errorMessage=",errorMessage)
@@ -2155,15 +2159,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									}
 
 									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
-									judgeNeedUpdateLatestKnotsSql2:="select judgeNeedUpdateLatestKnots("+paramStr+",'2') as id;"
-									judgeNeedUpdateLatestKnotsId2:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql2,"id")
-									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId2!=""{
+									judgeNeedUpdateLatestKnotsSqlCureent:="select judgeNeedUpdateLatestKnots("+paramStr+",'2') as id;"
+									judgeNeedUpdateLatestKnotsIdCurrent:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlCureent,"id")
+									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsIdCurrent!=""{
 										asyncObjectMap["summary"]="本期合计"
 										asyncObjectMap["line_number"]=100
 										asyncObjectMap["order_num"]=0
 										asyncObjectMap["account_period_year"]=lastDayResult
-										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId2
-										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId2,asyncObjectMap)
+										asyncObjectMap["account_period_num"]="1"
+										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsIdCurrent
+										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsIdCurrent,asyncObjectMap)
 										if errorMessage!=nil{
 											fmt.Printf("errorMessage=",errorMessage)
 										}
@@ -2171,15 +2176,20 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									}
 
 									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
-									judgeNeedUpdateLatestKnotsSql3:="select judgeNeedUpdateLatestKnots("+paramStr+",'3') as id;"
-									judgeNeedUpdateLatestKnotsId3:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql3,"id")
-									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId3!=""{
+									judgeNeedUpdateLatestKnotsSqlYear:="select judgeNeedUpdateLatestKnots("+paramStr+",'3') as id;"
+									judgeNeedUpdateLatestKnotsIdYear:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlYear,"id")
+									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsIdYear!=""{
 										asyncObjectMap["summary"]="本年累计"
 										asyncObjectMap["line_number"]=101
 										asyncObjectMap["order_num"]=0
 										asyncObjectMap["account_period_year"]=lastDayResult
-										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId3
-										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId3,asyncObjectMap)
+										asyncObjectMap["account_period_num"]="1"
+										asyncObjectMap["debit_funds"]="0"
+										asyncObjectMap["credit_funds"]="0"
+										asyncObjectMap["leave_funds"]="0"
+
+										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsIdYear
+										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsIdYear,asyncObjectMap)
 										if errorMessage!=nil{
 											fmt.Printf("errorMessage=",errorMessage)
 										}
@@ -2557,4 +2567,19 @@ func (api *MysqlAPI) SelectTotalCount(option QueryOption) (totalCount int,errorM
 	str, _ := data[0]["TotalCount"].(string)
 	totalCount, _ = strconv.Atoi(str)
 	return
+}
+func CallFunc(api *MysqlAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
+	if strings.Contains(calculate_field,","){
+		fields:=strings.Split(calculate_field,",")
+		for index,item:=range fields{
+			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
+			result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+			if result==""{
+				result="0"
+			}
+			asyncObjectMap[item]=result
+		}
+	}
+	return asyncObjectMap
 }
