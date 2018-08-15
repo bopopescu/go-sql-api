@@ -1003,7 +1003,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
-							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d %h:%i:%s') AS last_date;"
+							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
 							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
 
