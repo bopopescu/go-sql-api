@@ -888,7 +888,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						if calculate_func!=""{
 							// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
 							laste_date_sql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y-%m'),'-01') AS first_date;"
-							result1:=api.ExecFuncForOne(laste_date_sql,"first_date")
+							resultFirstDate:=api.ExecFuncForOne(laste_date_sql,"first_date")
 
 							beginYearSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-01') AS beginYear;"
 							beginYearResult:=api.ExecFuncForOne(beginYearSql,"beginYear")
@@ -902,7 +902,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							asyncObjectMap["order_num"]=nil
 
 							asyncObjectMap["summary"]="期初余额"
-							asyncObjectMap["account_period_year"]=result1
+							asyncObjectMap["account_period_year"]=resultFirstDate
 							//如果执行方法不为空 执行配置中方法
 							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
 							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
@@ -940,7 +940,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								r0,errorMessage0:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r0,"errorMessage=",errorMessage0)
 
-								if beginYearResult!=result1{
+								if beginYearResult!=resultFirstDate{
 									lastYearKnotsCurrentPeriod=asyncObjectMap
 									lastYearKnotsCurrentPeriod["line_number"]=100
 									lastYearKnotsCurrentPeriod["summary"]="本期合计"
@@ -966,16 +966,15 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							if id=="" {
 								asyncObjectMap["summary"]="期初余额"
-								if  lastYearKnotsId=="" && beginYearResult!=result1{
+								if  beginYearResult!=resultFirstDate{
 									asyncObjectMap["line_number"]=0
-									asyncObjectMap["account_period_year"]=result1
+									asyncObjectMap["account_period_year"]=resultFirstDate
 									asyncObjectMap["order_num"]=0
 									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
 									asyncObjectMap["account_period_num"]=masterInfoMap["account_period_num"]
 									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
-
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id
 								asyncObjectMap["summary"]="期初余额"
@@ -2101,8 +2100,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+",'2') as id;"
 									id0:=api.ExecFuncForOne(judgeExistsSql,"id")
 
-									judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
-									id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
+									judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
+									idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 									if strings.Contains(calculate_field,","){
 										fields:=strings.Split(calculate_field,",")
 										for index,item:=range fields{
@@ -2120,7 +2119,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 									if id0==""{
-										if id1!=""{
+										if idSub!=""{
 											asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid"
 											r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 											fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -2257,13 +2256,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								id0:=api.ExecFuncForOne(judgeExistsSql,"id")
 
-								judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
+								judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 
-								id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
+								idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 
 
 								if id0==""{
-									if id1!=""{
+									if idSub!=""{
 										asyncObjectMap["id"]=uuid.NewV4().String()+"-peroid"
 										r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 										fmt.Printf("r=",r,"errorMessage=",errorMessage)
@@ -2335,10 +2334,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 								judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
 								id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-								judgeExistsSql1:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
-								id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
+								judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
+								idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 								if id0==""{
-									if id1!=""{
+									if idSub!=""{
 										asyncObjectMap["id"]=uuid.NewV4().String()+"-year"
 										r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 										fmt.Printf("r=",r,"errorMessage=",errorMessage)
