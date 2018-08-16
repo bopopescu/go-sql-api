@@ -912,7 +912,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
-							judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+") as id;"
+							judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+",'2') as id;"
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
