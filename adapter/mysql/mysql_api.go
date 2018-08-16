@@ -1819,6 +1819,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							slave=BuildMapFromObj(masterInfoMap,slave)
 							repeatCalculateData=append(repeatCalculateData,slave)
 					//	}
+						querOption.Orders=orders
 						repeatCalculateData0, errorMessage= api.Select(querOption)
 
 						//是同一期的查询条件 但是不同查询凭证字号
@@ -2148,6 +2149,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 										asyncObjectMap["account_period_year"]=beginYearResult
 										asyncObjectMap["account_period_num"]="1"
 										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsId
+										paramsMap["account_period_num"]="1"
+										paramsMap["account_period_year"]=beginYearResult
+										paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 										asyncObjectMap=CallFunc(api,calculate_field,calculate_func,paramStr,asyncObjectMap)
 										//latestKnotsFunds=asyncObjectMap["leave_funds"].(string)
 										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId,asyncObjectMap)
@@ -2166,6 +2170,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 										asyncObjectMap["order_num"]=0
 										asyncObjectMap["account_period_year"]=lastDayResult
 										asyncObjectMap["account_period_num"]="1"
+										asyncObjectMap["debit_funds"]="0"
+										asyncObjectMap["credit_funds"]="0"
+
 										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsIdCurrent
 										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsIdCurrent,asyncObjectMap)
 										if errorMessage!=nil{
@@ -2185,7 +2192,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 										asyncObjectMap["account_period_num"]="1"
 										asyncObjectMap["debit_funds"]="0"
 										asyncObjectMap["credit_funds"]="0"
-										asyncObjectMap["leave_funds"]="0"
+
 
 										asyncObjectMap["id"]=judgeNeedUpdateLatestKnotsIdYear
 										r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsIdYear,asyncObjectMap)
