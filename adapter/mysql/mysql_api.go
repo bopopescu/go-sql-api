@@ -871,6 +871,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 					}
+
+					account_period_num:=masterInfoMap["account_period_num"]
 					// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
 					if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type{
 						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
@@ -968,10 +970,11 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								asyncObjectMap["summary"]="期初余额"
 								if  beginYearResult!=resultFirstDate{
 									asyncObjectMap["line_number"]=0
+									fmt.Printf("resultFirstDate=",resultFirstDate," account_period_num=",account_period_num)
 									asyncObjectMap["account_period_year"]=resultFirstDate
 									asyncObjectMap["order_num"]=0
 									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
-									asyncObjectMap["account_period_num"]=masterInfoMap["account_period_num"]
+									asyncObjectMap["account_period_num"]=account_period_num
 									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
@@ -1011,7 +1014,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=100
-							asyncObjectMap["order_num"]=nil
+							asyncObjectMap["order_num"]=100
 							asyncObjectMap["summary"]="本期合计"
 							asyncObjectMap["account_period_year"]=result1
 							//如果执行方法不为空 执行配置中方法
@@ -1080,7 +1083,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
-							asyncObjectMap["order_num"]=nil
+							asyncObjectMap["order_num"]=101
 							asyncObjectMap["line_number"]=101
 							asyncObjectMap["summary"]="本年累计"
 							asyncObjectMap["account_period_year"]=result1
@@ -1150,6 +1153,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							if judgeNeedUpdateNextKnotsId!=""{
 								nextYearKnots=asyncObjectMap
 								nextYearKnots["line_number"]=102
+								asyncObjectMap["order_num"]=102
 								nextYearKnots["summary"]="结转下年"
 								nextYearKnots["account_period_year"]=nextYearKnotsResult
 								nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
