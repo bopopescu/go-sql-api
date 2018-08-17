@@ -939,22 +939,19 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
       if tableName=="account_voucher_detail_category_merge_view"{
 		  periodYear:=option.Wheres["account_voucher_detail_category_merge_view.account_period_year.gt"].Value
-		  month:=periodYear.(string)[4:6]//2017-01
+		  month:=periodYear.(string)[5:7]//2017-01
 		  monthInt,_:=strconv.Atoi(month)
       	//if option.Wheres["account_voucher_detail_category_merge_view.line_number.gte"].Value!=nil{
       		// farm_id subject_key account_period_num account_period_year
 			var periodNumLateOption QueryOption
 			wheres:=make(map[string]WhereOperation)
 			wheres["farm_id"]=option.Wheres["account_voucher_detail_category_merge_view.farm_id"]
-			wheres["business_no"]=WhereOperation{
-				Operation:"like",
-				Value:"%"+option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string)+"%",
-			}//option.Wheres["subject_key"]
+			wheres["subject_key"]=option.Wheres["account_voucher_detail_category_merge_view.subject_key"]//option.Wheres["subject_key"]
 			//accountPeriodNumStr:=option.Wheres["account_voucher_detail_category_merge_view.line_number.gte"].Value.(string)
 			//accountPeriodNum:=strings.Replace(accountPeriodNumStr,"-","",-1)
 			wheres["account_period_year.gt"]=option.Wheres["account_voucher_detail_category_merge_view.account_period_year.gt"]
 			wheres["account_period_num"]=WhereOperation{
-				Operation:"gt",
+				Operation:"gte",
 				Value:monthInt,
 			}
 			periodNumLateOption.Wheres=wheres
@@ -962,7 +959,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			order["account_period_num"]="asc"
 			periodNumLateOption.Orders=order
 			periodNumLateOption.Limit=1
-			periodNumLateOption.Table="account_voucher"
+			periodNumLateOption.Table="account_voucher_detail_category_merge_view"
 			nextPeriodData,errorMessage:=api.Select(periodNumLateOption)
 			fmt.Printf("errorMessage=",errorMessage)
 			for _,item:= range nextPeriodData{
