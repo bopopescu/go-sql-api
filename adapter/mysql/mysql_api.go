@@ -1964,7 +1964,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
                       // order_num为空说明是累计数
 
 						var repeatOrderNum int
-						var repeatAccountPeriodNum int
+						var repeatAccountPeriodNum string
 						var repeatAccountYear string
 						for _,operate:=range operates {
 						asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
@@ -2013,11 +2013,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								}
 						}
 						// repeatAccountPeriodNum
-							if repeatItem["account_period_year"]!=nil{
-								repeatAccountPeriodNum,err=strconv.Atoi(repeatItem["account_period_num"].(string))
+							if repeatItem["account_period_num"]!=nil{
+								repeatAccountPeriodNum=repeatItem["account_period_num"].(string)
 								if err!=nil{
 									fmt.Printf("err=",err,"repeatAccountPeriodNum=",repeatAccountPeriodNum)
 								}
+								fmt.Printf("repeatAccountPeriodNum=",repeatAccountPeriodNum)
+
 							}
 							if repeatItem["account_period_year"]!=nil{
 								repeatAccountYear=repeatItem["account_period_year"].(string)
