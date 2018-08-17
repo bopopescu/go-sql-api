@@ -886,6 +886,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						lastYearKnotsCurrentYear:=make(map[string]interface{})
 						var paramStr string
 						paramsMap:=make(map[string]interface{})
+						periodNum,_:=strconv.Atoi(account_period_num.(string))
+						beginLineNum:=0-periodNum
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
@@ -900,8 +902,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
-							asyncObjectMap["line_number"]=0
-							asyncObjectMap["order_num"]=nil
+							asyncObjectMap["line_number"]=beginLineNum
+
+							asyncObjectMap["order_num"]=0
 
 							asyncObjectMap["summary"]="期初余额"
 							asyncObjectMap["account_period_year"]=resultFirstDate
@@ -946,6 +949,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 									lastYearKnotsCurrentPeriod=asyncObjectMap
 									lastYearKnotsCurrentPeriod["line_number"]=100
 									lastYearKnotsCurrentPeriod["summary"]="本期合计"
+									lastYearKnotsCurrentPeriod["order_num"]=0
 									lastYearKnotsCurrentPeriod["account_period_year"]=latestYearKnots
 									lastYearKnotsCurrentPeriod["account_period_num"]="1"
 									lastYearKnotsCurrentPeriod["id"]=lastYearKnotsCurrentPeriod["id"].(string)+"-peroid"
@@ -969,7 +973,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							if id=="" {
 								asyncObjectMap["summary"]="期初余额"
 								if  beginYearResult!=resultFirstDate{
-									asyncObjectMap["line_number"]=0
+									asyncObjectMap["line_number"]=beginLineNum
 									fmt.Printf("resultFirstDate=",resultFirstDate," account_period_num=",account_period_num)
 									asyncObjectMap["account_period_year"]=resultFirstDate
 									asyncObjectMap["order_num"]=0
@@ -981,6 +985,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							}else{//id不为空 则更新
 								asyncObjectMap["id"]=id
 								asyncObjectMap["summary"]="期初余额"
+								asyncObjectMap["line_number"]=beginLineNum
 								r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
 								if errorMessage!=nil{
 									fmt.Printf("errorMessage=",errorMessage)
@@ -2061,7 +2066,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 						}
-
+							account_period_num:=masterInfoMap["account_period_num"]
 							// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
 						 if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type {
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
@@ -2072,6 +2077,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								fmt.Printf("calculate_func",calculate_func)
 								var paramStr string
 								paramsMap:=make(map[string]interface{})
+							 periodNum,_:=strconv.Atoi(account_period_num.(string))
+							 beginLineNum:=0-periodNum
 								// funcParamFields
 								if calculate_func!=""{
 									// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
@@ -2084,7 +2091,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									lastDayResult:=api.ExecFuncForOne(lastDaySql,"lastDay")
 
 									asyncObjectMap["voucher_type"]=nil
-									asyncObjectMap["line_number"]=0
+									asyncObjectMap["line_number"]=beginLineNum
 									asyncObjectMap["order_num"]=0
 									asyncObjectMap["summary"]="期初余额"
 									asyncObjectMap["account_period_year"]=result1
@@ -2148,7 +2155,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									//var latestKnotsFunds string
 									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId!=""{
 										asyncObjectMap["summary"]="上年结转"
-										asyncObjectMap["line_number"]=0
+										asyncObjectMap["line_number"]=beginLineNum
 										asyncObjectMap["order_num"]=0
 										asyncObjectMap["account_period_year"]=beginYearResult
 										asyncObjectMap["account_period_num"]="1"
