@@ -942,6 +942,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid-knots"
 								asyncObjectMap["account_period_year"]=beginYearResult
 								asyncObjectMap["account_period_num"]="1"
+								asyncObjectMap["line_number"]="-1"
+
 								r0,errorMessage0:=api.Create(operate_table,asyncObjectMap)
 								fmt.Printf("r=",r0,"errorMessage=",errorMessage0)
 
@@ -2155,7 +2157,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									//var latestKnotsFunds string
 									if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId!=""{
 										asyncObjectMap["summary"]="上年结转"
-										asyncObjectMap["line_number"]=beginLineNum
+										asyncObjectMap["line_number"]="-1"
 										asyncObjectMap["order_num"]=0
 										asyncObjectMap["account_period_year"]=beginYearResult
 										asyncObjectMap["account_period_num"]="1"

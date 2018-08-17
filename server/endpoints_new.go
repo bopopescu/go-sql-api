@@ -937,7 +937,54 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if err!=nil{
 			fmt.Printf("err",err)
 		}
+      if tableName=="account_voucher_detail_category_merge_view"{
+		  periodYear:=option.Wheres["account_voucher_detail_category_merge_view.account_period_year.gt"].Value
+		  month:=periodYear.(string)[4:6]//2017-01
+		  monthInt,_:=strconv.Atoi(month)
+      	//if option.Wheres["account_voucher_detail_category_merge_view.line_number.gte"].Value!=nil{
+      		// farm_id subject_key account_period_num account_period_year
+			var periodNumLateOption QueryOption
+			wheres:=make(map[string]WhereOperation)
+			wheres["farm_id"]=option.Wheres["account_voucher_detail_category_merge_view.farm_id"]
+			wheres["business_no"]=WhereOperation{
+				Operation:"like",
+				Value:"%"+option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string)+"%",
+			}//option.Wheres["subject_key"]
+			//accountPeriodNumStr:=option.Wheres["account_voucher_detail_category_merge_view.line_number.gte"].Value.(string)
+			//accountPeriodNum:=strings.Replace(accountPeriodNumStr,"-","",-1)
+			wheres["account_period_year.gt"]=option.Wheres["account_voucher_detail_category_merge_view.account_period_year.gt"]
+			wheres["account_period_num"]=WhereOperation{
+				Operation:"gt",
+				Value:monthInt,
+			}
+			periodNumLateOption.Wheres=wheres
+			order:=make(map[string]string)
+			order["account_period_num"]="asc"
+			periodNumLateOption.Orders=order
+			periodNumLateOption.Limit=1
+			periodNumLateOption.Table="account_voucher"
+			nextPeriodData,errorMessage:=api.Select(periodNumLateOption)
+			fmt.Printf("errorMessage=",errorMessage)
+			for _,item:= range nextPeriodData{
+				apn:=item["account_period_num"].(string)
+				apnInt,_:=strconv.Atoi(apn)
+				apnInt=0-apnInt
+				delete(option.Wheres, "account_voucher_detail_category_merge_view.line_number.gte")
+				option.Wheres["account_voucher_detail_category_merge_view.line_number"]=WhereOperation{
+					Operation:"gte",
+					Value:apnInt,
+				}
+			//}
+		}
 
+		  if len(nextPeriodData)<=0{
+			  monthInt=0-monthInt
+			  option.Wheres["account_voucher_detail_category_merge_view.line_number"]=WhereOperation{
+				  Operation:"gte",
+				  Value:monthInt,
+			  }
+		  }
+	  }
 		orderBytes,err:=json.Marshal(option.Orders)
 		if err!=nil{
 			fmt.Printf("err",err)
