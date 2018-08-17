@@ -1963,7 +1963,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						//  删掉 本期合计 本年累计  重新计算
                       // order_num为空说明是累计数
 
-
+						var repeatOrderNum int
+						var repeatAccountPeriodNum int
+						var repeatAccountYear string
 						for _,operate:=range operates {
 						asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
 
@@ -2003,14 +2005,26 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								calculate_func=operateCondContentJsonMap["calculate_func"].(string)
 							}
 						}
-							var repeatOrderNum int
+
 							if repeatItem["order_num"]!=nil{
 								repeatOrderNum,err=strconv.Atoi(repeatItem["order_num"].(string))
 								if err!=nil{
 									fmt.Printf("err=",err,"repeatOrderNum=",repeatOrderNum)
 								}
 						}
-
+						// repeatAccountPeriodNum
+							if repeatItem["account_period_year"]!=nil{
+								repeatAccountPeriodNum,err=strconv.Atoi(repeatItem["account_period_num"].(string))
+								if err!=nil{
+									fmt.Printf("err=",err,"repeatAccountPeriodNum=",repeatAccountPeriodNum)
+								}
+							}
+							if repeatItem["account_period_year"]!=nil{
+								repeatAccountYear=repeatItem["account_period_year"].(string)
+								if err!=nil{
+									fmt.Printf("err=",err,"account_period_year=",repeatAccountYear)
+								}
+							}
 						//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
 						if "ASYNC_BATCH_SAVE"==operate_type {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
@@ -2392,7 +2406,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									paramsMap["account_period_year"]=nextYearKnotsResult
 									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 									asyncObjectMap=CallFunc(api,calculate_field,calculate_func,paramStr,asyncObjectMap)
-									
+
 									r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
@@ -2425,6 +2439,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								paramsMap = BuildMapFromBody(funcParamFields, masterInfoMap, paramsMap)
 								paramsMap = BuildMapFromBody(funcParamFields, slave, paramsMap)
 								//把对象的所有属性的值拼成字符串
+								paramsMap["account_period_year"]=repeatAccountYear
+								paramsMap["account_period_num"]=repeatAccountPeriodNum
 								paramStr = ConcatObjectProperties(funcParamFields, paramsMap)
 
 								// 直接执行func 所有逻辑在func处理
@@ -2454,6 +2470,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
 									paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
 									//把对象的所有属性的值拼成字符串
+									paramsMap["account_period_year"]=repeatAccountYear
+									paramsMap["account_period_num"]=repeatAccountPeriodNum
 									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
 
