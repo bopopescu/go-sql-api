@@ -2387,6 +2387,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									nextYearKnots["summary"]="结转下年"
 									nextYearKnots["account_period_year"]=nextYearKnotsResult
 									nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
+
+									paramsMap["account_period_num"]="12"
+									paramsMap["account_period_year"]=nextYearKnotsResult
+									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+									asyncObjectMap=CallFunc(api,calculate_field,calculate_func,paramStr,asyncObjectMap)
+									
 									r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
