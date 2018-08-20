@@ -1565,6 +1565,26 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		fmt.Printf("errorMessage=",errorMessage)
 	}
 
+	//
+	if masterTableName=="account_voucher"{
+		periodYearUpdatedWhere:=make(map[string]WhereOperation)
+		periodYearUpdatedObj:=make(map[string]interface{})
+		periodYearUpdatedWhere["account_id"]=WhereOperation{
+			Operation:"eq",
+			Value:masterInfoMap["account_id"],
+		}
+		periodYearUpdatedWhere["account_period_year"]=WhereOperation{
+			Operation:"neq",
+			Value:masterInfoMap["account_period_year"],
+		}
+		periodYearUpdatedObj["account_id"]=masterInfoMap["account_id"]
+		periodYearUpdatedObj["account_period_year"]=masterInfoMap["account_period_year"]
+		periodYearUpdatedObj["account_period_num"]=masterInfoMap["account_period_num"]
+		periodYearUpdatedObj["voucher_type"]=masterInfoMap["voucher_type"]
+		periodYearUpdatedObj["order_num"]=masterInfoMap["order_num"]
+		_,errorMessage=api.UpdateBatch("account_voucher_detail_category_merge",periodYearUpdatedWhere,periodYearUpdatedObj)
+		fmt.Printf("update-account_voucher_detail_category_merge-errorMessage=",errorMessage)
+	}
 	for i, slave := range slaveInfoMap {
 		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
