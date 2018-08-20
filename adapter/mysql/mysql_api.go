@@ -1532,6 +1532,44 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	queryOption0.Table=slaveTableName
 	rr,errorMessage:=api.Select(queryOption0)
 	var subjectKeyExists []map[string]interface{}
+
+	//
+	if masterTableName=="account_voucher"{
+		periodYearUpdatedWhere:=make(map[string]WhereOperation)
+		periodYearUpdatedWhere["account_id"]=WhereOperation{
+			Operation:"eq",
+			Value:masterInfoMap["account_id"],
+		}
+		periodYearUpdatedWhere["account_period_year"]=WhereOperation{
+			Operation:"neq",
+			Value:masterInfoMap["account_period_year"],
+		}
+
+		var queryOptionperiodYearUpdated QueryOption
+
+		queryOptionperiodYearUpdated.Wheres=whereOption0
+		queryOptionperiodYearUpdated.Table=slaveTableName+"_category_merge"
+		rsYearUpdate,errorMessage:=api.Select(queryOptionperiodYearUpdated)
+		fmt.Printf("rsYearUpdate=",rsYearUpdate,"errorMessage=",errorMessage)
+
+		if len(rsYearUpdate)>0{
+			var queryOptionAppendDeletedVoucher QueryOption
+			whereOptionAppendDeletedVoucher:=make(map[string]WhereOperation)
+			whereOptionAppendDeletedVoucher["account_id"] = WhereOperation{
+				Operation: "eq",
+				Value:     masterInfoMap["account_id"],
+			}
+
+			queryOptionAppendDeletedVoucher.Wheres=whereOptionAppendDeletedVoucher
+			queryOptionAppendDeletedVoucher.Table=slaveTableName
+			appendDeletedVoucher,errorMessage:=api.Select(queryOptionAppendDeletedVoucher)
+			fmt.Printf("appendDeletedVoucher-errorMessage",errorMessage)
+			for _,item:=range appendDeletedVoucher{
+				rr=append(rr,item)
+			}
+		}
+
+	}
 	for _,item:=range rr{
 		judgeExistsFundsWhereOption0 := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption0["account_period_year"] = WhereOperation{
@@ -1565,26 +1603,6 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		fmt.Printf("errorMessage=",errorMessage)
 	}
 
-	//
-	if masterTableName=="account_voucher"{
-		periodYearUpdatedWhere:=make(map[string]WhereOperation)
-		periodYearUpdatedObj:=make(map[string]interface{})
-		periodYearUpdatedWhere["account_id"]=WhereOperation{
-			Operation:"eq",
-			Value:masterInfoMap["account_id"],
-		}
-		periodYearUpdatedWhere["account_period_year"]=WhereOperation{
-			Operation:"neq",
-			Value:masterInfoMap["account_period_year"],
-		}
-		periodYearUpdatedObj["account_id"]=masterInfoMap["account_id"]
-		periodYearUpdatedObj["account_period_year"]=masterInfoMap["account_period_year"]
-		periodYearUpdatedObj["account_period_num"]=masterInfoMap["account_period_num"]
-		periodYearUpdatedObj["voucher_type"]=masterInfoMap["voucher_type"]
-		periodYearUpdatedObj["order_num"]=masterInfoMap["order_num"]
-		_,errorMessage=api.UpdateBatch("account_voucher_detail_category_merge",periodYearUpdatedWhere,periodYearUpdatedObj)
-		fmt.Printf("update-account_voucher_detail_category_merge-errorMessage=",errorMessage)
-	}
 	for i, slave := range slaveInfoMap {
 		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
