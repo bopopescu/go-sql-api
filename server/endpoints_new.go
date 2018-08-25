@@ -2533,8 +2533,14 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		var master_table string
   		var dependency_table string
 
+		var tableKey string
+		var tableKeyValue string
+
   		var dependTableKey string
   		var dependTableKeyValue string
+  		var extractParam string
+  		var extractParamMap map[string]interface{}
+		var extractParamArr [5]string
   		var orderNum int
 		orderNum=1
   		for _,item:=range data{
@@ -2543,15 +2549,28 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			col_start_str:=item["col_start"].(string)
 			col_start,_=strconv.Atoi(col_start_str)
 			master_table=item["table_name"].(string)
-			dependency_table=item["dependency_table"].(string)
+			if item["dependency_table"]!=nil{
+				dependency_table=item["dependency_table"].(string)
+			}
+			if item["extract_param"]!=nil{
+				extractParam=item["extract_param"].(string)
+				json.Unmarshal([]byte(extractParam), &extractParamMap)
+
+			}
 
 		}
-
-		primaryColumns:=api.GetDatabaseMetadata().GetTableMeta(dependency_table).GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
-		if len(primaryColumns)>0{
-			dependTableKey=primaryColumns[0].ColumnName
-			dependTableKeyValue=uuid.NewV4().String()
+		var tableMeta *TableMetadata
+		tableMeta=api.GetDatabaseMetadata().GetTableMeta(dependency_table)
+		if tableMeta!=nil{
+			primaryColumns:=tableMeta.GetPrimaryColumns()
+			if len(primaryColumns)>0{
+				dependTableKey=primaryColumns[0].ColumnName
+				dependTableKeyValue=uuid.NewV4().String()
+			}
 		}
+
+		//  primaryColumns []*ColumnMetadata
+
 
 		// 删除已经导入的数据
 		var existsDependId string
@@ -2682,6 +2701,15 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 						var excelColName string
 						if item["table_name"]!=nil{
 							tableName=item["table_name"].(string)
+							tableMeta=api.GetDatabaseMetadata().GetTableMeta(tableName)
+							if tableMeta!=nil{
+								primaryColumns:=tableMeta.GetPrimaryColumns()
+								if len(primaryColumns)>0{
+									tableKey=primaryColumns[0].ColumnName
+									tableKeyValue=uuid.NewV4().String()
+								}
+							}
+
 						}
 						//colOrder=item["column_order"].(string)
 						excelColName=item["column_name"].(string)
@@ -2697,8 +2725,24 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 				}
 				fmt.Println()
 				if len(tableMap)>0{
-					tableMap["id"]=uuid.NewV4().String()
-					tableMap[dependTableKey]=dependTableKeyValue
+
+					tableMap[tableKey]=tableKeyValue
+					if dependTableKey!=""{
+						tableMap[dependTableKey]=dependTableKeyValue
+					}
+				if extractParamMap!=nil{
+						// obtain_from_where
+					if extractParamMap["obtain_from_where"]!=nil{
+						obtain_from_where_str:=extractParamMap["obtain_from_where"].(string)
+						//extractParamArrStr:=operateCondJsonMap["conditionFields"].(string)
+						json.Unmarshal([]byte(obtain_from_where_str), &extractParamArr)
+					  }
+					}
+					for _,item:=range extractParamArr{
+						if item!=""{
+							tableMap[item]=option.Wheres[tableName+"."+item].Value
+						}
+					}
 					tableMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 					if api.GetDatabaseTableMetadata(tableName).HaveField("order_num"){
 						tableMap["order_num"]=orderNum
