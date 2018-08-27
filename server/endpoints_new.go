@@ -2994,7 +2994,21 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		var beforeUpdateption QueryOption
 		beforeWhere:=make(map[string]WhereOperation)
 
-		beforeWhere["id"]=WhereOperation{
+		var firstPrimaryKey string
+		masterTableName:=strings.Replace(tableName,"_detail","",-1)
+		tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+		var primaryColumns []*ColumnMetadata
+		if tableMetadata!=nil{
+			primaryColumns=tableMetadata.GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
+		}else{
+			masterTableName=tableName
+			primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+		}
+
+		if len(primaryColumns)>0{
+			firstPrimaryKey=primaryColumns[0].ColumnName
+		}
+		beforeWhere[firstPrimaryKey]=WhereOperation{
 			Operation:"eq",
 			Value:id,
 		}
@@ -3021,23 +3035,6 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			var arr []map[string]interface{}
 			arr=append(arr,payload)
 			option.ExtendedArr=arr
-			var firstPrimaryKey string
-			 masterTableName:=strings.Replace(tableName,"_detail","",-1)
-			tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
-			var primaryColumns []*ColumnMetadata
-			if tableMetadata!=nil{
-				primaryColumns=tableMetadata.GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
-			}else{
-				masterTableName=tableName
-				primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
-			}
-			
-			if len(primaryColumns)>0{
-				firstPrimaryKey=primaryColumns[0].ColumnName
-			}
-			if len(primaryColumns)>0 {
-				firstPrimaryKey = primaryColumns[0].ColumnName
-			}
 				var option0 QueryOption
 			where0:=make(map[string]WhereOperation)
 			var masterPrimaryKeyValue string

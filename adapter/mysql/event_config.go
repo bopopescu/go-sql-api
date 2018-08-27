@@ -261,7 +261,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 			}
 
-			querOption := QueryOption{Wheres: whereOption, Table: operate_table}
+			querOption := QueryOption{Wheres: whereOption, Table: tableName}
 			rsQuery, errorMessage:= api.Select(querOption)
 			if errorMessage!=nil{
 				fmt.Printf("errorMessage", errorMessage)
@@ -277,6 +277,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			// 操作类型是更新 动作类型是累加
 			actionFiledMap:=make(map[string]interface{})
 			//	if operate_type=="UPDATE"{
+			for _,field:=range actionFieldsArr{
+				if strings.Contains(field,"="){
+					arr:=strings.Split(field,"=")
+					actionFiledMap[arr[0]]=arr[1]
+				}
+
+
+			}
 
 			var conditionFieldKeyValueStr string
 			switch  option.ExtendedArr[0][conditionFieldKey].(type) {
@@ -355,6 +363,24 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 						actionFiledMap[arr[0]]=arr[1]
 					}
 
+
+				}
+
+				rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
+				if err!=nil{
+					fmt.Printf("err=",err)
+				}
+				fmt.Printf("rsU=",rsU)
+
+			}
+			//	}
+			if action_type=="UPDATE_STATUS" && len(rsQuery)==0{
+				updateWhere:=make(map[string]WhereOperation)
+				if option.ExtendedMap[conditionFieldKey]!=nil{
+					updateWhere[conditionFieldKey]=WhereOperation{
+						Operation:"eq",
+						Value:option.ExtendedMap[conditionFieldKey].(string),
+					}
 
 				}
 
