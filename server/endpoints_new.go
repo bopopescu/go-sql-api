@@ -2594,12 +2594,13 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			Value:     templateKey,
 		}
 
-
+		//xlsx,error := excelize.OpenFile("./upload/商品导入模板.xlsx")
 		xlsx,error := excelize.OpenFile("./upload/"+fileHeader.Filename)
 		if error!=nil{
 			fmt.Printf("error=",error)
 			os.Remove("./upload/"+fileHeader.Filename)
-			os.Exit(1)
+			//os.Exit(1)
+			return c.String(http.StatusInternalServerError, error.Error())
 		}
 		rows := xlsx.GetRows("Sheet1")
         if rows==nil{
