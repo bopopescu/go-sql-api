@@ -2943,11 +2943,60 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+
+
 		rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		rowesAffected, err := rs.RowsAffected()
+		var firstPrimaryKey string
+		masterTableName:=tableName
+		tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+		var primaryColumns []*ColumnMetadata
+		if tableMetadata!=nil{
+			primaryColumns=tableMetadata.GetPrimaryColumns() //  primaryColumns []*ColumnMetadata
+		}
+		if len(primaryColumns)>0{
+			firstPrimaryKey=primaryColumns[0].ColumnName
+		}
+		if rowesAffected >0{
+			var option QueryOption
+			var arr []map[string]interface{}
+			arr=append(arr,payload)
+			option.ExtendedArr=arr
+			var option0 QueryOption
+			var masterPrimaryKeyValue string
+
+			option0.Wheres=option.Wheres
+			option0.Table=tableName
+			slaveInfo,errorMessage:=api.Select(option0)
+			fmt.Printf("errorMessage=",errorMessage)
+			if len(slaveInfo)>0{
+				masterPrimaryKeyValue=slaveInfo[0][firstPrimaryKey].(string)
+			}
+
+			var option1 QueryOption
+			where1:=make(map[string]WhereOperation)
+
+			where1[firstPrimaryKey]=WhereOperation{
+				Operation:"eq",
+				Value:masterPrimaryKeyValue,
+			}
+			option1.Wheres=where1
+			option1.Table=tableName
+			masterInfo,errorMessage:=api.Select(option1)
+
+			var extendMap map[string]interface{}
+			if len(masterInfo)>0{
+				masterPrimaryKeyValue=masterInfo[0][firstPrimaryKey].(string)
+				extendMap=masterInfo[0]
+			}
+			option.ExtendedMap=extendMap
+
+			mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
+
+		}
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
