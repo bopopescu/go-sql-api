@@ -2961,7 +2961,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			firstPrimaryKey=primaryColumns[0].ColumnName
 		}
 		if rowesAffected >0{
-			var option QueryOption
+			//var option QueryOption
 			var arr []map[string]interface{}
 			arr=append(arr,payload)
 			option.ExtendedArr=arr
