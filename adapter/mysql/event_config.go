@@ -90,7 +90,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		fmt.Printf("operate_table=",operate_table)
 		fmt.Printf("operate_type=",conditionTable)
 		// 前置事件新处理方式   只传参数   逻辑处理在存储过程处理
-		if "CASCADE_DELETE"==operate_type{
+		if "CASCADE_DELETE"==operate_type|| "UPDATE_MASTER"==operate_type{
 			if operateFunc!=""{
 				ids:=option.Ids
 				for _,item:=range ids{
@@ -102,6 +102,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 			}
 		}
+		// UPDATE_MASTER
 	}
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
