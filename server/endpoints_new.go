@@ -929,7 +929,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				}
 				option.Wheres[tableName+".dis_service_id"]=WhereOperation{
 					Operation:"eq",
-					Value:"a505f58f-6cdd-41af-93c8-9eddffcb993b",
+					Value:"default_service_id",
 				}
 			}
 		}
