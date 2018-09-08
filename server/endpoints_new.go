@@ -1875,8 +1875,8 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 	optionC.Table=caculateFromTable
 	optionC.Fields=[]string{caculateFromFiled}
 	wheres[conditionFiledKey] = WhereOperation{
-		Operation: "like",
-		Value:     caculateConFieldValue+"%",
+		Operation: "eq",
+		Value:     caculateConFieldValue,
 	}
 
 	optionC.Wheres=wheres
