@@ -875,13 +875,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 						}
 						asyncObjectMap["subject_key_pre"]=slave["subject_key"]
-						if pre_subject_key!=slave["subject_key"].(string){
-							r,errorMessage:= api.Update(operate_table,id,asyncObjectMap)
-							if errorMessage!=nil{
-								fmt.Printf("errorMessage=",errorMessage)
-							}
-							fmt.Printf("rs=",r)
-						}
+
 
 					}
 
@@ -2186,7 +2180,6 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							}
 
 							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
-
 
 
 						}

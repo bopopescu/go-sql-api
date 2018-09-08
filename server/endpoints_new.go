@@ -999,9 +999,20 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				Value:monthInt,
 			}
 			// subject_key_pre
+		  in_subject_key:=strings.Replace(option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string),"%","",-1)
+		  in_farm_id:=option.Wheres["account_voucher_detail_category_merge_view.farm_id"].Value.(string)
+		  obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+		  pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+
 		  option.Wheres["subject_key_pre"]=WhereOperation{
 		    	Operation:"eq",
 		    	Value:strings.Replace(option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string),"%","",-1),
+			}
+			if pre_subject_key!=in_subject_key{
+				option.Wheres["subject_key_pre"]=WhereOperation{
+					Operation:"like",
+					Value:pre_subject_key+"%",
+				}
 			}
 			periodNumLateOption.Wheres=wheres
 			order:=make(map[string]string)
