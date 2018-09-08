@@ -853,6 +853,12 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 						}
 
+						in_subject_key:=paramsMap["subject_key"].(string)
+						in_farm_id:=paramsMap["farm_id"].(string)
+						obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+						pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+
+						asyncObjectMap["subject_key_pre"]=pre_subject_key
 						judgeExistsSql:="select judgeCurrentKnotsExists("+paramStr+") as id;"
 						id:=api.ExecFuncForOne(judgeExistsSql,"id")
 						if id==""{
@@ -868,7 +874,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							fmt.Printf("rs=",r)
 
 						}
-
+						asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 					}
 
@@ -932,6 +938,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								}
 							}
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 							// 判断是否需要新增上年结转记录
 							judgeIsNeedCreateKnotsSql:="select judgeNeedCreateLatestKnots("+paramStr+") as id"
@@ -981,6 +988,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 									asyncObjectMap["order_num"]=0
 									asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-beginperoid"
 									asyncObjectMap["account_period_num"]=account_period_num
+									asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 									r,errorMessage:=api.Create(operate_table,asyncObjectMap)
 									fmt.Printf("r=",r,"errorMessage=",errorMessage)
 								}
@@ -1049,7 +1057,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							}
 
 
-
+							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id=="" {
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
@@ -1118,7 +1126,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								}
 							}
 
-
+							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 							id:=api.ExecFuncForOne(judgeExistsSql,"id")
 							if id=="" {
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
@@ -1211,7 +1219,6 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 					if "ASYNC_BATCH_SAVE_SUBJECT_TOTAL"==operate_type{
 						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
 						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
-
 						fmt.Printf("operate_table",operate_table)
 						fmt.Printf("calculate_field",calculate_field)
 						fmt.Printf("calculate_func",calculate_func)
@@ -1239,7 +1246,46 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 					}
+					// ASYNC_BATCH_SAVE_SUBJECT_PRE
+					if "ASYNC_BATCH_SAVE_SUBJECT_PRE"==operate_type{
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+						slave["subject_key_pre"]=slave["subject_key"]
+						fmt.Printf("operate_table",operate_table)
+						fmt.Printf("calculate_field",calculate_field)
+						fmt.Printf("calculate_func",calculate_func)
 
+						var paramStr string
+						paramsMap:=make(map[string]interface{})
+						// funcParamFields
+						if operate_func!=""{
+
+							//如果执行方法不为空 执行配置中方法
+							paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
+
+							in_subject_key:=paramsMap["subject_key"].(string)
+							in_farm_id:=paramsMap["farm_id"].(string)
+							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+							paramsMap["subject_key_pre"]=pre_subject_key
+							//把对象的所有属性的值拼成字符串
+							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+							delete(asyncObjectMap,"subject_key_pre")
+							if pre_subject_key!="" && pre_subject_key!=in_subject_key{
+								// 直接执行func 所有逻辑在func处理
+								operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
+								result:=api.ExecFuncForOne(operate_func_sql,"result")
+								fmt.Printf("operate_func_sql-result",result)
+							}
+
+
+
+
+						}
+
+
+					}
 
 				}
 
@@ -2109,6 +2155,15 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 							rs,errorMessage:=api.Select(optionQueryExists)
 							fmt.Printf("errorMessage=",errorMessage)
+
+
+							in_subject_key:=paramsMap["subject_key"].(string)
+							in_farm_id:=paramsMap["farm_id"].(string)
+							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+
+							asyncObjectMap["subject_key_pre"]=pre_subject_key
+
 							if len(rs)>0{
 								r,errorMessage:= api.Update(operate_table,asyncObjectMap["id"],asyncObjectMap)
 								if errorMessage!=nil{
@@ -2123,7 +2178,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								fmt.Printf("rs=",r)
 							}
 
-
+							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 
 
@@ -2191,7 +2246,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									}
 
 
-
+									asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 									if id0==""{
 										if idSub!=""{
 											asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid"
@@ -2542,6 +2597,46 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
 									result:=api.ExecFuncForOne(operate_func_sql,"result")
 									fmt.Printf("operate_func_sql-result",result)
+
+
+
+								}
+
+
+							}
+							// ASYNC_BATCH_SAVE_SUBJECT_PRE
+						if "ASYNC_BATCH_SAVE_SUBJECT_PRE"==operate_type{
+								asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+								slave["subject_key_pre"]=slave["subject_key"]
+								fmt.Printf("operate_table",operate_table)
+								fmt.Printf("calculate_field",calculate_field)
+								fmt.Printf("calculate_func",calculate_func)
+
+								var paramStr string
+								paramsMap:=make(map[string]interface{})
+								// funcParamFields
+								if operate_func!=""{
+
+									//如果执行方法不为空 执行配置中方法
+									paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+									paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
+
+									in_subject_key:=paramsMap["subject_key"].(string)
+									in_farm_id:=paramsMap["farm_id"].(string)
+									obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+									pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+									paramsMap["subject_key_pre"]=pre_subject_key
+									//把对象的所有属性的值拼成字符串
+									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
+									delete(asyncObjectMap,"subject_key_pre")
+									if pre_subject_key!="" && pre_subject_key!=in_subject_key{
+										// 直接执行func 所有逻辑在func处理
+										operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
+										result:=api.ExecFuncForOne(operate_func_sql,"result")
+										fmt.Printf("operate_func_sql-result",result)
+									}
+
 
 
 

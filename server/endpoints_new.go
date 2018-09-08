@@ -497,6 +497,12 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							asyncObjectMap[calculate_field]=result
 
 						}
+						in_subject_key:=paramsMap["subject_key"].(string)
+						in_farm_id:=paramsMap["farm_id"].(string)
+						obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+						pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+
+						asyncObjectMap["subject_key_pre"]=pre_subject_key
 
 
 						//judgeExistsSql:="select judgeCurrentKnotsExists("+paramStr+") as id;"
@@ -512,7 +518,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 								fmt.Printf("errorMessage=",errorMessage)
 							}
 							fmt.Printf("rs=",r)
-
+						asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 						//}
 
 					}
@@ -566,7 +572,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 								}
 							}
 
-
+							asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 
 							if id0==""{
@@ -811,7 +817,45 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 
 					}
+					if "ASYNC_BATCH_SAVE_SUBJECT_PRE"==operate_type{
+						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
+						asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
+						fmt.Printf("operate_table",operate_table)
+						fmt.Printf("calculate_field",calculate_field)
+						fmt.Printf("calculate_func",calculate_func)
 
+						var paramStr string
+						paramsMap:=make(map[string]interface{})
+						// funcParamFields
+						if operate_func!=""{
+
+							//如果执行方法不为空 执行配置中方法
+							paramsMap=mysql.BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+							paramsMap=mysql.BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+
+							in_subject_key:=paramsMap["subject_key"].(string)
+							in_farm_id:=paramsMap["farm_id"].(string)
+							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+							paramsMap["subject_key_pre"]=pre_subject_key
+							//把对象的所有属性的值拼成字符串
+							paramStr=mysql.ConcatObjectProperties(funcParamFields,paramsMap)
+							delete(asyncObjectMap,"subject_key_pre")
+							if pre_subject_key!="" && pre_subject_key!=in_subject_key{
+								// 直接执行func 所有逻辑在func处理
+								operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
+								result:=api.ExecFuncForOne(operate_func_sql,"result")
+								fmt.Printf("operate_func_sql-result",result)
+							}
+
+
+
+
+						}
+
+
+					}
 				}
 			}
 		}
@@ -953,6 +997,11 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			wheres["account_period_num"]=WhereOperation{
 				Operation:"gte",
 				Value:monthInt,
+			}
+			// subject_key_pre
+		  option.Wheres["subject_key_pre"]=WhereOperation{
+		    	Operation:"eq",
+		    	Value:strings.Replace(option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string),"%","",-1),
 			}
 			periodNumLateOption.Wheres=wheres
 			order:=make(map[string]string)
