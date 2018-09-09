@@ -2411,7 +2411,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 
 								idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
-
+								asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 								if id0==""{
 									if idSub!=""{
@@ -2481,7 +2481,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								}
 
 
-
+								asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 								judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
