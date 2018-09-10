@@ -1459,7 +1459,8 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 							dataTempArr=append(dataTempArr,dataTemp)
 							continue
 						}
-
+					// 判断是否包含在更新的科目状态列表中
+ 					    
 						arr:=strings.Split(caculateValue,"=")
 
 						if len(arr)>=2{
@@ -2822,7 +2823,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 		// 清除上传的文件
 		os.Remove("./upload/"+fileHeader.Filename)
-		return c.String(http.StatusOK, strconv.Itoa(orderNum))
+		return c.String(http.StatusOK, strconv.Itoa(len(rows)-row_start))
 	}
 }
 func processBlock(line []byte) {
