@@ -1414,6 +1414,8 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 			lineValueMap=make(map[string]float64)
 			var dataTempArr []map[string]interface{}
 			var caculateValue string
+			var isExistsReport int
+			     isExistsReport=0
 			if errorMessage==nil{
 				//计算每一项值 不包括总值
 				for _,datac:=range dataC {
@@ -1437,6 +1439,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 					datac["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 					dataTemp=datac
+
 					for _,item:=range conditionFiledArr{
 						if item!=""&&option.Wheres[report_diy_table_cell_value+"."+item].Value!=nil {
 							itemValue:=option.Wheres[report_diy_table_cell_value+"."+item].Value.(string)
@@ -1453,10 +1456,29 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 						}
 					}
+					// 判断是否已经存在计算的结果
+					if isExistsReport==0{
+						var isExistsWhere map[string]WhereOperation
+						isExistsWhere=option.Wheres
+						isExistsWhere["report_type"]=WhereOperation{
+							Operation:"eq",
+							Value:operate_report_type,
+						}
+						var optionExists QueryOption
+						optionExists.Wheres=isExistsWhere
+						optionExists.Table=report_diy_table_cell_value
+						rs, errorMessage:= api.Select(optionExists)
+						fmt.Printf("errorMessage=",errorMessage)
+						if len(rs)<=0{
+							isExistsReport=1
+						}
+					}
+					if isExistsReport==1{
+						dataTempArr=append(dataTempArr,dataTemp)
+					}
 
 					if caculateValue!=""{
 						if !strings.Contains(caculateValue,"="){
-							dataTempArr=append(dataTempArr,dataTemp)
 							continue
 						}
 					// 判断是否包含在更新的科目状态列表中
@@ -1473,13 +1495,14 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 
 
-						dataTempArr=append(dataTempArr,dataTemp)
+						//dataTempArr=append(dataTempArr,dataTemp)
 						caculateExpressR := regexp.MustCompile("([\\w]+)\\.([\\w]+)\\.([\\d]+)")
 						caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
 
 						if caculateExpressRb{
 							datac["value"]=strconv.FormatFloat(calResult, 'f', 2, 64)
 							dataTemp["value"]=calResult
+							dataTempArr=append(dataTempArr,dataTemp)
 						}
 						if cellKey!=""&&caculateExpressRb{
 							// 当期
@@ -1664,21 +1687,25 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 					Value:operate_report_type,
 				}
 				option.Wheres=isExistsWhere
-				option.Table=report_diy_table_cell_value
-				rs, errorMessage:= api.Select(option)
-				if errorMessage!=nil{
-					fmt.Printf("errorMessage=",errorMessage)
-					return;
-				}else if len(rs)>0{
-					for _,item:=range rs{
-						_,errorMessage:=api.Delete(report_diy_table_cell_value,item["id"],nil)
-						fmt.Printf("delete-errorMessage:",errorMessage)
-					}
+				//option.Table=report_diy_table_cell_value
+				//rs, errorMessage:= api.Select(option)
+				// 先删除重新计算的数据
+				deleteMap:=make(map[string]interface{})
+				for k,f:=range option.Wheres{
+					deleteMap[k]=f.Value
 				}
+
+				//for _,item:=range dataTempArr{
+				//	deleteMap["row"]=item["row"]
+				//	deleteMap["col"]=item["col"]
+				//	_,errorMessage=api.Delete(report_diy_table_cell_value,nil,deleteMap)
+				//	fmt.Printf("delete-errorMessage:",errorMessage)
+				//}
+
 
 				for _,item:=range dataTempArr{
 					item["id"]=uuid.NewV4().String()
-					_, errorMessage:=api.Create(report_diy_table_cell_value,item)
+					_, errorMessage:=api.ReplaceCreate(report_diy_table_cell_value,item)
 					fmt.Printf("create-error-errorMessage:",errorMessage)
 				}
 
@@ -1777,7 +1804,7 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 		fmt.Printf("lineNumber=",lineNumber)
 	}
 	//caculateValue="11=account_subject_left_view.current_credit_funds.321.pre"
-	//caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
+   //caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
 	//caculateValue="123+account_subject_left_view.begin_debit_funds.102"
 	//caculateValue="6=1+2-3-4-5"
 	//caculateValue="10=9+8"
@@ -2823,7 +2850,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 		// 清除上传的文件
 		os.Remove("./upload/"+fileHeader.Filename)
-		return c.String(http.StatusOK, strconv.Itoa(len(rows)-row_start))
+		return c.String(http.StatusOK, strconv.Itoa(len(rows)-row_start+1))
 	}
 }
 func processBlock(line []byte) {

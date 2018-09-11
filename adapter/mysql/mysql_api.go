@@ -356,6 +356,15 @@ func (api *MysqlAPI) Create(table string, obj map[string]interface{}) (rs sql.Re
 	}
 	return api.exec(sql)
 }
+// Create by Table name and obj map
+func (api *MysqlAPI) ReplaceCreate(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
+	sql, err := api.sql.InsertByTable(table, obj)
+	sql=strings.Replace(sql,"INSERT","REPLACE",-1)
+	if err != nil {
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+	}
+	return api.exec(sql)
+}
 func  Json2map(jsonStr string) (s map[string]interface{}, errorMessage *ErrorMessage) {
 	var result map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {

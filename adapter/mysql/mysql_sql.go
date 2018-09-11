@@ -136,7 +136,9 @@ func (s *SQL) GetByTableAndID(opt QueryOption) (sql string, err error) {
 			sql=strings.Replace(sql,"order by","group by "+groupFields+" order by",-1)
 		}else if strings.Contains(sql,"ORDER BY")&&groupFields!=""{
 			sql=strings.Replace(sql,"ORDER BY","group by "+groupFields+" ORDER BY",-1)
-		}else{
+		}else if strings.Contains(sql,"LIMIT")&&groupFields!=""{
+			sql=strings.Replace(sql,"LIMIT","group by "+groupFields+" LIMIT",-1)
+		}else {
 			if groupFields!=""{
 				sql=sql+" "+"group by "+groupFields
 			}
