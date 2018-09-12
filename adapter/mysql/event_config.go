@@ -375,21 +375,25 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 			}
 			//	}
-			if action_type=="UPDATE_STATUS" && len(rsQuery)==0{
-				updateWhere:=make(map[string]WhereOperation)
+			if action_type=="UPDATE_STATUS"{
+				//updateWhere:=make(map[string]WhereOperation)
+				//if option.ExtendedMap[conditionFieldKey]!=nil{
+				//	updateWhere[conditionFieldKey]=WhereOperation{
+				//		Operation:"eq",
+				//		Value:option.ExtendedMap[conditionFieldKey].(string),
+				//	}
+				//
+				//}
 				if option.ExtendedMap[conditionFieldKey]!=nil{
-					updateWhere[conditionFieldKey]=WhereOperation{
-						Operation:"eq",
-						Value:option.ExtendedMap[conditionFieldKey].(string),
-					}
-
+					result:="select "+operateFunc+"('"+option.ExtendedMap[conditionFieldKey].(string)+"')"
+					fmt.Printf("result=",result)
 				}
 
-				rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
-				if err!=nil{
-					fmt.Printf("err=",err)
-				}
-				fmt.Printf("rsU=",rsU)
+				//rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
+				//if err!=nil{
+				//	fmt.Printf("err=",err)
+				//}
+				//fmt.Printf("rsU=",rsU)
 
 			}
 			//	}
