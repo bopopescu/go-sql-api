@@ -10,6 +10,7 @@ import (
 
 	"sort"
 	"regexp"
+	"strconv"
 )
 
 // SQL return sqls by sql builder
@@ -92,7 +93,12 @@ func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
 	builder = builder.ClearLimit()
 	builder = builder.ClearOffset()
 	sql, _, err = builder.ToSql()
-	sql=strings.Replace(sql,"`_placeholder_`","COUNT(*) as TotalCount",-1)
+	if len(opt.GroupFields)>0{
+		sql=strings.Replace(sql,"`_placeholder_`","COUNT(distinct("+opt.GroupFields[0]+")) as TotalCount",-1)
+	}else{
+		sql=strings.Replace(sql,"`_placeholder_`","COUNT(*) as TotalCount",-1)
+	}
+
 	sql=strings.Replace(sql,"\\","",-1)
 	//sql="SELECT `user_id`, SUM(account_log.account_funds) as totalFunds FROM `account_log`"
 	return
@@ -265,10 +271,10 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	if opt.Offset != 0 {
 		rs = rs.Offset(uint(opt.Offset))
 	}
-
+	groupFuncs:=strings.Split(opt.GroupFunc,",")
 	fs := make([]interface{}, len(opt.Fields))
 	 if opt.GroupFunc!=""{
-		 fs = make([]interface{}, len(opt.Fields)+1)
+		 fs = make([]interface{}, len(opt.Fields)+len(groupFuncs))
 	}
 	var index int
 	if opt.Fields != nil {
@@ -279,11 +285,21 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 
 	}
 	if opt.GroupFunc!=""{
-		if len(opt.Fields)>0{
-			fs[index+1] = opt.GroupFunc+" as p"
-		}else{
-			fs[index] = opt.GroupFunc+" as p"
+
+		for i,item:=range groupFuncs{
+			if len(opt.Fields)>0{
+				if i>=1{
+					iStr:=strconv.Itoa(i)
+					fs[i+index+1] = item+" as p"+iStr
+				}else{
+					fs[i+index+1] = item+" as p"
+				}
+
+			}else{
+				fs[i+index] = opt.GroupFunc+" as p"
+			}
 		}
+
 
 		rs = rs.Select(fs...)
 	}else{
