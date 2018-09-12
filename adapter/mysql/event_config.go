@@ -182,8 +182,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
-		operate_type=operateCondContentJsonMap["operate_type"].(string)
-		operate_table=operateCondContentJsonMap["operate_table"].(string)
+		if operateCondContentJsonMap["operate_type"]!=nil{
+			operate_type=operateCondContentJsonMap["operate_type"].(string)
+		}
+		if operateCondContentJsonMap["operate_table"]!=nil{
+			operate_table=operateCondContentJsonMap["operate_table"].(string)
+		}
+
 		//actionType=operateCondContentJsonMap["action_type"].(string)
 		// 动态添加列 并为每一列计算出值
 		if "DYNAMIC_ADD_COLUMN"==operate_type {
@@ -385,8 +390,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				//
 				//}
 				if option.ExtendedMap[conditionFieldKey]!=nil{
-					result:="select "+operateFunc+"('"+option.ExtendedMap[conditionFieldKey].(string)+"')"
-					fmt.Printf("result=",result)
+					updateSql:="select "+operateFunc+"('"+option.ExtendedMap[conditionFieldKey].(string)+"')"
+					result,errorMessage:=api.ExecFunc(updateSql)
+					fmt.Printf("result=",result,"errorMessage=",errorMessage)
 				}
 
 				//rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
