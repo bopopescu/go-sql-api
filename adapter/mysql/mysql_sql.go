@@ -288,6 +288,9 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 
 		for i,item:=range groupFuncs{
 			if len(opt.Fields)>0{
+				if strings.Contains(item,"-"){
+					item=strings.Replace(item,"-",",",-1)
+				}
 				if i>=1{
 					iStr:=strconv.Itoa(i)
 					fs[i+index+1] = item+" as p"+iStr
