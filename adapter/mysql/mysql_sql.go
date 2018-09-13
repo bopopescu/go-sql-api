@@ -287,10 +287,10 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	if opt.GroupFunc!=""{
 
 		for i,item:=range groupFuncs{
+			if strings.Contains(item,"-"){
+				item=strings.Replace(item,"-",",",-1)
+			}
 			if len(opt.Fields)>0{
-				if strings.Contains(item,"-"){
-					item=strings.Replace(item,"-",",",-1)
-				}
 				if i>=1{
 					iStr:=strconv.Itoa(i)
 					fs[i+index+1] = item+" as p"+iStr
@@ -299,7 +299,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 				}
 
 			}else{
-				fs[i+index] = opt.GroupFunc+" as p"
+				fs[i+index] = item+" as p"
 			}
 		}
 
