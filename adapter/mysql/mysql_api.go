@@ -2056,6 +2056,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					fmt.Printf("repeatCalculateData",repeatCalculateData)
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
+				  	accountYear:=repeatItem["account_period_year"]
 				  	fmt.Printf("id=",id)
 				  	if isNewCreatedSlaveId==id{
 				  		continue
@@ -2637,6 +2638,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 									paramsMap["subject_key_pre"]=pre_subject_key
 									//把对象的所有属性的值拼成字符串
+									paramsMap["id"]=id
+									paramsMap["account_period_year"]=accountYear
 									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 									delete(asyncObjectMap,"subject_key_pre")
 									if pre_subject_key!="" && pre_subject_key!=in_subject_key{
