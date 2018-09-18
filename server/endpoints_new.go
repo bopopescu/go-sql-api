@@ -657,7 +657,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							}
 
 
-
+							asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 							if id0==""{
 								if id1!=""{
@@ -730,7 +730,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 								}
 							}
-
+							asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 							if id0==""{
 								if id1!=""{
