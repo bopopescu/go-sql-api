@@ -433,6 +433,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 			for _,repeatItem:=range repeatCalculateData{
 				id:=repeatItem["id"]
+				accountYear:=repeatItem["account_period_year"]
 				fmt.Printf("repeatId=",id)
 				for _,operate:=range operates {
 					asyncObjectMap:=make(map[string]interface{})//构建同步数据对象
@@ -470,7 +471,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							operate_func=operateCondContentJsonMap["operate_func"].(string)
 						}
 					}
-
+					account_period_num:=masterInfoMap["account_period_num"]
 					//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
 					if "ASYNC_BATCH_SAVE"==operate_type{
 						asyncObjectMap=mysql.BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
@@ -532,6 +533,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 						fmt.Printf("calculate_func",calculate_func)
 						var paramStr string
 						paramsMap:=make(map[string]interface{})
+						periodNum,_:=strconv.Atoi(account_period_num.(string))
+						beginLineNum:=0-periodNum
 						// funcParamFields
 						if calculate_func!=""{
 							// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
@@ -540,7 +543,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
-							asyncObjectMap["line_number"]=0
+							asyncObjectMap["line_number"]=beginLineNum
 							asyncObjectMap["order_num"]=100
 							asyncObjectMap["summary"]="期初余额"
 							asyncObjectMap["account_period_year"]=result1
@@ -839,6 +842,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
 							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 							paramsMap["subject_key_pre"]=pre_subject_key
+
+							paramsMap["id"]=id
+							paramsMap["account_period_year"]=accountYear
 							//把对象的所有属性的值拼成字符串
 							paramStr=mysql.ConcatObjectProperties(funcParamFields,paramsMap)
 							delete(asyncObjectMap,"subject_key_pre")
