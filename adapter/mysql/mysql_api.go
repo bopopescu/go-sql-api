@@ -1664,7 +1664,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 	}
 
-
+	var isCaledPreSubjectKey string
 	for i, slave := range slaveInfoMap {
 		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
@@ -2053,10 +2053,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 				  }
+
 					fmt.Printf("repeatCalculateData",repeatCalculateData)
 				    for _,repeatItem:=range repeatCalculateData{
 				  	id:=repeatItem["id"]
-				  	accountYear:=repeatItem["account_period_year"]
+				  //	accountYear:=repeatItem["account_period_year"]
 				  	fmt.Printf("id=",id)
 				  	if isNewCreatedSlaveId==id{
 				  		continue
@@ -2616,45 +2617,62 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							}
 							// ASYNC_BATCH_SAVE_SUBJECT_PRE
 						if "ASYNC_BATCH_SAVE_SUBJECT_PRE"==operate_type{
-								asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
-								slave["subject_key_pre"]=slave["subject_key"]
-								fmt.Printf("operate_table",operate_table)
-								fmt.Printf("calculate_field",calculate_field)
-								fmt.Printf("calculate_func",calculate_func)
+							  // 如果上一级科目一样 且不是当前id  需要重新计算上级科目余额
+							var repeatCalculatePreData []map[string]interface{}
+							repeatCalculatePreData=append(repeatCalculatePreData,repeatItem)
 
-								var paramStr string
-								paramsMap:=make(map[string]interface{})
-								// funcParamFields
-								if operate_func!=""{
+							in_subject_key:=repeatItem["subject_key"].(string)
+							in_farm_id:=repeatItem["farm_id"].(string)
+							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
-									//如果执行方法不为空 执行配置中方法
-									paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-									paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
-
-									in_subject_key:=paramsMap["subject_key"].(string)
-									in_farm_id:=paramsMap["farm_id"].(string)
-									obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-									pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
-									paramsMap["subject_key_pre"]=pre_subject_key
-									//把对象的所有属性的值拼成字符串
-									paramsMap["id"]=id
-									paramsMap["account_period_year"]=accountYear
-									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
-									delete(asyncObjectMap,"subject_key_pre")
-									if pre_subject_key!="" && pre_subject_key!=in_subject_key{
-										// 直接执行func 所有逻辑在func处理
-										operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-										result:=api.ExecFuncForOne(operate_func_sql,"result")
-										fmt.Printf("operate_func_sql-result",result)
-									}
-
-
-
-
+							subjectKeyPreWhereOption := map[string]WhereOperation{}
+							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+								Operation: "gte",
+								Value:     repeatItem["account_period_year"],
+							}
+							subjectKeyPreWhereOption["subject_key_pre"] = WhereOperation{
+								Operation: "eq",
+								Value:     pre_subject_key,
+							}
+							subjectKeyPreWhereOption["farm_id"] = WhereOperation{
+								Operation: "eq",
+								Value:     in_farm_id,
+							}
+							subjectKeyPreWhereOption["voucher_type"] = WhereOperation{
+								Operation: "gt",
+								Value:     "0",
+							}
+							subjectKeyPreWhereOption["subject_key"] = WhereOperation{
+								Operation: "neq",
+								Value:     pre_subject_key,
+							}
+							subjectKeyPreWhereOption["id"] = WhereOperation{
+								Operation: "neq",
+								Value:     id,
+							}
+							preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+							 orders:=make(map[string]string)
+							orders["N1account_period_num"]="ASC"
+							orders["N2account_period_year"]="ASC"
+							orders["N3order_num"]="ASC"
+							orders["N4line_number"]="ASC"
+							preOption.Orders=orders
+							preData, errorMessage:= api.Select(preOption)
+							fmt.Printf("errorMessage=",errorMessage)
+							for _,item:=range preData{
+								repeatCalculatePreData=append(repeatCalculatePreData,item)
+							}
+							for _,item:=range repeatCalculatePreData{
+								if item["id"]!=nil && isCaledPreSubjectKey!=item["id"].(string){
+									CalculatePre(api,item,funcParamFields,pre_subject_key,operate_func)
+									isCaledPreSubjectKey=item["id"].(string)
 								}
 
+							}
 
+
+							delete(asyncObjectMap,"subject_key_pre")
 							}
 
 					}
@@ -2672,6 +2690,48 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	// 异步执行任务
 
 	return rowAaffect,nil
+
+}
+func CalculatePre(api *MysqlAPI,repeatItem map[string]interface{},funcParamFields [10]string,pre_subject_key string,operate_func string){
+
+//	asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+	//asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+	//slave["subject_key_pre"]=slave["subject_key"]
+	////fmt.Printf("operate_table",operate_table)
+	//fmt.Printf("calculate_field",calculate_field)
+	//fmt.Printf("calculate_func",calculate_func)
+
+	paramsMap:=make(map[string]interface{})
+	// funcParamFields
+	if operate_func!=""{
+
+		//如果执行方法不为空 执行配置中方法
+		paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+		in_subject_key:=paramsMap["subject_key"].(string)
+		if pre_subject_key==in_subject_key{
+			return
+		}
+
+	//	in_farm_id:=paramsMap["farm_id"].(string)
+		//obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+		//pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+		paramsMap["subject_key_pre"]=pre_subject_key
+		//把对象的所有属性的值拼成字符串
+		paramsMap["id"]=repeatItem["id"]
+		paramsMap["account_period_year"]=repeatItem["account_period_year"]
+		paramStr:=ConcatObjectProperties(funcParamFields,paramsMap)
+
+		if pre_subject_key!="" && pre_subject_key!=in_subject_key{
+			// 直接执行func 所有逻辑在func处理
+			operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
+			result:=api.ExecFuncForOne(operate_func_sql,"result")
+			fmt.Printf("operate_func_sql-result",result)
+		}
+
+
+
+
+	}
 
 }
 func (api *MysqlAPI) CreateTableStructure(execSql string) (errorMessage *ErrorMessage) {
