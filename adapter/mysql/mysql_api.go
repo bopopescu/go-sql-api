@@ -1846,8 +1846,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 // credit_funds
+				in_subject_key_s:=slave["subject_key"].(string)
+				in_farm_id_s:=masterInfoMap["farm_id"].(string)
+				obtianPreSubjectSqls:="select obtainPreSubjectKey('"+in_subject_key_s+"','"+in_farm_id_s+"'"+") as pre_subject_key;"
+				pre_subject_key_s:=api.ExecFuncForOne(obtianPreSubjectSqls,"pre_subject_key")
 
-				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0 || len(subjectKeyExists)>0){
+				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0 || len(subjectKeyExists)>0|| pre_subject_key_s!=in_subject_key_s){
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
