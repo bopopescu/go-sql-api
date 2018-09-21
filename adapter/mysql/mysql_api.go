@@ -1668,6 +1668,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	for i, slave := range slaveInfoMap {
 		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
+		judgeExistsFundsOrWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption["id"] = WhereOperation{
 			Operation: "eq",
 			Value:     slave["id"],
@@ -1675,27 +1676,18 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		judgeFundsQuerOption0 := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
 		latestSlave, errorMessage:= api.Select(judgeFundsQuerOption0)
 
-		judgeExistsFundsWhereOption["debit_funds"] = WhereOperation{
-			Operation: "eq",
+		judgeExistsFundsOrWhereOption["debit_funds"] = WhereOperation{
+			Operation: "neq",
 			Value:     slave["debit_funds"],
+		}
+		judgeExistsFundsOrWhereOption["credit_funds"] = WhereOperation{
+			Operation: "neq",
+			Value:     slave["credit_funds"],
 		}
 
 		judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
 		fundsExists, errorMessage:= api.Select(judgeFundsQuerOption)
 
-		judgeExistsFundsWhereOption1 := map[string]WhereOperation{}
-		judgeExistsFundsWhereOption1["id"] = WhereOperation{
-			Operation: "eq",
-			Value:     slave["id"],
-		}
-
-		judgeExistsFundsWhereOption1["credit_funds"] = WhereOperation{
-			Operation: "eq",
-			Value:     slave["credit_funds"],
-		}
-
-		judgeFundsQuerOption1 := QueryOption{Wheres: judgeExistsFundsWhereOption1, Table: slaveTableName}
-		fundsExists1, errorMessage:= api.Select(judgeFundsQuerOption1)
 
 		judgeExistsFundsWhereOption2 := map[string]WhereOperation{}
 		judgeExistsFundsWhereOption2["id"] = WhereOperation{
@@ -1851,7 +1843,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 //				obtianPreSubjectSqls:="select obtainPreSubjectKey('"+in_subject_key_s+"','"+in_farm_id_s+"'"+") as pre_subject_key;"
 //				pre_subject_key_s:=api.ExecFuncForOne(obtianPreSubjectSqls,"pre_subject_key")
 
-				if opK!=nil &&(len(fundsExists)<=0||len(fundsExists1)<=0 ||len(fundsExists2)<=0 || len(subjectKeyExists)>0){// || pre_subject_key_s!=in_subject_key_s
+				if opK!=nil &&(len(fundsExists)>0 || len(subjectKeyExists)>0){// || pre_subject_key_s!=in_subject_key_s
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
