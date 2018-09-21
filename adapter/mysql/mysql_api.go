@@ -2051,7 +2051,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				  }
 
 					fmt.Printf("repeatCalculateData",repeatCalculateData)
+					var isCalPre bool
 				    for _,repeatItem:=range repeatCalculateData{
+
 				  	id:=repeatItem["id"]
 				  //	accountYear:=repeatItem["account_period_year"]
 				  	fmt.Printf("id=",id)
@@ -2614,140 +2616,143 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							// ASYNC_BATCH_SAVE_SUBJECT_PRE
 						if "ASYNC_BATCH_SAVE_SUBJECT_PRE"==operate_type{
 							  // 如果上一级科目一样 且不是当前id  需要重新计算上级科目余额
-							var repeatCalculatePreData []map[string]interface{}
-							var repeatCalculatePreData0 []map[string]interface{}
-							var repeatCalculatePreData1 []map[string]interface{}
-							var repeatCalculatePreData2 []map[string]interface{}
-							var repeatCalculatePreData3 []map[string]interface{}
-							repeatCalculatePreData=append(repeatCalculatePreData,repeatItem)
+							  if isCalPre==false{
+								  var repeatCalculatePreData []map[string]interface{}
+								  var repeatCalculatePreData0 []map[string]interface{}
+								  var repeatCalculatePreData1 []map[string]interface{}
+								  var repeatCalculatePreData2 []map[string]interface{}
+								  var repeatCalculatePreData3 []map[string]interface{}
+								  repeatCalculatePreData=append(repeatCalculatePreData,repeatItem)
 
-							in_subject_key:=repeatItem["subject_key"].(string)
-							in_farm_id:=repeatItem["farm_id"].(string)
-							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+								  in_subject_key:=repeatItem["subject_key"].(string)
+								  in_farm_id:=repeatItem["farm_id"].(string)
+								  obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+								  pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
-							subjectKeyPreWhereOption := map[string]WhereOperation{}
+								  subjectKeyPreWhereOption := map[string]WhereOperation{}
 
-							subjectKeyPreWhereOption["subject_key_pre"] = WhereOperation{
-								Operation: "eq",
-								Value:     pre_subject_key,
-							}
-							subjectKeyPreWhereOption["farm_id"] = WhereOperation{
-								Operation: "eq",
-								Value:     in_farm_id,
-							}
-							subjectKeyPreWhereOption["voucher_type"] = WhereOperation{
-								Operation: "gt",
-								Value:     "0",
-							}
-							subjectKeyPreWhereOption["subject_key"] = WhereOperation{
-								Operation: "neq",
-								Value:     pre_subject_key,
-							}
-							subjectKeyPreWhereOption["id"] = WhereOperation{
-								Operation: "neq",
-								Value:     id,
-							}
+								  subjectKeyPreWhereOption["subject_key_pre"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     pre_subject_key,
+								  }
+								  subjectKeyPreWhereOption["farm_id"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     in_farm_id,
+								  }
+								  subjectKeyPreWhereOption["voucher_type"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     "0",
+								  }
+								  subjectKeyPreWhereOption["subject_key"] = WhereOperation{
+									  Operation: "neq",
+									  Value:     pre_subject_key,
+								  }
+								  subjectKeyPreWhereOption["id"] = WhereOperation{
+									  Operation: "neq",
+									  Value:     id,
+								  }
 
-							var year string
-							if masterInfoMap["account_period_year"]!=nil{
-								year=repeatItem["account_period_year"].(string)[0:4]
-							}
-							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
-								Operation: "gt",
-								Value:    year+"-12-31",
-							}
-
-
-							orders:=make(map[string]string)
-							orders["N1account_period_num"]="ASC"
-							orders["N2account_period_year"]="ASC"
-							orders["N3order_num"]="ASC"
-							orders["N4line_number"]="ASC"
-							preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
-							preOption.Orders=orders
-							repeatCalculatePreData0, errorMessage:= api.Select(preOption)
-							fmt.Printf("errorMessage=",errorMessage)
+								  var year string
+								  if masterInfoMap["account_period_year"]!=nil{
+									  year=repeatItem["account_period_year"].(string)[0:4]
+								  }
+								  subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+									  Operation: "gt",
+									  Value:    year+"-12-31",
+								  }
 
 
-							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
-								Operation: "like",
-								Value:    year+"%",
-							}
-							subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
-								Operation: "gt",
-								Value:     repeatItem["account_period_num"],
-							}
-
-							preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
-							preOption.Orders=orders
-							repeatCalculatePreData1, errorMessage= api.Select(preOption)
-							fmt.Printf("errorMessage=",errorMessage)
+								  orders:=make(map[string]string)
+								  orders["N1account_period_num"]="ASC"
+								  orders["N2account_period_year"]="ASC"
+								  orders["N3order_num"]="ASC"
+								  orders["N4line_number"]="ASC"
+								  preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculatePreData0, errorMessage:= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
 
 
-							subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
-								Operation: "eq",
-								Value:     repeatItem["account_period_num"],
-							}
-							subjectKeyPreWhereOption["order_num"] = WhereOperation{
-								Operation: "gt",
-								Value:     repeatItem["order_num"],
-							}
+								  subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+									  Operation: "like",
+									  Value:    year+"%",
+								  }
+								  subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     repeatItem["account_period_num"],
+								  }
 
-							preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
-							preOption.Orders=orders
-							repeatCalculatePreData2, errorMessage= api.Select(preOption)
-							fmt.Printf("errorMessage=",errorMessage)
-
-
-							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
-								Operation: "eq",
-								Value:     repeatItem["account_period_year"],
-							}
-							subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
-								Operation: "eq",
-								Value:     repeatItem["account_period_num"],
-							}
-							subjectKeyPreWhereOption["order_num"] = WhereOperation{
-								Operation: "eq",
-								Value:     repeatItem["order_num"],
-							}
-
-							subjectKeyPreWhereOption["line_number"] = WhereOperation{
-								Operation: "gt",
-								Value:     repeatItem["line_number"],
-							}
+								  preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculatePreData1, errorMessage= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
 
 
-							preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
-							preOption.Orders=orders
-							repeatCalculatePreData3, errorMessage= api.Select(preOption)
-							fmt.Printf("errorMessage=",errorMessage)
+								  subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     repeatItem["account_period_num"],
+								  }
+								  subjectKeyPreWhereOption["order_num"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     repeatItem["order_num"],
+								  }
+
+								  preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculatePreData2, errorMessage= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
+
+
+								  subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     repeatItem["account_period_year"],
+								  }
+								  subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     repeatItem["account_period_num"],
+								  }
+								  subjectKeyPreWhereOption["order_num"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     repeatItem["order_num"],
+								  }
+
+								  subjectKeyPreWhereOption["line_number"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     repeatItem["line_number"],
+								  }
+
+
+								  preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculatePreData3, errorMessage= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
 
 
 
-							for _,item:=range repeatCalculatePreData3{
-								repeatCalculatePreData=append(repeatCalculatePreData,item)
-							}
-							for _,item:=range repeatCalculatePreData2{
-								repeatCalculatePreData=append(repeatCalculatePreData,item)
-							}
-							for _,item:=range repeatCalculatePreData1{
-								repeatCalculatePreData=append(repeatCalculatePreData,item)
-							}
-							for _,item:=range repeatCalculatePreData0{
-								repeatCalculatePreData=append(repeatCalculatePreData,item)
-							}
-							for _,item:=range repeatCalculatePreData{
-								if item["id"]!=nil && isCaledPreSubjectKey!=item["id"].(string){
-									CalculatePre(api,item,funcParamFields,pre_subject_key,operate_func)
-									isCaledPreSubjectKey=item["id"].(string)
-								}
+								  for _,item:=range repeatCalculatePreData3{
+									  repeatCalculatePreData=append(repeatCalculatePreData,item)
+								  }
+								  for _,item:=range repeatCalculatePreData2{
+									  repeatCalculatePreData=append(repeatCalculatePreData,item)
+								  }
+								  for _,item:=range repeatCalculatePreData1{
+									  repeatCalculatePreData=append(repeatCalculatePreData,item)
+								  }
+								  for _,item:=range repeatCalculatePreData0{
+									  repeatCalculatePreData=append(repeatCalculatePreData,item)
+								  }
+								  for _,item:=range repeatCalculatePreData{
+									  if item["id"]!=nil && isCaledPreSubjectKey!=item["id"].(string){
+										  CalculatePre(api,item,funcParamFields,pre_subject_key,operate_func)
+										  isCaledPreSubjectKey=item["id"].(string)
+									  }
 
-							}
+								  }
 
+								  isCalPre=false
+								  delete(asyncObjectMap,"subject_key_pre")
+							  }
 
-							delete(asyncObjectMap,"subject_key_pre")
 							}
 
 					}
