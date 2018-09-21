@@ -394,7 +394,10 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 			f=strings.Replace(f,".`lt`","",-1)
 		}
 
-		f=strings.Replace(f,"$"+w.Value.(string),"",-1)
+		if w.Value!=nil{
+			f=strings.Replace(f,"$"+w.Value.(string),"",-1)
+		}
+		
 		//rs = rs.Where(goqu.Or{f:goqu.Op{w.Operation: w.Value}})
 		//  (("a" = 10) OR ("b" = 11))
 
