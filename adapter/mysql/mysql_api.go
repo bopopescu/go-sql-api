@@ -1843,7 +1843,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 //				obtianPreSubjectSqls:="select obtainPreSubjectKey('"+in_subject_key_s+"','"+in_farm_id_s+"'"+") as pre_subject_key;"
 //				pre_subject_key_s:=api.ExecFuncForOne(obtianPreSubjectSqls,"pre_subject_key")
 
-				if opK!=nil &&(len(fundsExists)>0 || len(subjectKeyExists)>0){// || pre_subject_key_s!=in_subject_key_s
+				if opK!=nil &&(len(fundsExists)>0 && len(subjectKeyExists)>0){// || pre_subject_key_s!=in_subject_key_s
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
