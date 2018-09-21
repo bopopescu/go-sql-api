@@ -103,6 +103,8 @@ func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
 	}
 
 	sql=strings.Replace(sql,"\\","",-1)
+	sql=strings.Replace(sql,"IS 'NULL'","IS NULL",-1)
+	sql=strings.Replace(sql,"IS 'null'","IS NULL",-1)
 	//sql="SELECT `user_id`, SUM(account_log.account_funds) as totalFunds FROM `account_log`"
 	return
 }
