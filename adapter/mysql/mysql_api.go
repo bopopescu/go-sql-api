@@ -2623,6 +2623,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						if "ASYNC_BATCH_SAVE_SUBJECT_PRE"==operate_type{
 							  // 如果上一级科目一样 且不是当前id  需要重新计算上级科目余额
 							var repeatCalculatePreData []map[string]interface{}
+							var repeatCalculatePreData0 []map[string]interface{}
+							var repeatCalculatePreData1 []map[string]interface{}
+							var repeatCalculatePreData2 []map[string]interface{}
+							var repeatCalculatePreData3 []map[string]interface{}
 							repeatCalculatePreData=append(repeatCalculatePreData,repeatItem)
 
 							in_subject_key:=repeatItem["subject_key"].(string)
@@ -2631,10 +2635,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 							subjectKeyPreWhereOption := map[string]WhereOperation{}
-							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
-								Operation: "gte",
-								Value:     repeatItem["account_period_year"],
-							}
+
 							subjectKeyPreWhereOption["subject_key_pre"] = WhereOperation{
 								Operation: "eq",
 								Value:     pre_subject_key,
@@ -2655,16 +2656,94 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								Operation: "neq",
 								Value:     id,
 							}
-							preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
-							 orders:=make(map[string]string)
+
+							var year string
+							if masterInfoMap["account_period_year"]!=nil{
+								year=repeatItem["account_period_year"].(string)[0:4]
+							}
+							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+								Operation: "gt",
+								Value:    year+"-12-31",
+							}
+
+
+							orders:=make(map[string]string)
 							orders["N1account_period_num"]="ASC"
 							orders["N2account_period_year"]="ASC"
 							orders["N3order_num"]="ASC"
 							orders["N4line_number"]="ASC"
+							preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
 							preOption.Orders=orders
-							preData, errorMessage:= api.Select(preOption)
+							repeatCalculatePreData0, errorMessage:= api.Select(preOption)
 							fmt.Printf("errorMessage=",errorMessage)
-							for _,item:=range preData{
+
+
+							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+								Operation: "like",
+								Value:    year+"%",
+							}
+							subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
+								Operation: "gt",
+								Value:     repeatItem["account_period_num"],
+							}
+
+							preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+							preOption.Orders=orders
+							repeatCalculatePreData1, errorMessage= api.Select(preOption)
+							fmt.Printf("errorMessage=",errorMessage)
+
+
+							subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
+								Operation: "eq",
+								Value:     repeatItem["account_period_num"],
+							}
+							subjectKeyPreWhereOption["order_num"] = WhereOperation{
+								Operation: "gt",
+								Value:     repeatItem["order_num"],
+							}
+
+							preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+							preOption.Orders=orders
+							repeatCalculatePreData2, errorMessage= api.Select(preOption)
+							fmt.Printf("errorMessage=",errorMessage)
+
+
+							subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
+								Operation: "eq",
+								Value:     repeatItem["account_period_year"],
+							}
+							subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
+								Operation: "eq",
+								Value:     repeatItem["account_period_num"],
+							}
+							subjectKeyPreWhereOption["order_num"] = WhereOperation{
+								Operation: "eq",
+								Value:     repeatItem["order_num"],
+							}
+
+							subjectKeyPreWhereOption["line_number"] = WhereOperation{
+								Operation: "gt",
+								Value:     repeatItem["line_number"],
+							}
+
+
+							preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
+							preOption.Orders=orders
+							repeatCalculatePreData3, errorMessage= api.Select(preOption)
+							fmt.Printf("errorMessage=",errorMessage)
+
+
+
+							for _,item:=range repeatCalculatePreData3{
+								repeatCalculatePreData=append(repeatCalculatePreData,item)
+							}
+							for _,item:=range repeatCalculatePreData2{
+								repeatCalculatePreData=append(repeatCalculatePreData,item)
+							}
+							for _,item:=range repeatCalculatePreData1{
+								repeatCalculatePreData=append(repeatCalculatePreData,item)
+							}
+							for _,item:=range repeatCalculatePreData0{
 								repeatCalculatePreData=append(repeatCalculatePreData,item)
 							}
 							for _,item:=range repeatCalculatePreData{
