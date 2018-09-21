@@ -1664,7 +1664,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 	}
 
-	var isCaledPreSubjectKey string
+	 calpreMap:=make(map[string]interface{})
 	for i, slave := range slaveInfoMap {
 		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
@@ -2742,9 +2742,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									  repeatCalculatePreData=append(repeatCalculatePreData,item)
 								  }
 								  for _,item:=range repeatCalculatePreData{
-									  if item["id"]!=nil && isCaledPreSubjectKey!=item["id"].(string){
+									  if item["id"]!=nil && (calpreMap[item["id"].(string)]==nil){
 										  CalculatePre(api,item,funcParamFields,pre_subject_key,operate_func)
-										  isCaledPreSubjectKey=item["id"].(string)
+										  calpreMap[item["id"].(string)]=item["id"].(string)
+									  }else if item["id"]!=nil && calpreMap[item["id"].(string)]!=item["id"].(string){
+										  CalculatePre(api,item,funcParamFields,pre_subject_key,operate_func)
+										  calpreMap[item["id"].(string)]=item["id"].(string)
 									  }
 
 								  }
