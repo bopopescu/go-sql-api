@@ -1685,7 +1685,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			Value:     slave["credit_funds"],
 		}
 
-		judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption, Table: slaveTableName}
+		judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption,OrWheres:judgeExistsFundsOrWhereOption, Table: slaveTableName}
 		fundsExists, errorMessage:= api.Select(judgeFundsQuerOption)
 
 
