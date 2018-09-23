@@ -1621,48 +1621,48 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		fmt.Printf("errorMessage=",errorMessage)
 	}
 	//
-	if masterTableName=="account_voucher"{
-		periodYearUpdatedWhere:=make(map[string]WhereOperation)
-		periodYearUpdatedWhere["account_id"]=WhereOperation{
-			Operation:"eq",
-			Value:masterInfoMap["account_id"],
-		}
-		periodYearUpdatedWhere["account_period_year"]=WhereOperation{
-			Operation:"neq",
-			Value:masterInfoMap["account_period_year"],
-		}
-
-		var queryOptionperiodYearUpdated QueryOption
-
-		queryOptionperiodYearUpdated.Wheres=whereOption0
-		queryOptionperiodYearUpdated.Table=slaveTableName+"_category_merge"
-		rsYearUpdate,errorMessage:=api.Select(queryOptionperiodYearUpdated)
-		fmt.Printf("rsYearUpdate=",rsYearUpdate,"errorMessage=",errorMessage)
-
-		if len(rsYearUpdate)>0{
-			var queryOptionAppendDeletedVoucher QueryOption
-			whereOptionAppendDeletedVoucher:=make(map[string]WhereOperation)
-			whereOptionAppendDeletedVoucher["account_id"] = WhereOperation{
-				Operation: "eq",
-				Value:     masterInfoMap["account_id"],
-			}
-
-			queryOptionAppendDeletedVoucher.Wheres=whereOptionAppendDeletedVoucher
-			queryOptionAppendDeletedVoucher.Table=slaveTableName
-			appendDeletedVoucher,errorMessage:=api.Select(queryOptionAppendDeletedVoucher)
-			fmt.Printf("appendDeletedVoucher-errorMessage",errorMessage)
-			var ids []string
-			var deleteEdOption QueryOption
-			for _,item:=range appendDeletedVoucher{
-				ids=append(ids,item["id"].(string))
-				deleteEdOption.Ids=ids
-			}
-
-			PreEvent(api,slaveTableName,"PUT",nil,deleteEdOption,"")
-
-		}
-
-	}
+	//if masterTableName=="account_voucher"{
+	//	periodYearUpdatedWhere:=make(map[string]WhereOperation)
+	//	periodYearUpdatedWhere["account_id"]=WhereOperation{
+	//		Operation:"eq",
+	//		Value:masterInfoMap["account_id"],
+	//	}
+	//	periodYearUpdatedWhere["account_period_year"]=WhereOperation{
+	//		Operation:"neq",
+	//		Value:masterInfoMap["account_period_year"],
+	//	}
+	//
+	//	var queryOptionperiodYearUpdated QueryOption
+	//
+	//	queryOptionperiodYearUpdated.Wheres=whereOption0
+	//	queryOptionperiodYearUpdated.Table=slaveTableName+"_category_merge"
+	//	rsYearUpdate,errorMessage:=api.Select(queryOptionperiodYearUpdated)
+	//	fmt.Printf("rsYearUpdate=",rsYearUpdate,"errorMessage=",errorMessage)
+	//
+	//	if len(rsYearUpdate)>0{
+	//		var queryOptionAppendDeletedVoucher QueryOption
+	//		whereOptionAppendDeletedVoucher:=make(map[string]WhereOperation)
+	//		whereOptionAppendDeletedVoucher["account_id"] = WhereOperation{
+	//			Operation: "eq",
+	//			Value:     masterInfoMap["account_id"],
+	//		}
+	//
+	//		queryOptionAppendDeletedVoucher.Wheres=whereOptionAppendDeletedVoucher
+	//		queryOptionAppendDeletedVoucher.Table=slaveTableName
+	//		appendDeletedVoucher,errorMessage:=api.Select(queryOptionAppendDeletedVoucher)
+	//		fmt.Printf("appendDeletedVoucher-errorMessage",errorMessage)
+	//		var ids []string
+	//		var deleteEdOption QueryOption
+	//		for _,item:=range appendDeletedVoucher{
+	//			ids=append(ids,item["id"].(string))
+	//			deleteEdOption.Ids=ids
+	//		}
+	//
+	//		PreEvent(api,slaveTableName,"PUT",nil,deleteEdOption,"")
+	//
+	//	}
+	//
+	//}
 
 	 calpreMap:=make(map[string]interface{})
 	 calpreMap["initid"]="initid"
