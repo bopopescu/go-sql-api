@@ -2058,9 +2058,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				  	id:=repeatItem["id"]
 				  //	accountYear:=repeatItem["account_period_year"]
 				  	fmt.Printf("id=",id)
-				  	if isNewCreatedSlaveId==id{
-				  		continue
-					}
+				  	//if isNewCreatedSlaveId==id{
+				  	//	continue
+					//}
 						//  删掉 本期合计 本年累计  重新计算
                       // order_num为空说明是累计数
 
@@ -2129,7 +2129,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								}
 							}
 						//如果是 operate_type ASYNC_BATCH_SAVE 同步批量保存并计算值
-						if "ASYNC_BATCH_SAVE"==operate_type {
+						if isNewCreatedSlaveId!=id&&"ASYNC_BATCH_SAVE"==operate_type {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -2195,7 +2195,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 							account_period_num:=masterInfoMap["account_period_num"]
 							// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
-						 if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type {
+						 if isNewCreatedSlaveId!=id&&"ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type {
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 								asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -2367,7 +2367,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 
 							// ASYNC_BATCH_SAVE_CURRENT_PEROID 计算指定配置的值
-						if "ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type {
+						if isNewCreatedSlaveId!=id&&"ASYNC_BATCH_SAVE_CURRENT_PEROID"==operate_type {
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
@@ -2448,7 +2448,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 						}
 
 						// ASYNC_BATCH_SAVE_CURRENT_YEAR
-						if "ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type{
+						if isNewCreatedSlaveId!=id&&"ASYNC_BATCH_SAVE_CURRENT_YEAR"==operate_type{
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 							asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
