@@ -1688,6 +1688,23 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 		judgeFundsQuerOption := QueryOption{Wheres: judgeExistsFundsWhereOption,OrWheres:judgeExistsFundsOrWhereOption, Table: slaveTableName}
 		fundsExists, errorMessage:= api.Select(judgeFundsQuerOption)
+// 修改科目
+
+		judgeExistsSubjectKeyWhereOption := map[string]WhereOperation{}
+
+		judgeExistsSubjectKeyWhereOption["id"] = WhereOperation{
+			Operation: "eq",
+			Value:     slave["id"],
+		}
+		judgeExistsSubjectKeyWhereOption["subject_key"] = WhereOperation{
+			Operation: "neq",
+			Value:     slave["subject_key"],
+		}
+		judgeSubjectKeyQuerOption0 := QueryOption{Wheres: judgeExistsSubjectKeyWhereOption, Table: slaveTableName}
+		updatedSubjectRs, errorMessage:= api.Select(judgeSubjectKeyQuerOption0)
+
+
+
 
 
 		judgeExistsFundsWhereOption2 := map[string]WhereOperation{}
@@ -1844,7 +1861,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 //				obtianPreSubjectSqls:="select obtainPreSubjectKey('"+in_subject_key_s+"','"+in_farm_id_s+"'"+") as pre_subject_key;"
 //				pre_subject_key_s:=api.ExecFuncForOne(obtianPreSubjectSqls,"pre_subject_key")
 
-				if opK!=nil &&(len(fundsExists)>0 && len(subjectKeyExists)>0){// || pre_subject_key_s!=in_subject_key_s
+				if opK!=nil &&((len(fundsExists)>0 && len(subjectKeyExists)>0)||len(updatedSubjectRs)>=0){// || pre_subject_key_s!=in_subject_key_s
 					for _, item := range opK {
 						operate_condition := item["operate_condition"].(string)
 						operate_content := item["operate_content"].(string)
@@ -2750,7 +2767,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								  }
 
-								  isCalPre=false
+								  isCalPre=true
 								  delete(asyncObjectMap,"subject_key_pre")
 							  }
 
