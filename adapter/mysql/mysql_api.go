@@ -2603,21 +2603,29 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								nextYearKnots:=make(map[string]interface{})
 								nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
 								nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
-								if judgeNeedUpdateNextKnotsId!=""{
+
+								if asyncObjectMap["account_period_num"].(string)=="12"{
 									nextYearKnots=asyncObjectMap
 									nextYearKnots["line_number"]=102
 									nextYearKnots["summary"]="结转下年"
 									nextYearKnots["account_period_year"]=nextYearKnotsResult
-									nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
 
 									paramsMap["account_period_num"]="12"
 									paramsMap["account_period_year"]=nextYearKnotsResult
 									paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 									asyncObjectMap=CallFunc(api,calculate_field,calculate_func,paramStr,asyncObjectMap)
 
-									r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
-									fmt.Printf("r=",r,"errorMessage=",errorMessage)
+									if judgeNeedUpdateNextKnotsId!=""{
+										nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
+										r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
+										fmt.Printf("r=",r,"errorMessage=",errorMessage)
+									}else{
+										nextYearKnots["id"]=uuid.NewV4().String()
+										r,errorMessage:=api.Create(operate_table,nextYearKnots)
+										fmt.Printf("r=",r,"errorMessage=",errorMessage)
+									}
 								}
+
 
 
 
@@ -3002,18 +3010,18 @@ func (api *MysqlAPI) SelectTotalCount(option QueryOption) (totalCount int,errorM
 	totalCount, _ = strconv.Atoi(str)
 	return
 }
-func CallFunc(api *MysqlAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
-	if strings.Contains(calculate_field,","){
-		fields:=strings.Split(calculate_field,",")
-		for index,item:=range fields{
-			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-			result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
-			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-			if result==""{
-				result="0"
-			}
-			asyncObjectMap[item]=result
-		}
-	}
-	return asyncObjectMap
-}
+//func CallFunc(api *MysqlAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
+//	if strings.Contains(calculate_field,","){
+//		fields:=strings.Split(calculate_field,",")
+//		for index,item:=range fields{
+//			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
+//			result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+//			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+//			if result==""{
+//				result="0"
+//			}
+//			asyncObjectMap[item]=result
+//		}
+//	}
+//	return asyncObjectMap
+//}

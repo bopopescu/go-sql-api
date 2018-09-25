@@ -460,3 +460,18 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	return data,nil;
 }
 
+func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
+	if strings.Contains(calculate_field,","){
+		fields:=strings.Split(calculate_field,",")
+		for index,item:=range fields{
+			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
+			result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+			if result==""{
+				result="0"
+			}
+			asyncObjectMap[item]=result
+		}
+	}
+	return asyncObjectMap
+}
