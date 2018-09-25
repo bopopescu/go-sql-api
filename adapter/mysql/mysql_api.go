@@ -2003,62 +2003,125 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							  PreEvent(api,slaveTableName,"PUT",nil,preOption,"")
 							  // latestSlave  如果修改前的科目  在同一期的历史凭证存在  需要重新计算
 							  for _,item:=range latestSlave{
-							  	  var optionQueryExists QueryOption
+								  var repeatCalculateDataUs0 []map[string]interface{}
+								  var repeatCalculateDataUs1 []map[string]interface{}
+								  var repeatCalculateDataUs2 []map[string]interface{}
+								  var repeatCalculateDataUs3 []map[string]interface{}
 
-							  	   maps:=make(map[string]WhereOperation)
-							  	   maps["farm_id"]=WhereOperation{
-							  	   	Operation:"eq",
-							  	   	Value:masterInfoMap["farm_id"],
-								   }
-								  maps["account_period_num"]=WhereOperation{
-									  Operation:"eq",
-									  Value:masterInfoMap["account_period_num"],
-								  }
-								     var buffer bytes.Buffer
-									  buffer.WriteString(string(masterInfoMap["account_period_year"].(string)[0:4]))
-									  buffer.WriteString("%")
+								  in_subject_key:=item["subject_key"].(string)
+								  in_farm_id:=masterInfoMap["farm_id"].(string)
 
-								  maps["account_period_year"]=WhereOperation{
-									  Operation:"like",
-									  Value:buffer.String(),//masterInfoMap["account_period_year"],
+
+								  UsWhereOption := map[string]WhereOperation{}
+
+								  UsWhereOption["subject_key"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     in_subject_key,
 								  }
-								  maps["subject_key"]=WhereOperation{
-									  Operation:"eq",
-									  Value:item["subject_key"],
+								  UsWhereOption["farm_id"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     in_farm_id,
 								  }
-								  maps["voucher_type"]=WhereOperation{
-									  Operation:"gt",
-									  Value:"0",
+								  UsWhereOption["voucher_type"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     "0",
 								  }
 
-								  optionQueryExists.Wheres=maps
-								  optionQueryExists.Table="account_voucher_detail_category_merge"
-								  rs,errorMessage:=api.Select(optionQueryExists)
 
-								  //maps["order_num"]=WhereOperation{
-									//  Operation:"eq",
-									//  Value:masterInfoMap["order_num"],
-								  //}
-								  //maps["line_number"]=WhereOperation{
-									//  Operation:"gt",
-									//  Value:item["line_number"],
-								  //}
-								  //rs0,errorMessage:=api.Select(optionQueryExists)
 
-								  if errorMessage!=nil{
-								  	fmt.Printf("errorMessage=",errorMessage)
-								  }else{
-								  	for _,item:=range rs{
-										repeatCalculateData=append(repeatCalculateData,item)
-									}
+								  var year string
+								  if masterInfoMap["account_period_year"]!=nil{
+									  year=masterInfoMap["account_period_year"].(string)[0:4]
+								  }
+								  UsWhereOption["account_period_year"] = WhereOperation{
+									  Operation: "gt",
+									  Value:    year+"-12-31",
+								  }
 
+
+								  orders:=make(map[string]string)
+								  orders["N1account_period_num"]="ASC"
+								  orders["N2account_period_year"]="ASC"
+								  orders["N3order_num"]="ASC"
+								  orders["N4line_number"]="ASC"
+								  preOption := QueryOption{Wheres: UsWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculateDataUs0, errorMessage:= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
+
+
+								  UsWhereOption["account_period_year"] = WhereOperation{
+									  Operation: "like",
+									  Value:    year+"%",
+								  }
+								  UsWhereOption["account_period_num"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     masterInfoMap["account_period_num"],
+								  }
+
+								  preOption = QueryOption{Wheres: UsWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculateDataUs1, errorMessage= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
+
+
+								  UsWhereOption["account_period_num"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     masterInfoMap["account_period_num"],
+								  }
+								  UsWhereOption["order_num"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     masterInfoMap["order_num"],
+								  }
+
+								  preOption = QueryOption{Wheres: UsWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculateDataUs2, errorMessage= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
+
+
+								  UsWhereOption["account_period_year"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     masterInfoMap["account_period_year"],
+								  }
+								  UsWhereOption["account_period_num"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     masterInfoMap["account_period_num"],
+								  }
+								  UsWhereOption["order_num"] = WhereOperation{
+									  Operation: "eq",
+									  Value:     masterInfoMap["order_num"],
+								  }
+
+								  UsWhereOption["line_number"] = WhereOperation{
+									  Operation: "gt",
+									  Value:     masterInfoMap["line_number"],
+								  }
+
+
+								  preOption = QueryOption{Wheres: UsWhereOption, Table: slaveTableName+"_category_merge"}
+								  preOption.Orders=orders
+								  repeatCalculateDataUs3, errorMessage= api.Select(preOption)
+								  fmt.Printf("errorMessage=",errorMessage)
+
+								  for _,item:=range repeatCalculateDataUs3{
+									  repeatCalculateData=append(repeatCalculateData,item)
+								  }
+								  for _,item:=range repeatCalculateDataUs2{
+									  repeatCalculateData=append(repeatCalculateData,item)
+								  }
+								  for _,item:=range repeatCalculateDataUs1{
+									  repeatCalculateData=append(repeatCalculateData,item)
+								  }
+								  for _,item:=range repeatCalculateDataUs0{
+									  repeatCalculateData=append(repeatCalculateData,item)
 								  }
 
 
 							  }
-							  slave=BuildMapFromObj(masterInfoMap,slave)
+						//	  slave=BuildMapFromObj(masterInfoMap,slave)
 
-							  repeatCalculateData=append(repeatCalculateData,slave)
+						//	  repeatCalculateData=append(repeatCalculateData,slave)
 
 
 						  }
