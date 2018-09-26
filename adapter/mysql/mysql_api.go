@@ -1665,6 +1665,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	//}
 
 	 calpreMap:=make(map[string]interface{})
+	 var leftRepeatData []map[string]interface{}
 	 calpreMap["initid"]="initid"
 	for i, slave := range slaveInfoMap {
 		whereOption:=make(map[string]WhereOperation)
@@ -1839,7 +1840,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var funcParamFieldStr string
 				var operateCondJsonMap map[string]interface{}
 				var operateCondContentJsonMap map[string]interface{}
-				var repeatCalculateData,leftRepeatData []map[string]interface{}
+				var repeatCalculateData []map[string]interface{}
 				var repeatCalculateData0 []map[string]interface{}
 				var repeatCalculateData1 []map[string]interface{}
 				var repeatCalculateData2 []map[string]interface{}
@@ -2852,14 +2853,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 					}
 				  }
-					c1 := make (chan int);
+
 					if count>=10{
-						leftRepeatData=repeatCalculateData[10:]
+						leftRepeatData=append(leftRepeatData,repeatCalculateData[10:]...)
 					}
-				    go AsyncFunc(api,leftRepeatData,operates,masterInfoMap,slave,calpreMap,isCalPre,count,c1)
-				}
-
-
+				 }
 
 				}
 			rowAaffect=rowAaffect+slaveRowAffect
@@ -2868,7 +2866,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	}
 	rowAaffect=rowAaffect+masterRowAffect
 	// 异步执行任务
-
+	c1 := make (chan int);
+	go AsyncFunc(api,leftRepeatData,operates,calpreMap,true,10,c1)
 	return rowAaffect,nil
 
 }

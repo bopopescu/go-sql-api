@@ -12,7 +12,7 @@ import (
 )
 
 // 异步执行
-func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[string]interface{},masterInfoMap,slave,calpreMap map[string]interface{},isCalPre bool,index int,c chan int){
+func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[string]interface{},calpreMap map[string]interface{},isCalPre bool,index int,c chan int){
 	var operate_type string
 	var operate_table string
 	var calculate_field string
@@ -163,11 +163,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					fmt.Printf("rs=",r)
 				}
 
-				asyncObjectMap["subject_key_pre"]=slave["subject_key"]
+				asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 
 			}
-			account_period_num:=masterInfoMap["account_period_num"]
+			account_period_num:=repeatItem["account_period_num"]
 			// ASYNC_BATCH_SAVE_BEGIN_PEROID 计算期初
 			if "ASYNC_BATCH_SAVE_BEGIN_PEROID"==operate_type {
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
@@ -230,7 +230,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					}
 
 
-					asyncObjectMap["subject_key_pre"]=slave["subject_key"]
+					asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 					if id0==""{
 						if idSub!=""{
 							asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid"
@@ -363,7 +363,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					asyncObjectMap["summary"]="本期合计"
 					asyncObjectMap["account_period_year"]=result1
 					//如果执行方法不为空 执行配置中方法
-					paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
+					paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 					paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 					//把对象的所有属性的值拼成字符串
 					paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
@@ -395,7 +395,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 
 					idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
-					asyncObjectMap["subject_key_pre"]=slave["subject_key"]
+					asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 					if id0==""{
 						if idSub!=""{
@@ -444,8 +444,8 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					asyncObjectMap["summary"]="本年累计"
 					asyncObjectMap["account_period_year"]=result1
 					//如果执行方法不为空 执行配置中方法
-					paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
 					paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+					//paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 					//把对象的所有属性的值拼成字符串
 					paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 
@@ -465,7 +465,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					}
 
 
-					asyncObjectMap["subject_key_pre"]=slave["subject_key"]
+					asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 					// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 					judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
@@ -533,8 +533,8 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 			if "ASYNC_BATCH_SAVE_SUBJECT_LEAVE"==operate_type {
 
 
-				asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
 				fmt.Printf("operate_table",operate_table)
 				fmt.Printf("calculate_field",calculate_field)
@@ -546,8 +546,8 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				if operate_func!="" {
 
 					//如果执行方法不为空 执行配置中方法
-					paramsMap = BuildMapFromBody(funcParamFields, masterInfoMap, paramsMap)
-					paramsMap = BuildMapFromBody(funcParamFields, slave, paramsMap)
+					paramsMap = BuildMapFromBody(funcParamFields, repeatItem, paramsMap)
+					paramsMap = BuildMapFromBody(funcParamFields, repeatItem, paramsMap)
 					//把对象的所有属性的值拼成字符串
 					paramsMap["account_period_year"]=repeatAccountYear
 					paramsMap["account_period_num"]=repeatAccountPeriodNum
@@ -564,8 +564,8 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 			}
 			// ASYNC_BATCH_SAVE_SUBJECT_TOTAL
 			if "ASYNC_BATCH_SAVE_SUBJECT_TOTAL"==operate_type{
-				asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
-				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
+				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
 				fmt.Printf("operate_table",operate_table)
 				fmt.Printf("calculate_field",calculate_field)
@@ -577,8 +577,8 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				if operate_func!=""{
 
 					//如果执行方法不为空 执行配置中方法
-					paramsMap=BuildMapFromBody(funcParamFields,masterInfoMap,paramsMap)
-					paramsMap=BuildMapFromBody(funcParamFields,slave,paramsMap)
+					paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+					paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
 					//把对象的所有属性的值拼成字符串
 					paramsMap["account_period_year"]=repeatAccountYear
 					paramsMap["account_period_num"]=repeatAccountPeriodNum
@@ -636,7 +636,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					}
 
 					var year string
-					if masterInfoMap["account_period_year"]!=nil{
+					if repeatItem["account_period_year"]!=nil{
 						year=repeatItem["account_period_year"].(string)[0:4]
 					}
 					subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
