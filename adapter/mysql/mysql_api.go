@@ -1839,7 +1839,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var funcParamFieldStr string
 				var operateCondJsonMap map[string]interface{}
 				var operateCondContentJsonMap map[string]interface{}
-				var repeatCalculateData []map[string]interface{}
+				var repeatCalculateData,leftRepeatData []map[string]interface{}
 				var repeatCalculateData0 []map[string]interface{}
 				var repeatCalculateData1 []map[string]interface{}
 				var repeatCalculateData2 []map[string]interface{}
@@ -2133,7 +2133,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 					fmt.Printf("repeatCalculateData",repeatCalculateData)
 					var isCalPre bool
-					leftRepeatData:=repeatCalculateData[10:]
+
 					var count int
 				    for index,repeatItem:=range repeatCalculateData{
 					fmt.Printf("index=",index)
@@ -2853,6 +2853,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					}
 				  }
 					c1 := make (chan int);
+					if count>=10{
+						leftRepeatData=repeatCalculateData[10:]
+					}
 				    go AsyncFunc(api,leftRepeatData,operates,masterInfoMap,slave,calpreMap,isCalPre,count,c1)
 				}
 
