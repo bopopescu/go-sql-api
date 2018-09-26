@@ -14,6 +14,7 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	patchRelatedPath := spec.PathItem{}
 	metadataPath := spec.PathItem{}
 	patchAsyncPath := spec.PathItem{}
+	patchAsyncBatchPath := spec.PathItem{}
 	patchCreateTablePath := spec.PathItem{}
 	patchCreateTableColumnPath := spec.PathItem{}
 	patchImportPath := spec.PathItem{}
@@ -162,7 +163,22 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 		},
 	)
 	paths["/api/"+databaseName+"/async/"]=patchAsyncPath
+// patchAsyncBatchPath
 
+	patchAsyncBatchPath.Get=NewOperation(
+		"exec batch async task",
+		fmt.Sprintf("批量执行指定异步任务key"),
+		fmt.Sprintf("批量执行指定异步任务key"),
+
+		append([]spec.Parameter{},NewQueryParametersForAsync()...),
+		fmt.Sprintf("执行指定异步任务key"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"string"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/async/batch"]=patchAsyncBatchPath
 	clearCachePath.Get=NewOperation(
 		"clear-cache",
 		fmt.Sprintf("清除指定key的缓存"),

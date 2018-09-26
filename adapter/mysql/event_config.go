@@ -475,3 +475,46 @@ func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func str
 	}
 	return asyncObjectMap
 }
+
+func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},funcParamFields [10]string,pre_subject_key string,operate_func string){
+
+	//	asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
+	//asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
+	//slave["subject_key_pre"]=slave["subject_key"]
+	////fmt.Printf("operate_table",operate_table)
+	//fmt.Printf("calculate_field",calculate_field)
+	//fmt.Printf("calculate_func",calculate_func)
+
+	paramsMap:=make(map[string]interface{})
+	// funcParamFields
+	if operate_func!=""{
+
+		//如果执行方法不为空 执行配置中方法
+		paramsMap=BuildMapFromBody(funcParamFields,repeatItem,paramsMap)
+		in_subject_key:=paramsMap["subject_key"].(string)
+		if pre_subject_key==in_subject_key{
+			return
+		}
+
+		//	in_farm_id:=paramsMap["farm_id"].(string)
+		//obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
+		//pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+		paramsMap["subject_key_pre"]=pre_subject_key
+		//把对象的所有属性的值拼成字符串
+		paramsMap["id"]=repeatItem["id"]
+		paramsMap["account_period_year"]=repeatItem["account_period_year"]
+		paramStr:=ConcatObjectProperties(funcParamFields,paramsMap)
+
+		if pre_subject_key!="" && pre_subject_key!=in_subject_key{
+			// 直接执行func 所有逻辑在func处理
+			operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
+			result:=api.ExecFuncForOne(operate_func_sql,"result")
+			fmt.Printf("operate_func_sql-result",result)
+		}
+
+
+
+
+	}
+
+}

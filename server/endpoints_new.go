@@ -72,6 +72,8 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
     //手动执行异步任务
 	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost)).Name = "exec async task"
+	//手动执行异步任务1
+	s.GET("/api/"+databaseName+"/async/batch", endpointTableAsyncBatch(api,redisHost)).Name = "exec batch async task"
 
 
 	//创建表
@@ -780,7 +782,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 								}
 							}
 
-							
+
 
 						}
 
@@ -1331,6 +1333,7 @@ func asyncFunc(x,y int,c chan int){
 	// 模拟异步处理耗费的时间
 	time.Sleep(5*time.Second)
 	fmt.Printf("async-test1",time.Now())
+	fmt.Printf("async-test-result=",(x+y))
 	// 向管道传值
 	c <- x + y
 }
@@ -3054,8 +3057,19 @@ func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		return c.String(http.StatusOK, "ok")
 	}
 }
+// endpointTableAsyncBatch
+func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		c1 := make (chan int);
+		arr:=[5]int{1,2,3,4,5}
+		for _,item:=range arr{
+			go asyncFunc(item,item,c1)
+		}
 
 
+		return c.String(http.StatusOK, "ok")
+	}
+}
 func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
