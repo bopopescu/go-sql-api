@@ -2138,7 +2138,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					var count int
 				    for index,repeatItem:=range repeatCalculateData{
 					fmt.Printf("index=",index)
-					if index==10{
+					if index==2{
 						count=index
 						break
 					}
@@ -2854,8 +2854,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 					}
 				  }
 
-					if count>=10{
-						leftRepeatData=append(leftRepeatData,repeatCalculateData[10:]...)
+					if count>=2{
+						leftRepeatData=append(leftRepeatData,repeatCalculateData[2:]...)
 					}
 				 }
 
