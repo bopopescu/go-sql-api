@@ -429,7 +429,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 				}
 			}
-			if action_type=="UPDATE_ACCOUNT_RECORD"{
+			if action_type=="UPDATE_RECORD"{
 				updateWhere:=make(map[string]WhereOperation)
 				if option.ExtendedMap[conditionFieldKey]!=nil{
 					updateWhere[conditionFieldKey]=WhereOperation{
@@ -538,14 +538,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				Operation:"neq",
 				Value:"2",
 			}
-			var service_id string
-			if option.ExtendedMap["service_id"]!=nil{
-				service_id=option.ExtendedMap["service_id"].(string)
-			}
-			whereOption0["service_id"]=WhereOperation{
-				Operation:"eq",
-				Value:service_id,
-			}
 
 			querOption0 := QueryOption{Wheres: whereOption0, Table: "customer_related_view"}
 			rsQuery0, errorMessage:= api.Select(querOption0)
@@ -568,6 +560,10 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			whereOption["first_level_norm"]=WhereOperation{
 				Operation:"like",
 				Value:"%"+tableName+"%",
+			}
+			whereOption["is_enable"]=WhereOperation{
+				Operation:"eq",
+				Value:"1",
 			}
 			querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
 			rsQuery, errorMessage:= api.Select(querOption)
@@ -609,7 +605,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					// 如果二级指标只有一个字段参与计算
 
 						if pre_operate_func!=""{
-							pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],option.ExtendedMap)+"','"+conditionFieldKeyValue+"','"+service_id+"') as result;"
+							pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],option.ExtendedMap)+"','"+conditionFieldKeyValue+"') as result;"
 							result=api.ExecFuncForOne(pre_operate_func_sql,"result")
 						}
 						if result==""{
@@ -630,14 +626,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 					}
 					if pre_operate_func!=""{
-						pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"','"+service_id+"') as result;"
+						pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"') as result;"
 						result=api.ExecFuncForOne(pre_operate_func_sql,"result")
 					}
 
 				}
 
 				fmt.Printf("errorMessage=",errorMessage)
-				operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+service_id+"','"+credit_level_model_id+"') as result;"
+				operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+credit_level_model_id+"') as result;"
 				result1:=api.ExecFuncForOne(operate_func_sql,"result")
 				fmt.Printf("result1=",result1)
 

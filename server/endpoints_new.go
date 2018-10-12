@@ -2402,8 +2402,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
         // 前置事件
 		var option QueryOption
-		option.ExtendedMap=payload
-		mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
+
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 		primaryColumns:=meta.GetPrimaryColumns()
 		var priId string
@@ -2424,6 +2423,8 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				break;//取第一个主键
 			}
 		}
+		option.ExtendedMap=payload
+		mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
 		if meta.HaveField("create_time"){
 			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
