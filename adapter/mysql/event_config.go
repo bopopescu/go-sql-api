@@ -74,6 +74,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 		}
 
+
 		var conditionFieldKeyValue string
 		if strings.Contains(conditionFieldKey,"="){
 			arr:=strings.Split(conditionFieldKey,"=")
@@ -103,6 +104,75 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}
 		}
 		// UPDATE_MASTER
+		if "JUDGE"==conditionType{
+			for _,item:= range conditionFiledArr{
+				if item!=""{
+					fieldList.PushBack(item)
+				}
+			}
+			//  从配置里获取要判断的字段 并返回对象
+			whereOption := map[string]WhereOperation{}
+			for e := fieldList.Front(); e != nil; e = e.Next() {
+				whereOption[e.Value.(string)] = WhereOperation{
+					Operation: "eq",
+					Value:     option.ExtendedMap[e.Value.(string)].(string),
+				}
+			}
+			querOption := QueryOption{Wheres: whereOption, Table: tableName}
+			rsQuery, errorMessage:= api.Select(querOption)
+			if errorMessage!=nil{
+				fmt.Printf("errorMessage", errorMessage)
+			}else{
+				fmt.Printf("rs", rsQuery)
+			}
+			operate_type:=operateCondContentJsonMap["operate_type"].(string)
+			pri_key:=operateCondContentJsonMap["pri_key"].(string)
+			var pri_key_value string
+			action_type:=operateCondContentJsonMap["action_type"].(string)
+			action_field:=operateCondContentJsonMap["action_field"].(string)
+
+
+			action_field_value1:=option.ExtendedMap[action_field].(float64)
+			fmt.Printf("action_field_value1",action_field_value1)
+			action_field_value1_int:=int(action_field_value1)
+
+
+			var action_field_value int
+			// 操作类型是更新 动作类型是累加
+			if operate_type=="UPDATE"{
+				if action_type=="ACC"{
+					for _,rsQ:=range rsQuery {
+						pri_key_value=rsQ[pri_key].(string)
+						action_field_value0:= rsQ[action_field].(string)
+						action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
+
+						if err0!=nil{
+							fmt.Printf("err0",err0)
+						}
+						action_field_value=action_field_value0_int+action_field_value1_int
+						break
+					}
+				}
+				actionFiledMap:= map[string]interface{}{}
+				actionFiledMap[action_field]=action_field_value
+				if pri_key_value!=""{
+					rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
+					if err!=nil{
+						fmt.Print("err=",err)
+					}
+
+					rowesAffected,error:=rsU.RowsAffected()
+					fmt.Printf("rowesAffected=",rowesAffected)
+					if error!=nil{
+						fmt.Printf("err=",error)
+					}
+
+				}
+
+			}
+		}
+
+
 	}
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
@@ -180,6 +250,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			conditionFieldKeyValue=arr[1]
 		}
 
+		if conditionFieldKeyValue==""{
+			if option.ExtendedMap[conditionFieldKey]!=nil{
+				conditionFieldKeyValue=option.ExtendedMap[conditionFieldKey].(string)
+			}
+		}
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
 		if operateCondContentJsonMap["operate_type"]!=nil{
@@ -421,7 +496,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 
 		}
-
 		if "OBTAIN_FROM_LOCAL" == conditionType {
 			for _, item := range conditionFiledArr {
 				if item != "" {
@@ -452,6 +526,128 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 			//	return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
 		}
+         // CAL_CREDIT_SCORE_LEVEL
+        if "CAL_CREDIT_SCORE_LEVEL"==operate_type{
+			// 根据每一行构建查询条件
+			whereOption0 := map[string]WhereOperation{}
+			whereOption0[conditionFieldKey]=WhereOperation{
+				Operation:"eq",
+				Value:option.ExtendedMap[conditionFieldKey],
+			}// rating_status
+			whereOption0["rating_status"]=WhereOperation{
+				Operation:"neq",
+				Value:"2",
+			}
+			var service_id string
+			if option.ExtendedMap["service_id"]!=nil{
+				service_id=option.ExtendedMap["service_id"].(string)
+			}
+			whereOption0["service_id"]=WhereOperation{
+				Operation:"eq",
+				Value:service_id,
+			}
+
+			querOption0 := QueryOption{Wheres: whereOption0, Table: "customer_related_view"}
+			rsQuery0, errorMessage:= api.Select(querOption0)
+			var farm_type string
+			for _,item:=range rsQuery0{
+				fmt.Printf("item=",item)
+				farm_type=item["farm_type"].(string)
+				break
+			}
+
+
+			// customer_type
+			option.Table=conditionTable
+			// 根据每一行构建查询条件
+			whereOption := map[string]WhereOperation{}
+			whereOption["farm_type"]=WhereOperation{
+				Operation:"eq",
+				Value:farm_type,
+			}
+			whereOption["first_level_norm"]=WhereOperation{
+				Operation:"like",
+				Value:"%"+tableName+"%",
+			}
+			querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
+			rsQuery, errorMessage:= api.Select(querOption)
+			if errorMessage!=nil{
+				fmt.Printf("errorMessage", errorMessage)
+			}else{
+				fmt.Printf("rs", rsQuery)
+			}
+			for _,item:=range rsQuery{
+				fmt.Printf("item=",item)
+				 credit_level_model_id:=item["credit_level_model_id"].(string)
+				var extraOperateMap map[string]interface{}
+				var pre_operate_func string
+
+				var operate_func string
+
+				extra:=item["extra"].(string)// {"pre_operate_func":"obtainAge","judge_type":"between","operate_type":"eq","operate_func":"calScore"}
+				if(extra!=""){
+					json.Unmarshal([]byte(extra), &extraOperateMap)
+				}
+				if extraOperateMap["pre_operate_func"]!=nil{
+					pre_operate_func=extraOperateMap["pre_operate_func"].(string)
+				}
+
+				if extraOperateMap["operate_type"]!=nil{
+					operate_type=extraOperateMap["operate_type"].(string)
+				}
+				if extraOperateMap["operate_func"]!=nil{
+					operate_func=extraOperateMap["operate_func"].(string)
+				}
+				// second_level_norm
+				second_level_norm:=item["second_level_norm"].(string)
+				second_level_norm_arr:=strings.Split(second_level_norm,"-")
+				// 如果二级指标有值 则进行处理
+				var result string
+
+				if len(second_level_norm_arr)==1{
+					if option.ExtendedMap[second_level_norm_arr[0]]!=nil{
+					// 如果二级指标只有一个字段参与计算
+
+						if pre_operate_func!=""{
+							pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],option.ExtendedMap)+"','"+conditionFieldKeyValue+"','"+service_id+"') as result;"
+							result=api.ExecFuncForOne(pre_operate_func_sql,"result")
+						}
+						if result==""{
+							result=ConverStrFromMap(second_level_norm_arr[0],option.ExtendedMap)
+						}
+
+					}
+				}else if len(second_level_norm_arr)>1{
+					// 如果二级指标有多个字段参与计算
+					//fmt.Printf("judge_type=",judge_type," judge_content=",judge_content)
+					var paramStr string
+					for index,item:=range second_level_norm_arr{
+						if index==(len(second_level_norm_arr)-1){
+							paramStr=paramStr+"'"+ConverStrFromMap(item,option.ExtendedMap)+"'"
+						}else{
+							paramStr=paramStr+"'"+ConverStrFromMap(item,option.ExtendedMap)+"',"
+						}
+
+					}
+					if pre_operate_func!=""{
+						pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"','"+service_id+"') as result;"
+						result=api.ExecFuncForOne(pre_operate_func_sql,"result")
+					}
+
+				}
+
+				fmt.Printf("errorMessage=",errorMessage)
+				operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+service_id+"','"+credit_level_model_id+"') as result;"
+				result1:=api.ExecFuncForOne(operate_func_sql,"result")
+				fmt.Printf("result1=",result1)
+
+ 
+
+			}
+
+
+		}
+
 
 	}
 

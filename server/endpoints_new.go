@@ -22,9 +22,6 @@ import (
 	"github.com/garyburd/redigo/redis"
 
 	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
-	//	"container/list"
-	"container/list"
-
 	"time"
 //	"github.com/shiyongabc/go-mysql-api/async"
 //	"context"
@@ -2403,100 +2400,12 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
-		// 前置条件处理
-		operates,errorMessage:=	mysql.SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,"POST")
-		var operate_condition string
-		var operate_content string
-
-		for _,operate:=range operates {
-			operate_condition= operate["operate_condition"].(string)
-			operate_content = operate["operate_content"].(string)
-		}
-		var conditionType string
-		var conditionFileds string
-		var conditionFiledArr [5]string
-		var operateCondJsonMap map[string]interface{}
-		var operateCondContentJsonMap map[string]interface{}
-		fieldList:=list.New()
-		// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
-		if(operate_condition!=""){
-			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
-			conditionType=operateCondJsonMap["conditionType"].(string)
-			conditionFileds=operateCondJsonMap["conditionFields"].(string)
-			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
-		}
-		if(operate_content!=""){
-			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
-		}
-		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
-		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
-		if "JUDGE"==conditionType{
-			for _,item:= range conditionFiledArr{
-				if item!=""{
-					fieldList.PushBack(item)
-				}
-			}
-			//  从配置里获取要判断的字段 并返回对象
-			whereOption := map[string]WhereOperation{}
-			for e := fieldList.Front(); e != nil; e = e.Next() {
-				whereOption[e.Value.(string)] = WhereOperation{
-					Operation: "eq",
-					Value:     payload[e.Value.(string)].(string),
-				}
-			}
-			querOption := QueryOption{Wheres: whereOption, Table: tableName}
-			rsQuery, errorMessage:= api.Select(querOption)
-			if errorMessage!=nil{
-				fmt.Printf("errorMessage", errorMessage)
-			}else{
-				fmt.Printf("rs", rsQuery)
-			}
-			operate_type:=operateCondContentJsonMap["operate_type"].(string)
-			pri_key:=operateCondContentJsonMap["pri_key"].(string)
-			var pri_key_value string
-			action_type:=operateCondContentJsonMap["action_type"].(string)
-			action_field:=operateCondContentJsonMap["action_field"].(string)
-
-
-			action_field_value1:=payload[action_field].(float64)
-			fmt.Printf("action_field_value1",action_field_value1)
-			action_field_value1_int:=int(action_field_value1)
-
-
-			var action_field_value int
-			// 操作类型是更新 动作类型是累加
-			if operate_type=="UPDATE"{
-				if action_type=="ACC"{
-					for _,rsQ:=range rsQuery {
-						pri_key_value=rsQ[pri_key].(string)
-						action_field_value0:= rsQ[action_field].(string)
-						action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
-
-						if err0!=nil{
-							fmt.Printf("err0",err0)
-						}
-						action_field_value=action_field_value0_int+action_field_value1_int
-						break
-					}
-				}
-				actionFiledMap:= map[string]interface{}{}
-				actionFiledMap[action_field]=action_field_value
-				if pri_key_value!=""{
-					rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
-					if err!=nil{
-						fmt.Print("err=",err)
-					}
-
-					rowesAffected,error:=rsU.RowsAffected()
-					if error!=nil{
-						fmt.Printf("err=",error)
-					}
-					return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
-				}
-
-			}
-		}
-		primaryColumns:=api.GetDatabaseMetadata().GetTableMeta(tableName).GetPrimaryColumns()
+        // 前置事件
+		var option QueryOption
+		option.ExtendedMap=payload
+		mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
+		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+		primaryColumns:=meta.GetPrimaryColumns()
 		var priId string
 		var priKey string
 		for _, col := range primaryColumns {
@@ -2515,12 +2424,18 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				break;//取第一个主键
 			}
 		}
-
+		if meta.HaveField("create_time"){
+			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		}
 		rs, errorMessage := api.Create(tableName, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		rowesAffected, err := rs.RowsAffected()
+		// 后置事件
+		mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+
+
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
@@ -3400,16 +3315,54 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+		primaryColumns:=meta.GetPrimaryColumns()
+
+		var priId string
+		var priKey string
+		for _, col := range primaryColumns {
+			if col.Key == "PRI" {
+				priKey=col.ColumnName
+
+				fmt.Printf("priId",priId)
+				break;//取第一个主键
+			}
+		}
+
+
 		var totalRowesAffected int64=0
 		r_msg:=[]string{}
 		for _, record := range payload {
-			_, err := api.Create(tableName, record.(map[string]interface{}))
+			recordItem:=record.(map[string]interface{})
+			if recordItem[priKey]!=nil{
+				priId=recordItem[priKey].(string)
+			}else{
+				uuid := uuid.NewV4()
+				priId=uuid.String()
+				recordItem[priKey]=priId
+			}
+			if meta.HaveField("create_time"){
+				recordItem["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+			}
+			_, err := api.Create(tableName, recordItem)
+
+			var option QueryOption
+			option.ExtendedMap=recordItem
+
+			// 后置事件
+			mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
 			if err != nil {
 				r_msg=append(r_msg,err.Error())
 			} else {
 				totalRowesAffected+=1
 			}
 		}
+
+
+
+
+
+
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
