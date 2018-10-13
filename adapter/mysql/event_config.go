@@ -466,9 +466,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 						actionFiledMap[arr[0]]=arr[1]
 					}
 
-
 				}
-
+               // 如果 updateWhere有值  则按updateWhere更新  否则是查询条件 whereOption
+               if len(updateWhere)<=0{
+				   updateWhere=whereOption
+			   }
 				rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
 				if err!=nil{
 					fmt.Printf("err=",err)
