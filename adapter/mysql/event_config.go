@@ -187,6 +187,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	fmt.Printf("errorMessage=",errorMessage)
 	var operate_condition string
 	var operate_content string
+	var filter_content string
 	var conditionType string
 	var conditionTable string
 	var conditionFileds string
@@ -194,16 +195,20 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var operate_type string
 	var operate_table string
 	var operateFunc string
+	var filterFunc string
+	var filterFieldKey string
 	//	var actionType string
 	var conditionFiledArr [5]string
 	var resultFieldsArr [5]string
 	var actionFieldsArr [5]string
 	var operateCondJsonMap map[string]interface{}
 	var operateCondContentJsonMap map[string]interface{}
+	var operateFilterContentJsonMap map[string]interface{}
 	fieldList:=list.New()
 	for _,operate:=range operates {
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
+		filter_content = operate["filter_content"].(string)
 
 		if(operate_condition!=""){
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
@@ -228,6 +233,15 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		if(operate_content!=""){
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
 		}
+		if(filter_content!=""){
+			json.Unmarshal([]byte(filter_content), &operateFilterContentJsonMap)
+		}
+		if operateFilterContentJsonMap["filterFunc"]!=nil{
+			filterFunc=operateFilterContentJsonMap["filterFunc"].(string)
+		}
+		if operateFilterContentJsonMap["filterFieldKey"]!=nil{
+			filterFieldKey=operateFilterContentJsonMap["filterFieldKey"].(string)
+		}
 		for _,item:= range conditionFiledArr{
 			if item!=""{
 				fieldList.PushBack(item)
@@ -249,8 +263,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			conditionFieldKey=arr[0]
 			conditionFieldKeyValue=arr[1]
 		}
-
+		if filterFieldKey=="PRIMARY"{ //如果是主键 取主键字段名
+			filterFieldKey=option.PriKey
+		}
 		if conditionFieldKeyValue==""{
+			if conditionFieldKey=="PRIMARY"{ //如果是主键 取主键字段名
+				conditionFieldKey=option.PriKey
+			}
 			if option.ExtendedMap[conditionFieldKey]!=nil{
 				conditionFieldKeyValue=option.ExtendedMap[conditionFieldKey].(string)
 			}
@@ -368,12 +387,15 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 
 			var conditionFieldKeyValueStr string
-			switch  option.ExtendedArr[0][conditionFieldKey].(type) {
-			case string:
-				conditionFieldKeyValueStr=option.ExtendedArr[0][conditionFieldKey].(string)
-			case 	float64:
-				conditionFieldKeyValueStr=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
+			if len(option.ExtendedArr)>0{
+				switch  option.ExtendedArr[0][conditionFieldKey].(type) {
+				case string:
+					conditionFieldKeyValueStr=option.ExtendedArr[0][conditionFieldKey].(string)
+				case 	float64:
+					conditionFieldKeyValueStr=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
+				}
 			}
+
 			//conditionFieldKeyValueStr:=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
 			//   && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey=="")
 			if action_type=="ACC"  && (conditionFieldKeyValueStr==conditionFieldKeyValue|| option.ExtendedArr[0][conditionFieldKey]=="")&& (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
@@ -573,6 +595,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				fmt.Printf("rs", rsQuery)
 			}
 			for _,item:=range rsQuery{
+				// 先拦截器校验
+				if filterFunc!=""{
+					filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
+					filterResult:=api.ExecFuncForOne(filterFuncSql,"result")
+					if filterResult==""{
+						break
+					}
+				}
 				fmt.Printf("item=",item)
 				 credit_level_model_id:=item["credit_level_model_id"].(string)
 				var extraOperateMap map[string]interface{}

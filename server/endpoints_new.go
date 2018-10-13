@@ -2424,6 +2424,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			}
 		}
 		option.ExtendedMap=payload
+		option.PriKey=priKey
 		mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
 		if meta.HaveField("create_time"){
 			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
@@ -3349,7 +3350,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 			var option QueryOption
 			option.ExtendedMap=recordItem
-
+			option.PriKey=priKey
 			// 后置事件
 			mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
 			if err != nil {
