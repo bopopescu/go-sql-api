@@ -171,12 +171,25 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 			}
 		}
+		if "COVER_VALUE"==operate_type{
+			if operateFunc!=""{
+					operateFuncSql:="select "+operateFunc+"() as result;"
+					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					if result!=""{
+						option.ExtendedMap[conditionFieldKey]=result
+					}
+					fmt.Printf("errorMessage=",errorMessage)
 
+
+			}
+		}
 
 	}
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
-
+    if data== nil && option.ExtendedMap!=nil{
+    	data=append(data,option.ExtendedMap)
+	}
 	return data,nil;
 }
 

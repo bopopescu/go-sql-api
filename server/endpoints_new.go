@@ -2404,6 +2404,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		var option QueryOption
 
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+
 		primaryColumns:=meta.GetPrimaryColumns()
 		var priId string
 		var priKey string
@@ -2425,11 +2426,15 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 		option.ExtendedMap=payload
 		option.PriKey=priKey
-		mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
+		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
+		if len(data)>0{
+			option.ExtendedMap=data[0]
+		}
 		if meta.HaveField("create_time"){
 			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
-		rs, errorMessage := api.Create(tableName, payload)
+
+		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
