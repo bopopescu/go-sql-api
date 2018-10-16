@@ -688,8 +688,19 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 
 		}
+		if "CAL_DEPEND_FIELD"==operate_type {
+			if operateFunc!=""{
+				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
+				result:=api.ExecFuncForOne(operateFuncSql,"result")
+				if result!=""{
+					option.ExtendedMap[conditionFieldKey]=result
+				}
+				fmt.Printf("errorMessage=",errorMessage)
 
+			}
+		}
 
+// limit
 	}
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
