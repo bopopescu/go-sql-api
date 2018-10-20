@@ -618,69 +618,36 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 						break
 					}
 				}
-				fmt.Printf("item=",item)
-				 credit_level_model_id:=item["credit_level_model_id"].(string)
 				var extraOperateMap map[string]interface{}
-				var pre_operate_func string
-
-				var operate_func string
-
+				var operate_type string
 				extra:=item["extra"].(string)// {"pre_operate_func":"obtainAge","judge_type":"between","operate_type":"eq","operate_func":"calScore"}
 				if(extra!=""){
 					json.Unmarshal([]byte(extra), &extraOperateMap)
-				}
-				if extraOperateMap["pre_operate_func"]!=nil{
-					pre_operate_func=extraOperateMap["pre_operate_func"].(string)
 				}
 
 				if extraOperateMap["operate_type"]!=nil{
 					operate_type=extraOperateMap["operate_type"].(string)
 				}
-				if extraOperateMap["operate_func"]!=nil{
-					operate_func=extraOperateMap["operate_func"].(string)
-				}
-				// second_level_norm
-				second_level_norm:=item["second_level_norm"].(string)
-				second_level_norm_arr:=strings.Split(second_level_norm,"-")
-				// 如果二级指标有值 则进行处理
-				var result string
-
-				if len(second_level_norm_arr)==1{
-					if option.ExtendedMap[second_level_norm_arr[0]]!=nil{
-					// 如果二级指标只有一个字段参与计算
-
-						if pre_operate_func!=""{
-							pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],option.ExtendedMap)+"','"+conditionFieldKeyValue+"') as result;"
-							result=api.ExecFuncForOne(pre_operate_func_sql,"result")
-						}
-						if result==""{
-							result=ConverStrFromMap(second_level_norm_arr[0],option.ExtendedMap)
-						}
-
+				if operate_type!="add" || equestMethod!="PATCH"{
+					CallLevel(api,item,extraOperateMap,option.ExtendedMap,conditionFieldKeyValue)
+				}else{
+					//  通过关联id查询出所有  重新计算
+					whereOptionPatch := map[string]WhereOperation{}
+					whereOptionPatch[conditionFieldKey]=WhereOperation{
+						Operation:"eq",
+						Value:option.ExtendedMap[conditionFieldKey],
 					}
-				}else if len(second_level_norm_arr)>1{
-					// 如果二级指标有多个字段参与计算
-					//fmt.Printf("judge_type=",judge_type," judge_content=",judge_content)
-					var paramStr string
-					for index,item:=range second_level_norm_arr{
-						if index==(len(second_level_norm_arr)-1){
-							paramStr=paramStr+"'"+ConverStrFromMap(item,option.ExtendedMap)+"'"
-						}else{
-							paramStr=paramStr+"'"+ConverStrFromMap(item,option.ExtendedMap)+"',"
-						}
 
+					querOptionPatch := QueryOption{Wheres: whereOptionPatch, Table: tableName}
+					rsQueryPatch, errorMessage:= api.Select(querOptionPatch)
+					fmt.Printf("errorMessage=",errorMessage)
+					for _,rsQueryPatchItem:=range rsQueryPatch{
+						CallLevel(api,rsQueryPatchItem,extraOperateMap,option.ExtendedMap,conditionFieldKeyValue)
 					}
-					if pre_operate_func!=""{
-						pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"') as result;"
-						result=api.ExecFuncForOne(pre_operate_func_sql,"result")
-					}
+
 
 				}
 
-				fmt.Printf("errorMessage=",errorMessage)
-				operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+credit_level_model_id+"') as result;"
-				result1:=api.ExecFuncForOne(operate_func_sql,"result")
-				fmt.Printf("result1=",result1)
 
  
 
@@ -707,7 +674,65 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 	return data,nil;
 }
+func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperateMap map[string]interface{},extendMap map[string]interface{},conditionFieldKeyValue string){
+	fmt.Printf("item=",item)
+	credit_level_model_id:=item["credit_level_model_id"].(string)
+	var pre_operate_func string
 
+	var operate_func string
+
+
+	if extraOperateMap["pre_operate_func"]!=nil{
+		pre_operate_func=extraOperateMap["pre_operate_func"].(string)
+	}
+
+	if extraOperateMap["operate_func"]!=nil{
+		operate_func=extraOperateMap["operate_func"].(string)
+	}
+	// second_level_norm
+	second_level_norm:=item["second_level_norm"].(string)
+	second_level_norm_arr:=strings.Split(second_level_norm,"-")
+	// 如果二级指标有值 则进行处理
+	var result string
+
+	if len(second_level_norm_arr)==1{
+		if extendMap[second_level_norm_arr[0]]!=nil{
+			// 如果二级指标只有一个字段参与计算
+
+			if pre_operate_func!=""{
+				pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],extendMap)+"','"+conditionFieldKeyValue+"') as result;"
+				result=api.ExecFuncForOne(pre_operate_func_sql,"result")
+			}
+			if result==""{
+				result=ConverStrFromMap(second_level_norm_arr[0],extendMap)
+			}
+
+		}
+	}else if len(second_level_norm_arr)>1{
+		// 如果二级指标有多个字段参与计算
+		//fmt.Printf("judge_type=",judge_type," judge_content=",judge_content)
+		var paramStr string
+		for index,item:=range second_level_norm_arr{
+			if index==(len(second_level_norm_arr)-1){
+				paramStr=paramStr+"'"+ConverStrFromMap(item,extendMap)+"'"
+			}else{
+				paramStr=paramStr+"'"+ConverStrFromMap(item,extendMap)+"',"
+			}
+
+		}
+		if pre_operate_func!=""{
+			pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"') as result;"
+			result=api.ExecFuncForOne(pre_operate_func_sql,"result")
+		}
+
+	}
+
+	//fmt.Printf("errorMessage=",errorMessage)
+	operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+credit_level_model_id+"') as result;"
+	result1:=api.ExecFuncForOne(operate_func_sql,"result")
+	fmt.Printf("result1=",result1)
+
+}
 func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
 	if strings.Contains(calculate_field,","){
 		fields:=strings.Split(calculate_field,",")
