@@ -3117,7 +3117,15 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 
 		if len(primaryColumns)>0{
-			firstPrimaryKey=primaryColumns[0].ColumnName
+			for _, col := range primaryColumns {
+				if col.Key == "PRI" {
+					firstPrimaryKey=col.ColumnName
+					fmt.Printf("priId",firstPrimaryKey)
+					break;//取第一个主键
+				}
+			}
+
+
 		}
 		beforeWhere[firstPrimaryKey]=WhereOperation{
 			Operation:"eq",
@@ -3149,7 +3157,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 				var option0 QueryOption
 			where0:=make(map[string]WhereOperation)
 			var masterPrimaryKeyValue string
-			where0["id"]=WhereOperation{
+			where0[firstPrimaryKey]=WhereOperation{
 				Operation:"eq",
 				Value:id,
 			}
@@ -3426,8 +3434,10 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
-
-		return c.JSON(http.StatusOK, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
+		if r_msg!=nil{
+			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
+		}
+		return c.JSON(http.StatusOK, totalRowesAffected)
 	}
 }
 
