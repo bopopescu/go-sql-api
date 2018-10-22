@@ -619,6 +619,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			for _,item:=range rsQuery{
 				// 先拦截器校验
 				if filterFunc!=""{
+
 					filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
 					filterResult:=api.ExecFuncForOne(filterFuncSql,"result")
 					if filterResult==""{
