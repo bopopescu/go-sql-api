@@ -3435,7 +3435,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
-		if r_msg!=nil{
+		if len(r_msg)>0{
 			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 		}
 		return c.JSON(http.StatusOK, totalRowesAffected)
