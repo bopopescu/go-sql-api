@@ -565,6 +565,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		}
          // CAL_CREDIT_SCORE_LEVEL
         if "CAL_CREDIT_SCORE_LEVEL"==operate_type{
+        	// 如果请求方式是DELETE 构造option.ExtendedMap对象只有filterFieldKey
+        	if equestMethod=="DELETE" && option.ExtendedMap!=nil{
+				 extendDelMap:=make(map[string]interface{})
+				extendDelMap[conditionFieldKey]=conditionFieldKeyValue
+				option.ExtendedMap=extendDelMap
+
+			}
 			// 根据每一行构建查询条件
 			whereOption0 := map[string]WhereOperation{}
 			whereOption0[conditionFieldKey]=WhereOperation{
@@ -619,18 +626,15 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					}
 				}
 				var extraOperateMap map[string]interface{}
-				var operate_type string
 				extra:=item["extra"].(string)// {"pre_operate_func":"obtainAge","judge_type":"between","operate_type":"eq","operate_func":"calScore"}
 				if(extra!=""){
 					json.Unmarshal([]byte(extra), &extraOperateMap)
 				}
-
+				var extraOperateType string
 				if extraOperateMap["operate_type"]!=nil{
-					operate_type=extraOperateMap["operate_type"].(string)
+					extraOperateType=extraOperateMap["operate_type"].(string)
 				}
-				if operate_type!="add" || equestMethod!="PATCH"{
-					CallLevel(api,item,extraOperateMap,option.ExtendedMap,conditionFieldKeyValue)
-				}else{
+				if (extraOperateType=="add" && equestMethod=="PATCH") || (extraOperateType=="add" && equestMethod=="DELETE") {
 					//  通过关联id查询出所有  重新计算
 					whereOptionPatch := map[string]WhereOperation{}
 					whereOptionPatch[conditionFieldKey]=WhereOperation{
@@ -641,18 +645,25 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					querOptionPatch := QueryOption{Wheres: whereOptionPatch, Table: tableName}
 					rsQueryPatch, errorMessage:= api.Select(querOptionPatch)
 					fmt.Printf("errorMessage=",errorMessage)
+					// 先删掉 已经计算出来的得分记录  然后重新计算
+					deleteWhere:=make(map[string]interface{})
+					deleteWhere[conditionFieldKey]=conditionFieldKeyValue
+					deleteWhere["credit_level_model_id"]=item["credit_level_model_id"]
+					_,errorMessage=api.Delete("credit_level_customer",nil,deleteWhere)
+					fmt.Printf("errorMessage=",errorMessage)
 					for _,rsQueryPatchItem:=range rsQueryPatch{
-						CallLevel(api,rsQueryPatchItem,extraOperateMap,option.ExtendedMap,conditionFieldKeyValue)
+						CallLevel(api,item,extraOperateMap,rsQueryPatchItem,conditionFieldKeyValue)
 					}
 
+				}else{
+
+					CallLevel(api,item,extraOperateMap,option.ExtendedMap,conditionFieldKeyValue)
 
 				}
 
 
- 
 
 			}
-
 
 		}
 		if "CAL_DEPEND_FIELD"==operate_type {

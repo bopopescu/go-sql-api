@@ -3173,6 +3173,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			masterInfo,errorMessage:=api.Select(option1)
 
 			var extendMap map[string]interface{}
+			extendMap=payload
 			if len(masterInfo)>0{
 				masterPrimaryKeyValue=masterInfo[0][firstPrimaryKey].(string)
 				extendMap=masterInfo[0]
@@ -3267,6 +3268,38 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		option.Ids=ids
 		// 前置事件
 		mysql.PreEvent(api,tableName,"DELETE",nil,option,"")
+
+
+		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+
+		primaryColumns:=meta.GetPrimaryColumns()
+		var priId string
+		var priKey string
+		for _, col := range primaryColumns {
+			if col.Key == "PRI" {
+				priKey=col.ColumnName
+				fmt.Printf("priId",priId)
+				break;//取第一个主键
+			}
+		}
+
+		whereOptionExtend := map[string]WhereOperation{}
+		whereOptionExtend[priKey]=WhereOperation{
+			Operation:"eq",
+			Value:id,
+		}// rating_status
+
+
+		querOption0 := QueryOption{Wheres: whereOptionExtend, Table: tableName}
+		rsQuery0, errorMessage:= api.Select(querOption0)
+		for _,item:=range rsQuery0{
+			fmt.Printf("item=",item)
+			option.ExtendedMap=item
+			break
+		}
+
+
+
 		rs, errorMessage := api.Delete(tableName, id, nil)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
