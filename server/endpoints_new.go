@@ -2474,7 +2474,9 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
-
+       if rowesAffected>0 {
+		   return c.String(http.StatusOK, priId)
+	   }
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3519,8 +3521,11 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 			if (f != "") {
 				option.Links = append(option.Links, f)
 			}
+
 		}
 	}
+	//
+
 	r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
 	if queryParam[key.KEY_QUERY_WHERE] != nil {
 		option.Wheres = make(map[string]WhereOperation)

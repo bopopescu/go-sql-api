@@ -532,6 +532,13 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 
 	for _, l := range opt.Links {
 		refT := l
+		//opt.ExtendedMap
+		for _,item:=range opt.ExtendedArr{
+			refK:=item["ref_k"].(string)
+			priK:=item["pri_k"].(string)
+			rs = rs.InnerJoin(goqu.I(refT), goqu.On(goqu.I(fmt.Sprintf("%s.%s", refT, refK)).Eq(goqu.I(fmt.Sprintf("%s.%s", priT, priK)))))
+			return
+		}
 		//multi-PriKey or No-PriKey
 		refK ,err1:= s.getPriKeyNameOf(refT)
 		if(err1!=nil){
