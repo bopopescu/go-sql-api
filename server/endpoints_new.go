@@ -3140,7 +3140,15 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if len(beforeUpdateObj)>0{
 			beforeUpdateMap=beforeUpdateObj[0]
 		}
-
+		var option QueryOption
+		var extendMap map[string]interface{}
+		extendMap=payload
+		option.PriKey=firstPrimaryKey
+		option.ExtendedMap=extendMap
+		data,_:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
+		if len(data)>0{
+			payload=data[0]
+		}
 		rs, errorMessage := api.Update(tableName, id, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3182,8 +3190,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			option1.Table=masterTableName
 			masterInfo,errorMessage:=api.Select(option1)
 
-			var extendMap map[string]interface{}
-			extendMap=payload
+
 			if len(masterInfo)>0{
 				masterPrimaryKeyValue=masterInfo[0][firstPrimaryKey].(string)
 				extendMap=masterInfo[0]
@@ -3395,11 +3402,17 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			if meta.HaveField("create_time"){
 				recordItem["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 			}
-			_, err := api.Create(tableName, recordItem)
-
 			var option QueryOption
 			option.ExtendedMap=recordItem
 			option.PriKey=priKey
+			data,_:=mysql.PostEvent(api,tableName,"POST",nil,option,"")
+			if len(data)>0{
+				recordItem=data[0]
+			}
+
+			_, err := api.Create(tableName, recordItem)
+
+
 			// 后置事件
 			mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
 			if err != nil {
