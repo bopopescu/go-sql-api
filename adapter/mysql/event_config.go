@@ -26,7 +26,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	var operate_table string
 	var operateFunc string
 	//	var actionType string
-	var conditionFiledArr [5]string
+	var conditionFiledArr [10]string
 	var resultFieldsArr [5]string
 	//var actionFieldsArr [5]string
 	var operateCondJsonMap map[string]interface{}
@@ -173,7 +173,14 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		}
 		if "COVER_VALUE"==operate_type{
 			if operateFunc!=""{
-					operateFuncSql:="select "+operateFunc+"() as result;"
+				var operateFuncSql string
+				if len(conditionFiledArr)>0{
+					params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+					operateFuncSql="select "+operateFunc+"("+params+") as result;"
+				}else{
+					operateFuncSql="select "+operateFunc+"() as result;"
+				}
+
 					result:=api.ExecFuncForOne(operateFuncSql,"result")
 					if result!=""{
 						option.ExtendedMap[conditionFieldKey]=result
