@@ -2933,6 +2933,26 @@ func (api *MysqlAPI) Select(option QueryOption) (rs []map[string]interface{},err
 			return
 		}
 	}
+//  如果有枚举字段  自动查询枚举字段的值
+    var optionEnum QueryOption
+	optionEnum.Table="system_enum_config"
+	enumWhere:=make(map[string]WhereOperation)
+	enumWhere["table_name"]=WhereOperation{
+		Operation:"eq",
+		Value:option.Table,
+	}
+	optionEnum.Wheres=enumWhere
+	enumSql, err := api.sql.GetByTable(optionEnum)
+	data,_:=api.query(enumSql)
+	if len(data)>0{
+		for _,column:=range api.databaseMetadata.GetTableMeta(option.Table).Columns{
+			option.Fields=append(option.Fields,column.ColumnName)
+		}
+
+	}
+	for _,item:=range data{
+		option.Fields=append(option.Fields,"obtainSystemEnumName("+item["enum_field_name"].(string)+") as "+item["enum_field_name"].(string)+"_value")
+	}
 	if option.Id != "" {
 		sql, err = api.sql.GetByTableAndID(option)
 	} else {
