@@ -3405,7 +3405,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			var option QueryOption
 			option.ExtendedMap=recordItem
 			option.PriKey=priKey
-			data,_:=mysql.PostEvent(api,tableName,"POST",nil,option,"")
+			data,_:=mysql.PreEvent(api,tableName,"POST",nil,option,"")
 			if len(data)>0{
 				recordItem=data[0]
 			}
