@@ -174,8 +174,8 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		if "COVER_VALUE"==operate_type{
 			if operateFunc!=""{
 				var operateFuncSql string
-				if len(conditionFiledArr)>0{
-					params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+				if params!=""{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
 				}else{
 					operateFuncSql="select "+operateFunc+"() as result;"
