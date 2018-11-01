@@ -175,7 +175,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			if operateFunc!=""{
 				var operateFuncSql string
 				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
-				if params!=""{
+				if params!="''"{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
 				}else{
 					operateFuncSql="select "+operateFunc+"() as result;"
