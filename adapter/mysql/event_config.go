@@ -685,7 +685,15 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 			}
 		}
+		if "SYNC"==operate_type {
+			if operateFunc!=""{
+				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
+				result:=api.ExecFuncForOne(operateFuncSql,"result")
+				fmt.Printf("result=",result)
+				fmt.Printf("errorMessage=",errorMessage)
 
+			}
+		}
 // limit
 	}
 
