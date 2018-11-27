@@ -2026,6 +2026,19 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					fmt.Printf("errorMessage=",errorMessage)
 					data1=isDefineStructureData
 				}
+				// 如果没有导出模板 使用默认导出模板
+
+				wMapHead := map[string]WhereOperation{}
+				wMapHead["template_key"] = WhereOperation{
+					Operation: "eq",
+					Value:     templateKey,
+				}
+				optionHead := QueryOption{Wheres: wMapHead, Table: "export_template"}
+				data, errorMessage := api.Select(optionHead)
+				fmt.Printf("errorMessage=",errorMessage)
+				if len(data)<=0{
+					templateKey="DEFAULT_EXPORT_REPORT_TEMPLATE"
+				}
 			}
 
 		}
@@ -2170,8 +2183,15 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 							for _,item:=range reportHeadRs{
 								reportHeadItem=item
 							}
-							value=strings.Replace(value,"$report_head.farm_name",reportHeadItem["farm_name"].(string),-1)
-							value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
+							if reportHeadItem!=nil{
+								value=strings.Replace(value,"$report_head.farm_name",reportHeadItem["farm_name"].(string),-1)
+								value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
+								value=strings.Replace(value,"00:00:00","",-1)
+							}else{
+								value=strings.Replace(value,"$report_head.farm_name","",-1)
+								value=strings.Replace(value,"$report_head.make_time","",-1)
+							}
+
 						}
 						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
 					}
@@ -2205,7 +2225,14 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					if isDefineMyselfTable{
 						col,_:=strconv.Atoi(d["col"].(string))
 						row,_:=strconv.Atoi(d["row"].(string))
-						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), d["value"].(string))
+						valueObject:=d["value"]
+						valueStr:=valueObject.(string)
+						if strings.Contains(valueStr,"="){
+							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), "0")
+						}else{
+							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), d["value"].(string))
+						}
+
 					}else{
 						for j, k:=range keys{
 							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
@@ -2250,10 +2277,24 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					value:=headMergeDeatail["value"].(string)
 					// 有占位符$替换为具体的值
 					if strings.Contains(value,"$"){
-						value=strings.Replace(value,"$report_head.res_person",reportHeadItem["res_person"].(string),-1)
-						// submit_person
-						value=strings.Replace(value,"$report_head.submit_person",reportHeadItem["submit_person"].(string),-1)
-						value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
+
+						if reportHeadItem!=nil{
+							value=strings.Replace(value,"$report_head.res_person",reportHeadItem["res_person"].(string),-1)
+							// submit_person
+							value=strings.Replace(value,"$report_head.submit_person",reportHeadItem["submit_person"].(string),-1)
+							value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
+							// 00:00:00
+							value=strings.Replace(value,"00:00:00","",-1)
+						}else{
+							value=strings.Replace(value,"$report_head.res_person","",-1)
+							// submit_person
+							value=strings.Replace(value,"$report_head.submit_person","",-1)
+							value=strings.Replace(value,"$report_head.make_time","",-1)
+							// 00:00:00
+							value=strings.Replace(value,"00:00:00","",-1)
+						}
+
+
 					}
 					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(hRows+1+cRows+1), value)
 				}
