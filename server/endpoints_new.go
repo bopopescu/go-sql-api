@@ -2010,6 +2010,22 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		if isDefineMyselfTable{
 			if headOption.Wheres["report_diy_cells_value.report_type"].Value!=nil{
 				templateKey= headOption.Wheres["report_diy_cells_value.report_type"].Value.(string)
+				if len(data1)==0{
+					// 如果自定义表没值  查询自定义表结构作为导出的内容
+					isDefineStructureWhere := map[string]WhereOperation{}
+					isDefineStructureWhere["report_type"] = WhereOperation{
+						Operation: "eq",
+						Value:     templateKey,
+					}
+					isDefineStructureOption := QueryOption{Wheres: isDefineStructureWhere, Table: "report_diy_cells"}
+					isDefineStructureOrder:=make(map[string]string)
+					isDefineStructureOrder["row"]="asc"
+					isDefineStructureOrder["col"]="asc"
+					isDefineStructureOption.Orders=isDefineStructureOrder
+					isDefineStructureData, errorMessage := api.Select(isDefineStructureOption)
+					fmt.Printf("errorMessage=",errorMessage)
+					data1=isDefineStructureData
+				}
 			}
 
 		}
@@ -2138,7 +2154,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 							}
 							if headOption.Wheres["report_diy_cells_value.account_period_year"].Value!=nil{
 								reportHead["account_period_year"] = WhereOperation{
-									Operation: "eq",
+									Operation: "like",
 									Value:      headOption.Wheres["report_diy_cells_value.account_period_year"].Value,
 								}
 							}
