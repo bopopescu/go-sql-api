@@ -2230,11 +2230,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 						if valueObject!=nil{
 							valueStr=valueObject.(string)
 						}
-						
+
 						if strings.Contains(valueStr,"="){
 							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), "0")
 						}else{
-							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), d["value"].(string))
+							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), valueStr)
 						}
 
 					}else{
