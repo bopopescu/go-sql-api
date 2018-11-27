@@ -9,6 +9,7 @@ import (
 	."github.com/shiyongabc/go-mysql-api/types"
 
 	"github.com/satori/go.uuid"
+	"time"
 )
 
 // 异步执行
@@ -30,11 +31,10 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 	//conditionFiledArr1 := list.New()
 	var funcParamFields [10]string
 	var operate_func string
-	for index,repeatItem:=range repeatCalculateData{
-		fmt.Printf("index=",index)
-		if index==10{
-			break
-		}
+	fmt.Printf("async-task-begin=",time.Now().Format("2006-01-02 15:04:05"))
+	for _,repeatItem:=range repeatCalculateData{
+
+
 		id:=repeatItem["id"]
 		//	accountYear:=repeatItem["account_period_year"]
 		fmt.Printf("id=",id)
@@ -740,6 +740,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 		}
 	}
+	fmt.Printf("async-task-end=",time.Now().Format("2006-01-02 15:04:05"))
 	// 向管道传值
 	c <- index
 }
