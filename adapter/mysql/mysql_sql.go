@@ -292,8 +292,8 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	if opt.GroupFunc!=""{
 
 		for i,item:=range groupFuncs{
-			if strings.Contains(item,"-"){
-				item=strings.Replace(item,"-",",",-1)
+			if strings.Contains(item,"|"){
+				item=strings.Replace(item,"|",",",-1)
 			}
 			if len(opt.Fields)>0{
 				if i>=1{

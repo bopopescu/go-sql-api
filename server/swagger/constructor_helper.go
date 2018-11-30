@@ -485,7 +485,7 @@ func NewQueryParametersForCustomPaging() (ps []spec.Parameter) {
 func NewQueryParametersForFilter() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.KEY_QUERY_SEARCH, "全表查找字符串", "string", false),
-		NewQueryParameter(key.GROUP_FUNC, "聚合函数(SUM(tableName.column))", "string", false),
+		NewQueryParameter(key.GROUP_FUNC, "聚合函数(SUM(tableName.column)),如果有多个引号里面的内容用|代替, 字段分组字段 返回字段（即就是分组的字段）", "string", false),
 		NewQueryArrayParameter(key.KEY_QUERY_WHERE, "多条件and链接查询：指定一个或多个字段筛选 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt,lte,gte\\](字段值)", "string", false),
 		NewQueryArrayParameter(key.KEY_QUERY_OR_WHERE, "多条件or链接查询：指定一个或多个字段 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt,lte,gte\\](字段值)", "string", false),
 
