@@ -2005,25 +2005,28 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		isDefineMyselfTable=tableName=="report_diy_cells_value"
 		numAar:= [26]string{1: "A", 2: "B",3:"C",4:"D",5:"E",6:"F",7:"G",8:"H",9:"I",10:"J",11:"K",12:"L",13:"M",14:"N",15:"O",16:"P",17:"Q",18:"R",19:"R",20:"S"}
 
-
+        var colsFromStructure int //从结构中获取列数
 		// 如果是自定义表
 		if isDefineMyselfTable{
 			if headOption.Wheres["report_diy_cells_value.report_type"].Value!=nil{
 				templateKey= headOption.Wheres["report_diy_cells_value.report_type"].Value.(string)
+				// 如果自定义表没值  查询自定义表结构作为导出的内容
+				isDefineStructureWhere := map[string]WhereOperation{}
+				isDefineStructureWhere["report_type"] = WhereOperation{
+					Operation: "eq",
+					Value:     templateKey,
+				}
+				isDefineStructureOption := QueryOption{Wheres: isDefineStructureWhere, Table: "report_diy_cells"}
+				isDefineStructureOrder:=make(map[string]string)
+				isDefineStructureOrder["row"]="asc"
+				isDefineStructureOrder["col"]="asc"
+				isDefineStructureOption.Orders=isDefineStructureOrder
+				isDefineStructureData, errorMessage := api.Select(isDefineStructureOption)
+				colsFromStructureStr:=isDefineStructureData[len(isDefineStructureData)-1]["col"].(string)
+				colsFromStructure,_=strconv.Atoi(colsFromStructureStr)
+				fmt.Printf("colsFromStructure=",colsFromStructure)
+				fmt.Printf("errorMessage=",errorMessage)
 				if len(data1)==0{
-					// 如果自定义表没值  查询自定义表结构作为导出的内容
-					isDefineStructureWhere := map[string]WhereOperation{}
-					isDefineStructureWhere["report_type"] = WhereOperation{
-						Operation: "eq",
-						Value:     templateKey,
-					}
-					isDefineStructureOption := QueryOption{Wheres: isDefineStructureWhere, Table: "report_diy_cells"}
-					isDefineStructureOrder:=make(map[string]string)
-					isDefineStructureOrder["row"]="asc"
-					isDefineStructureOrder["col"]="asc"
-					isDefineStructureOption.Orders=isDefineStructureOrder
-					isDefineStructureData, errorMessage := api.Select(isDefineStructureOption)
-					fmt.Printf("errorMessage=",errorMessage)
 					data1=isDefineStructureData
 				}
 				// 如果没有导出模板 使用默认导出模板
@@ -2184,10 +2187,12 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 								reportHeadItem=item
 							}
 							if reportHeadItem!=nil{
+								value=strings.Replace(value,"$report_head.report_title",reportHeadItem["report_title"].(string),-1)
 								value=strings.Replace(value,"$report_head.farm_name",reportHeadItem["farm_name"].(string),-1)
 								value=strings.Replace(value,"$report_head.make_time",reportHeadItem["make_time"].(string),-1)
 								value=strings.Replace(value,"00:00:00","",-1)
 							}else{
+								value=strings.Replace(value,"$report_head.report_title",reportHeadItem["report_title"].(string),-1)
 								value=strings.Replace(value,"$report_head.farm_name","",-1)
 								value=strings.Replace(value,"$report_head.make_time","",-1)
 							}
@@ -2268,8 +2273,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				data1LenStr:=strconv.Itoa(len(data1))
 				data1LenFloat, err:= strconv.ParseFloat(data1LenStr, 64)
 
-				headColsStr:=strconv.Itoa(headCols)
-				headColsFloat, err:= strconv.ParseFloat(headColsStr, 64)
+				//headColsStr:=strconv.Itoa(headCols)
+				headColsFloat, err:= strconv.ParseFloat(strconv.Itoa(colsFromStructure+1), 64)
 				fmt.Printf("err=",err)
 				x:=(float64)(data1LenFloat)/(headColsFloat)
 
