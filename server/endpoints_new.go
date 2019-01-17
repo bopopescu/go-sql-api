@@ -2000,7 +2000,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			data1=data.([]map[string]interface{})
 		}
 
-		var templateKey string
+		templateKey:=tableName
 		var isDefineMyselfTable bool
 		isDefineMyselfTable=tableName=="report_diy_cells_value"
 		numAar:= [26]string{1: "A", 2: "B",3:"C",4:"D",5:"E",6:"F",7:"G",8:"H",9:"I",10:"J",11:"K",12:"L",13:"M",14:"N",15:"O",16:"P",17:"Q",18:"R",19:"R",20:"S"}
