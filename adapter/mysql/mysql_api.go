@@ -1442,26 +1442,29 @@ func ConcatObjectProperties(funcParamFields [10]string,object map[string]interfa
 	var resultStr string
 	b := bytes.Buffer{}
 	for _,item:=range funcParamFields{
-		if item!=""&&object[item]!=nil{
-			switch object[item].(type) {      //多选语句switch
+		if item!="" {
+			switch object[item].(type) { //多选语句switch
 			case string:
 				//是字符时做的事情
-				b.WriteString(object[item].(string)+",")
+				if object[item].(string)==""{
+					b.WriteString("''" + ",")
+				}else{
+					b.WriteString(object[item].(string) + ",")
+				}
+
 			case float64:
 				//是整数时做的事情
-				b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64)+",")
+				b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64) + ",")
 
+			}
 		}
 
-		}else if item!=""&&(object[item]==nil||object[item]=="") {
-			b.WriteString("" + ",")
-
-		}
 
 
 	}
 	resultStr="'"+strings.Replace(b.String(),",","','",-1)+"'"
 	resultStr=strings.Replace(resultStr,",''","",-1)
+	resultStr=strings.Replace(resultStr,"'''","',''",-1)
 	return resultStr
 }
 func BuildMapFromObj(fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
