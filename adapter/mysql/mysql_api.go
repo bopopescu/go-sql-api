@@ -1465,6 +1465,7 @@ func ConcatObjectProperties(funcParamFields [10]string,object map[string]interfa
 	resultStr="'"+strings.Replace(b.String(),",","','",-1)+"'"
 	resultStr=strings.Replace(resultStr,",''","",-1)
 	resultStr=strings.Replace(resultStr,"'''","',''",-1)
+	resultStr=strings.Replace(resultStr,"''''","'',''",-1)
 	return resultStr
 }
 func BuildMapFromObj(fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
