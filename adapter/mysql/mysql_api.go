@@ -1453,7 +1453,7 @@ func ConcatObjectProperties(funcParamFields [10]string,object map[string]interfa
 
 		}
 
-		}else if item!=""&&object[item]==nil {
+		}else if item!=""&&(object[item]==nil||object[item]=="") {
 			b.WriteString("" + ",")
 
 		}
