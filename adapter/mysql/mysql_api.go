@@ -1451,9 +1451,10 @@ func ConcatObjectProperties(funcParamFields [10]string,object map[string]interfa
 				//是整数时做的事情
 				b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64)+",")
 
-			}
+		}
 
-
+		}else if item!=""&&object[item]==nil {
+			b.WriteString("" + ",")
 
 		}
 
