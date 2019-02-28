@@ -300,11 +300,11 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		var repeatCalculateData0 []map[string]interface{}
 		var repeatCalculateData1 []map[string]interface{}
 		var repeatCalculateData2 []map[string]interface{}
-		var conditionFiledArr [10]string
-		var conditionFiledArr1 [10]string
+		var conditionFiledArr [15]string
+		var conditionFiledArr1 [15]string
 		//conditionFiledArr := list.New()
 		//conditionFiledArr1 := list.New()
-		var funcParamFields [10]string
+		var funcParamFields [15]string
 		var operate_func string
 		// 通过 OperateKey查询前置事件
 		opK,errorMessage:=mysql.SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName+"-DELETE")

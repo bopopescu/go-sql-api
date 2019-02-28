@@ -26,7 +26,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	var operate_table string
 	var operateFunc string
 	//	var actionType string
-	var conditionFiledArr [10]string
+	var conditionFiledArr [15]string
 	var resultFieldsArr [5]string
 	//var actionFieldsArr [5]string
 	var operateCondJsonMap map[string]interface{}
@@ -776,7 +776,7 @@ func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func str
 	return asyncObjectMap
 }
 
-func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},funcParamFields [10]string,pre_subject_key string,operate_func string){
+func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},funcParamFields [15]string,pre_subject_key string,operate_func string){
 
 	//	asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
 	//asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)

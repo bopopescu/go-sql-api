@@ -555,11 +555,11 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rebuildSlaveObjectMap:=make(map[string]interface{})//构建同步数据对象
 	var rebuildSlaveObjectMapp []map[string]interface{}//构建同步数据对象
 	rebuildSlaveCalMap:=make(map[string]interface{})//存放通过func计算出来值
-	var conditionFiledArr [10]string
-	var conditionFiledArr1 [10]string
+	var conditionFiledArr [15]string
+	var conditionFiledArr1 [15]string
 	//conditionFiledArr := list.New()
 	//conditionFiledArr1 := list.New()
-	var funcParamFields [10]string
+	var funcParamFields [15]string
     var operate_func string
 	// 通过 OperateKey查询前置事件
 	opK,errorMessage:=SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName)
@@ -1438,15 +1438,18 @@ func ConverStrFromMap(key string,mm map[string]interface{})(string){
 	return b.String()
 }
 
-func ConcatObjectProperties(funcParamFields [10]string,object map[string]interface{})(string){
+func ConcatObjectProperties(funcParamFields [15]string,object map[string]interface{})(string){
 	var resultStr string
 	b := bytes.Buffer{}
 	for _,item:=range funcParamFields{
 		if item!="" {
+			if object[item]==nil{
+				b.WriteString("''" + ",")
+			}
 			switch object[item].(type) { //多选语句switch
 			case string:
 				//是字符时做的事情
-				if object[item].(string)==""{
+				if object[item]==nil || object[item].(string)==""{
 					b.WriteString("''" + ",")
 				}else{
 					b.WriteString(object[item].(string) + ",")
@@ -1475,7 +1478,7 @@ func BuildMapFromObj(fromObjec map[string]interface{},disObjec map[string]interf
 	return disObjec;
 }
 
-func BuildMapFromBody(properties [10]string,fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
+func BuildMapFromBody(properties [15]string,fromObjec map[string]interface{},disObjec map[string]interface{})(map[string]interface{}){
 	for _,item:=range properties{
 		if item!=""&&fromObjec[item]!=nil{
 
@@ -1850,11 +1853,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var repeatCalculateData1 []map[string]interface{}
 				var repeatCalculateData2 []map[string]interface{}
 				var repeatCalculateData3 []map[string]interface{}
-				var conditionFiledArr [10]string
-				var conditionFiledArr1 [10]string
+				var conditionFiledArr [15]string
+				var conditionFiledArr1 [15]string
 				//conditionFiledArr := list.New()
 				//conditionFiledArr1 := list.New()
-				var funcParamFields [10]string
+				var funcParamFields [15]string
 				var operate_func string
 				// 通过 OperateKey查询前置事件
 				opK,errorMessage:=SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName+"-PUT")

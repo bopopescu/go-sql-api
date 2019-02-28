@@ -25,11 +25,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 	var operateCondContentJsonMap map[string]interface{}
 
 
-	var conditionFiledArr [10]string
-	var conditionFiledArr1 [10]string
+	var conditionFiledArr [15]string
+	var conditionFiledArr1 [15]string
 	//conditionFiledArr := list.New()
 	//conditionFiledArr1 := list.New()
-	var funcParamFields [10]string
+	var funcParamFields [15]string
 	var operate_func string
 	fmt.Printf("async-task-begin=",time.Now().Format("2006-01-02 15:04:05"))
 	for _,repeatItem:=range repeatCalculateData{
