@@ -3633,6 +3633,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 					}
 				}
 			} else {
+
 				arr := r.FindStringSubmatch(sWhere)
 				if len(arr) == 4 {
 					switch arr[2] {
@@ -3662,24 +3663,27 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 		option.OrWheres = make(map[string]WhereOperation)
 		for _, sWhere := range queryParam[key.KEY_QUERY_OR_WHERE] {
 			sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
-
-					arr := oswr.FindStringSubmatch(sWhere)
-					if len(arr) == 4 {
-						switch arr[2] {
-						case "in", "notIn":
-							option.OrWheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
-						case "like", "is", "neq", "isNot", "eq":
-							option.OrWheres[arr[1]+"$"+arr[3]] = WhereOperation{arr[2], arr[3]}
-						case "lt":
-							option.OrWheres[arr[1]+".lt"] = WhereOperation{arr[2], arr[3]}
-						case  "gt":
-							option.OrWheres[arr[1]+".gt"] = WhereOperation{arr[2], arr[3]}
-						case "lte":
-							option.OrWheres[arr[1]+".lte"] = WhereOperation{arr[2], arr[3]}
-						case  "gte":
-							option.OrWheres[arr[1]+".gte"] = WhereOperation{arr[2], arr[3]}
-						}
+			subWhereArr := strings.Split(sWhere, "&")
+			for _,subWhere:=range subWhereArr{
+				arr := oswr.FindStringSubmatch(subWhere)
+				if len(arr) == 4 {
+					switch arr[2] {
+					case "in", "notIn":
+						option.OrWheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+					case "like", "is", "neq", "isNot", "eq":
+						option.OrWheres[arr[1]+"$"+arr[3]] = WhereOperation{arr[2], arr[3]}
+					case "lt":
+						option.OrWheres[arr[1]+".lt"] = WhereOperation{arr[2], arr[3]}
+					case  "gt":
+						option.OrWheres[arr[1]+".gt"] = WhereOperation{arr[2], arr[3]}
+					case "lte":
+						option.OrWheres[arr[1]+".lte"] = WhereOperation{arr[2], arr[3]}
+					case  "gte":
+						option.OrWheres[arr[1]+".gte"] = WhereOperation{arr[2], arr[3]}
 					}
+				}
+			}
+
 
 
 		}
