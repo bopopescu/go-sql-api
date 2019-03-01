@@ -182,7 +182,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				}
 
 					result:=api.ExecFuncForOne(operateFuncSql,"result")
-					if result!=""{
+					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
 					fmt.Printf("errorMessage=",errorMessage)
