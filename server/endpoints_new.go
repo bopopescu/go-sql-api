@@ -3262,6 +3262,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 				extendMap=masterInfo[0]
 			}
 			option.PriKey=firstPrimaryKey
+			extendMap[firstPrimaryKey]=id
 			option.ExtendedMap=extendMap
 			option.ExtendedMapSecond=beforeUpdateMap
 
