@@ -32,6 +32,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	var operateCondJsonMap map[string]interface{}
 	var operateCondContentJsonMap map[string]interface{}
 	fieldList:=list.New()
+	var fields []string
 	for _,operate:=range operates {
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
@@ -62,11 +63,17 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		}
 		for _,item:= range conditionFiledArr{
 			if item!=""{
+				fields=append(fields, item)
 				fieldList.PushBack(item)
+
 			}
 		}
 
 		var conditionFieldKey string
+		var conditionComplex string
+		if operateCondJsonMap["conditionComplex"]!=nil{
+			conditionComplex=operateCondJsonMap["conditionComplex"].(string)
+		}
 		if operateCondJsonMap["conditionFieldKey"]!=nil{
 			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
 		}
@@ -190,7 +197,63 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 			}
 		}
+		if "PRE_SYNC_COMPLEX"==operate_type{
+				var conditionComplexKey,conditionComplexValue,paramComplexValue string
+				if strings.Contains(conditionComplex,"=") {
+					arr := strings.Split(conditionComplex, "=")
+					conditionComplexKey = arr[0]
+					conditionComplexValue = arr[1]
 
+				}
+			switch  option.ExtendedMap[conditionComplexKey].(type) {
+			case string:
+				paramComplexValue=option.ExtendedMap[conditionComplexKey].(string)
+			case 	float64:
+				paramComplexValue=strconv.FormatFloat(option.ExtendedMap[conditionComplexKey].(float64), 'f', -1, 64)
+			}
+				if paramComplexValue==conditionComplexValue{
+					continue
+				}
+			if operateFunc!=""{
+				var operateFuncSql string
+				// 预处理有关联关系
+				related_table:=tableName+"_detail"
+				var relatedOption QueryOption
+				relatedOption.Table=tableName
+				whereMap:= map[string]WhereOperation{}
+				whereMap[tableName+"."+conditionFieldKey]=WhereOperation{
+					"eq",
+					option.ExtendedMap[conditionFieldKey],
+									}
+				whereMap[conditionComplexKey]=WhereOperation{
+					"eq",
+					conditionComplexValue,
+				}
+				relatedOption.Wheres=whereMap
+				relatedOption.Links=[]string{related_table}
+
+				relatedOption.Fields=fields
+				relatedData, errorMessage:= api.Select(relatedOption)
+				fmt.Printf("errorMessage=",errorMessage)
+				for _,item:=range relatedData{
+					params:=ConcatObjectProperties(conditionFiledArr,item)
+					if params!="''"{
+						operateFuncSql="select "+operateFunc+"("+params+") as result;"
+					}else{
+						operateFuncSql="select "+operateFunc+"() as result;"
+					}
+
+					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					if result!="" && conditionFieldKey!=""{
+						option.ExtendedMap[conditionFieldKey]=result
+					}
+					fmt.Printf("errorMessage=",errorMessage)
+				}
+
+
+
+			}
+		}
 	}
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}

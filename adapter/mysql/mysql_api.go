@@ -1443,6 +1443,10 @@ func ConcatObjectProperties(funcParamFields [15]string,object map[string]interfa
 	b := bytes.Buffer{}
 	for _,item:=range funcParamFields{
 		if item!="" {
+			// 如果有指定表 截断表名
+			if strings.Contains(item,"."){
+				item=strings.Split(item,".")[1]
+			}
 			if object[item]==nil{
 				b.WriteString("''" + ",")
 			}

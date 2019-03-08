@@ -49,6 +49,7 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 	builder := s.sqlBuilder.From(opt.Table)
 	builder,err = s.configBuilder(builder, opt.Table, opt)
 	if(err!=nil){
+		fmt.Printf("err=",err)
 		return
 	}
 	sql, _, err = builder.ToSql()
