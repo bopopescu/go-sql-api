@@ -202,7 +202,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				// 构造请求参数
 				reStr:=BuildObjectProperties(conditionFiledArr,option.ExtendedMap,actionFiledArr)
 				reqest, err := http.NewRequest(reqMethod, operate_table, bytes.NewBuffer(reStr))
-				if option.ExtendedMap["authorization"]==nil{
+				if option.Authorization==""{
 					fmt.Println("authorization is null")
 					continue
 				}
