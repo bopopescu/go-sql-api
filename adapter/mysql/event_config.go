@@ -1,6 +1,9 @@
 package mysql
 
 import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"fmt"
 	"encoding/json"
@@ -25,6 +28,10 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	var operate_type string
 	var operate_table string
 	var operateFunc string
+	var priKey string
+	var actionType string
+	var actionFiledArr []string
+	var actionFiledArrStr string
 	//	var actionType string
 	var conditionFiledArr []string
 	var resultFieldsArr []string
@@ -80,7 +87,16 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 		}
-
+		if operateCondContentJsonMap["action_type"]!=nil{
+			actionType=operateCondContentJsonMap["action_type"].(string)
+		}
+		if operateCondContentJsonMap["pri_key"]!=nil{
+			priKey=operateCondContentJsonMap["pri_key"].(string)
+		}
+		if operateCondContentJsonMap["action_fields"]!=nil{
+			actionFiledArrStr=operateCondContentJsonMap["action_fields"].(string)
+		}
+		json.Unmarshal([]byte(actionFiledArrStr), &actionFiledArr)
 
 		var conditionFieldKeyValue string
 		if strings.Contains(conditionFieldKey,"="){
@@ -179,6 +195,37 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}
 		}
 		if "COVER_VALUE"==operate_type{
+			// remote request  API_REQUEST-POST
+			if strings.Contains(actionType,"API_REQUEST"){
+				client := &http.Client{}
+				reqMethod:=strings.Split(actionType,"-")[1]
+				// 构造请求参数
+				reStr:=BuildObjectProperties(conditionFiledArr,option.ExtendedMap,actionFiledArr)
+				reqest, err := http.NewRequest(reqMethod, operate_table, bytes.NewBuffer(reStr))
+				if option.ExtendedMap["authorization"]==nil{
+					fmt.Println("authorization is null")
+					continue
+				}
+				//增加header选项
+				reqest.Header.Set("Cookie", option.Authorization)
+				reqest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+				reqest.Header.Set("Accept", "application/json, text/plain, */*")
+				reqest.Header.Set("Content-type", "application/json")
+				if err != nil {
+					panic(err)
+				}
+				//处理返回结果
+				response, _ := client.Do(reqest)
+				fmt.Print("response", response)
+				var resultMap map[string]interface{}
+				if response.StatusCode == 200 {
+					body, _ := ioutil.ReadAll(response.Body)
+					json.Unmarshal(body, &resultMap)
+					fmt.Println("responseBody",string(body))
+
+					option.ExtendedMap[conditionFieldKey]=resultMap[priKey]
+				}
+			}
 			if operateFunc!=""{
 				var operateFuncSql string
 				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)

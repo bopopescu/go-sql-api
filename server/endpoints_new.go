@@ -1000,7 +1000,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 	fmt.Printf("startTime=",time.Now())
 	return func(c echo.Context) error {
 		cookie,err := c.Request().Cookie("Authorization")
-		fmt.Print("Authorization",cookie)
+		fmt.Print("Authorization",cookie.Value)
 		tableName := c.Param("table")
 		option ,errorMessage:= parseQueryParams(c)
 		option.Table = tableName
@@ -2485,6 +2485,8 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 		option.ExtendedMap=payload
 		option.PriKey=priKey
+		cookie,err := c.Request().Cookie("Authorization")
+		option.Authorization=cookie.Value
 		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
 		if len(data)>0{
 			option.ExtendedMap=data[0]

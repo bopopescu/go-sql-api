@@ -1437,7 +1437,36 @@ func ConverStrFromMap(key string,mm map[string]interface{})(string){
 
 	return b.String()
 }
+func BuildObjectProperties(funcParamFields []string,object map[string]interface{},actionParamFields []string)([]byte){
+	var resultMap map[string]string
+	for index,item:=range funcParamFields{
+		if item!="" {
+			// 如果有指定表 截断表名
+			if strings.Contains(item,"."){
+				item=strings.Split(item,".")[1]
+			}
+			switch object[item].(type) { //多选语句switch
+			case string:
+				//是字符时做的事情
+				if object[item]==nil || object[item].(string)==""{
+					resultMap[actionParamFields[index]]=""
+				}else{
+					resultMap[actionParamFields[index]]=object[item].(string)
+				}
 
+			case float64:
+				//是整数时做的事情
+				// b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64) + ",")
+				resultMap[actionParamFields[index]]=strconv.FormatFloat(object[item].(float64), 'f', -1, 64) + ","
+			}
+		}
+
+	}
+	fmt.Print("resultMap",resultMap)
+	orderBytes,err:=json.Marshal(resultMap)
+	fmt.Print("err",err)
+	return orderBytes
+}
 func ConcatObjectProperties(funcParamFields []string,object map[string]interface{})(string){
 	var resultStr string
 	b := bytes.Buffer{}
