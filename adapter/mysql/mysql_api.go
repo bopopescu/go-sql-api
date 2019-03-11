@@ -1438,7 +1438,7 @@ func ConverStrFromMap(key string,mm map[string]interface{})(string){
 	return b.String()
 }
 func BuildObjectProperties(funcParamFields []string,object map[string]interface{},actionParamFields []string)([]byte){
-	var resultMap map[string]string
+	 resultMap:=make(map[string]string)
 	for index,item:=range funcParamFields{
 		if item!="" {
 			// 如果有指定表 截断表名
