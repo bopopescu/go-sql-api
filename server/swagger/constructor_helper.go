@@ -469,6 +469,12 @@ func ExecFuncParameters() (ps []spec.Parameter) {
 	}
 	return
 }
+func ExecRemoteParameters() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.AUTHORIZATION_KEY, "authorization", "string", true),
+	}
+	return
+}
 func NewQueryParametersForAsync() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.ASYNC_KEY, "asyncKey", "string", true),

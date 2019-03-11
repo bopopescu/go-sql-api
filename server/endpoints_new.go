@@ -93,6 +93,8 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	//执行func
 	s.POST("/api/"+databaseName+"/func/", endpointFunc(api,redisHost)).Name = "exec function"
 
+	//手动执行远程api
+	s.GET("/api/"+databaseName+"/remote/", endpointRemote(api,redisHost)).Name = "exec remote task"
 
 }
 
@@ -997,6 +999,8 @@ func endpointGetMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context) e
 func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	fmt.Printf("startTime=",time.Now())
 	return func(c echo.Context) error {
+		cookie,err := c.Request().Cookie("Authorization")
+		fmt.Print("Authorization",cookie)
 		tableName := c.Param("table")
 		option ,errorMessage:= parseQueryParams(c)
 		option.Table = tableName
@@ -2587,6 +2591,46 @@ func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c ec
 		}
 		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, "ok")
+	}
+}
+
+func endpointRemote(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		// 测试
+		authorization:=c.QueryParam(key.AUTHORIZATION_KEY)
+		client := &http.Client{}
+		//生成要访问的url
+		url := "http://bigdata.vimi8.top/industrial/product/0006ebc0-dce8-4291-87e0-76dbf69bbe41"
+        fmt.Print("url=",url)
+		//提交请求
+		reqest, err := http.NewRequest("GET", url, nil)
+
+		//增加header选项
+		reqest.Header.Set("Cookie", "Authorization=bearer%20"+authorization)
+		reqest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+		reqest.Header.Set("Accept", "application/json, text/plain, */*")
+		reqest.Header.Set("Content-type", "application/json")
+		if err != nil {
+			panic(err)
+		}
+		//处理返回结果
+		response, _ := client.Do(reqest)
+		fmt.Print("response", response)
+		if response.StatusCode == 200 {
+			body, _ := ioutil.ReadAll(response.Body)
+			fmt.Println(string(body))
+		}
+		// POST
+		//req := `{"name":"junneyang", "age": 88}`
+		//req_new := bytes.NewBuffer([]byte(req))
+		//request, _ = http.NewRequest("POST", "http://10.67.2.252:8080/test/", req_new)
+		//request.Header.Set("Content-type", "application/json")
+		//response, _ = client.Do(request)
+		//if response.StatusCode == 200 {
+		//	body, _ := ioutil.ReadAll(response.Body)
+		//	fmt.Println(string(body))
+		//}
+		return c.String(http.StatusOK, strconv.Itoa(response.StatusCode))
 	}
 }
 func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {

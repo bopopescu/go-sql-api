@@ -19,7 +19,28 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	patchCreateTableColumnPath := spec.PathItem{}
 	patchImportPath := spec.PathItem{}
 	patchFuncPath := spec.PathItem{}
+
+
+	patchRemotePath := spec.PathItem{}
 	databaseName:=meta.DatabaseName
+	patchRemotePath.Get=NewOperation(
+		"request remote api",
+		fmt.Sprintf("执行远程api"),
+		fmt.Sprintf("执行远程api"),
+
+		//[]spec.Parameter{ImportParameters(),ImportTemplateParameters()...},//append([]spec.Parameter{ImportTemplateParameter()},spec.FileParam("file")...),// NewQueryParametersForOutputDields()
+		append([]spec.Parameter{},ExecRemoteParameters()...),// ImportTemplateParameters()
+
+		fmt.Sprintf("执行远程api"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/remote/"]=patchRemotePath
+
+
 	patchFuncPath.Post=NewOperation(
 		"exec func",
 		fmt.Sprintf("执行数据库func"),
