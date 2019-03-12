@@ -32,18 +32,25 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	var actionType string
 	var actionFiledArr []string
 	var actionFiledArrStr string
+
+	var filter_content string
+	var filterFiledArr []string
+	var filterFiledArrStr string
+	var filterKey string
+	var filterFunc string
 	//	var actionType string
 	var conditionFiledArr []string
 	var resultFieldsArr []string
 	//var actionFieldsArr [5]string
 	var operateCondJsonMap map[string]interface{}
 	var operateCondContentJsonMap map[string]interface{}
+	var filterCondContentJsonMap map[string]interface{}
 	fieldList:=list.New()
 	var fields []string
 	for _,operate:=range operates {
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
-
+		filter_content=operate["filter_content"].(string)
 		if(operate_condition!=""){
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 			if operateCondJsonMap["conditionType"]!=nil{
@@ -113,6 +120,47 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		fmt.Printf("operate_type=",operate_type)
 		fmt.Printf("operate_table=",operate_table)
 		fmt.Printf("operate_type=",conditionTable)
+
+
+		if(filter_content!=""){
+			json.Unmarshal([]byte(filter_content), &filterCondContentJsonMap)
+		}
+		if filterCondContentJsonMap["filterFunc"]!=nil{
+			filterFunc=filterCondContentJsonMap["filterFunc"].(string)
+		}
+		if filterCondContentJsonMap["filterFields"]!=nil{
+			filterFiledArrStr=filterCondContentJsonMap["filterFields"].(string)
+			json.Unmarshal([]byte(filterFiledArrStr), &filterFiledArr)
+		}
+		var isFiltered bool
+		for _,item:=range filterFiledArr{
+			if strings.Contains(item,"="){
+				arr:=strings.Split(item,"=")
+				field0:=arr[0]
+				value0:=arr[1]
+				if option.ExtendedMap[field0]==value0{
+					isFiltered=true
+					break;
+				}
+
+			}
+
+		}
+		// 如果被拦截 则不执行当前前置事件
+		if isFiltered{
+			continue
+		}
+		if filterFunc!=""{
+			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterKey,option.ExtendedMap)+"') as result;"
+			filterResult:=api.ExecFuncForOne(filterFuncSql,"result")
+			if filterResult!=""{
+				continue
+			}
+		}
+		// filterFieldKey
+		if filterCondContentJsonMap["filterFieldKey"]!=nil{
+			filterKey=filterCondContentJsonMap["filterFieldKey"].(string)
+		}
 		// 前置事件新处理方式   只传参数   逻辑处理在存储过程处理
 		if "CASCADE_DELETE"==operate_type|| "UPDATE_MASTER"==operate_type{
 			if operateFunc!=""{
