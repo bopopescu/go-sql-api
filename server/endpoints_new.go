@@ -3493,6 +3493,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 		var totalRowesAffected int64=0
 		r_msg:=[]string{}
+		var savedIds []string
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
 			if recordItem[priKey]!=nil{
@@ -3514,7 +3515,15 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			}
 
 			_, err := api.Create(tableName, recordItem)
-
+			savedIds=append(savedIds,recordItem[priKey].(string))
+			// 如果插入失败回滚
+			if err!=nil{
+				for _,id:=range savedIds{
+					api.Delete(tableName,id,nil)
+				}
+				r_msg=append(r_msg,err.Error())
+				break;
+			}
 
 			// 后置事件
 			mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
