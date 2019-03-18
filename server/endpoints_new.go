@@ -2486,7 +2486,12 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		option.ExtendedMap=payload
 		option.PriKey=priKey
 		cookie,err := c.Request().Cookie("Authorization")
-		option.Authorization=cookie.Value
+		if cookie==nil{
+			option.Authorization=""
+		}else{
+			option.Authorization=cookie.Value
+		}
+
 		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
 		if len(data)>0{
 			option.ExtendedMap=data[0]
