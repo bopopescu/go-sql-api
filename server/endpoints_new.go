@@ -2909,9 +2909,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					}
 					_,errorMessage:=api.Create(tableName,tableMap)
 					fmt.Printf("errorMessage=",errorMessage)
-					option.ExtendedMap=tableMap
+					var optionEvent QueryOption
+					optionEvent.ExtendedMap=tableMap
 
-					mysql.PostEvent(api,tableName,"POST",nil,option,"")
+					mysql.PostEvent(api,tableName,"POST",nil,optionEvent,"")
 				}
 
 
