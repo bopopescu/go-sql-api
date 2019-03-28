@@ -952,20 +952,29 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
+		// masterTableName := payload["masterTableName"].(string)
+		slaveTableName := payload["slaveTableName"].(string)
+		slaveTableInfo:=payload["slaveTableInfo"].(string)
+		masterTableInfo:=payload["masterTableInfo"].(string)
+		slaveInfoMap,errorMessage:=mysql.JsonArr2map(slaveTableInfo)
+		masterTableInfoMap,errorMessage:=mysql.Json2map(masterTableInfo)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
-		var slaveTableName string
+
 		if payload["slaveTableName"]!=nil{
 			slaveTableName=payload["slaveTableName"].(string)
 		}
 
-		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PUT")
+		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH")
 		rowesAffected, errorMessage := api.RelatedUpdate(operates, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
-
+		var option QueryOption
+		option.ExtendedArr=slaveInfoMap
+		option.ExtendedMap=masterTableInfoMap
+		mysql.PostEvent(api,slaveTableName,"PATCH",nil,option,"")
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
