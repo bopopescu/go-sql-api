@@ -1008,8 +1008,8 @@ func endpointGetMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context) e
 func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	fmt.Printf("startTime=",time.Now())
 	return func(c echo.Context) error {
-		cookie,err := c.Request().Cookie("Authorization")
-		fmt.Print("Authorization",cookie.Value)
+		// cookie,err := c.Request().Cookie("Authorization")
+		// fmt.Print("Authorization",cookie.Value)
 		tableName := c.Param("table")
 		option ,errorMessage:= parseQueryParams(c)
 		option.Table = tableName
