@@ -754,6 +754,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			for _,item:=range rsQuery0{
 				fmt.Printf("item=",item)
 				farm_type=item["farm_type"].(string)
+
 				break
 			}
 

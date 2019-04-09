@@ -419,12 +419,21 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	var slavePriKey string
 
 	var primaryColumns1 []*ColumnMetadata
-	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+	slaveMeta:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
+	primaryColumns=masterMeta.GetPrimaryColumns()
+	primaryColumns1=slaveMeta.GetPrimaryColumns()
+	if masterMeta.HaveField("create_time"){
+		masterInfoMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+	}
 
-	primaryColumns1=api.GetDatabaseMetadata().GetTableMeta(slaveTableName).GetPrimaryColumns()
+
 	// 如果是一对一 且有相互依赖
 	if len(slaveInfoMap)==1 {
 		for _, slave := range slaveInfoMap {
+			if slaveMeta.HaveField("create_time"){
+				slave["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+			}
 			for _, col := range primaryColumns1 {
 				if col.Key == "PRI" {
 					slavePriKey = col.ColumnName
