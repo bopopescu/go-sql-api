@@ -461,28 +461,6 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
-			if masterTableName=="order_form" || masterTableName=="purchase_form"{
-				masterPriKey=col.ColumnName
-				now:=time.Now()
-
-				baseUnix:=strconv.FormatInt(now.Unix(),10)
-
-				t := now.Unix()
-				fmt.Println(t)
-				//时间戳到具体显示的转化
-				fmt.Println(time.Unix(t, 0).String())
-				timeStr:=time.Unix(t, 0).String()
-				timeStr=string(timeStr[:10])
-				timeStr=strings.Replace(timeStr,"-","",-1)
-				timeStr=strings.Replace(timeStr," ","",-1)
-
-				uuid := uuid.NewV4()
-				randomStr:=uuid.String()
-
-				orderid:=timeStr+strconv.Itoa(GenerateRandnum())+baseUnix+randomStr[0:5]
-				fmt.Printf("tt",orderid)
-				masterId=orderid //strconv.Itoa(time.Now().Unix())
-			}else{
 				masterPriKey=col.ColumnName
 				if masterInfoMap[masterPriKey]==nil{
 					uuid := uuid.NewV4()
@@ -491,8 +469,6 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				}else{
 					masterId=masterInfoMap[masterPriKey].(string)
 				}
-
-			}
 
 			break;//取第一个主键
 		}
