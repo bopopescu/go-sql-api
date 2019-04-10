@@ -130,11 +130,12 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		}
 		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST")
 
-		rowesAffected, errorMessage := api.RelatedCreate(operates,payload)
+		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreate(operates,payload)
 		// 后置条件处理
 
 		var option QueryOption
 		option.ExtendedArr=slaveInfoMap
+		masterTableInfoMap[masterKey]=masterId
 		option.ExtendedMap=masterTableInfoMap
 		mysql.PostEvent(api,slaveTableName,"POST",nil,option,redisHost)
 

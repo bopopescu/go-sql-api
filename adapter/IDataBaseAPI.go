@@ -8,7 +8,7 @@ import (
 type IDatabaseAPI interface {
 	Create(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
 	ReplaceCreate(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
-	RelatedCreate(operates []map[string]interface{},  obj map[string]interface{}) (rowAaffect int64,errorMessage *ErrorMessage)
+	RelatedCreate(operates []map[string]interface{},  obj map[string]interface{}) (rowAaffect int64,masterKey string,masterId string,errorMessage *ErrorMessage)
 	CreateTableStructure(execSql string) (errorMessage *ErrorMessage)
 	RelatedUpdate(operates []map[string]interface{}, obj map[string]interface{}) (rowAaffect int64,errorMessage *ErrorMessage)
 	Update(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)

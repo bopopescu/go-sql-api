@@ -387,13 +387,13 @@ func GenerateRandnum() int {
 	return randNum
 }
 // batch Create related table by Table name and obj map
-func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
+func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[string]interface{}) (rowAffect int64,masterKey string,masterId string,errorMessage *ErrorMessage) {
 
  	var rowAaffect int64
 	var masterRowAffect int64
 	var slaveRowAffect int64
 	var	rs sql.Result
-	var masterId string
+	//var masterId string
 
 	slaveIds := list.New()
 	masterTableName:=obj["masterTableName"].(string)
@@ -473,6 +473,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 			break;//取第一个主键
 		}
 	}
+	masterKey=masterPriKey
 	masterInfoMap[masterPriKey]=masterId
 
 	if errorMessage!=nil{
@@ -494,7 +495,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 			//		api.Delete(slaveTableName,e.Value,nil)
 			//	}
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
-			return 0,errorMessage
+			return 0,masterPriKey,masterId,errorMessage
 		}
 		fmt.Printf("err=",err)
 	}
@@ -512,7 +513,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 			api.Delete(slaveTableName,e.Value,nil)
 		}
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+errorMessage.Error()}
-       return 0,errorMessage
+       return 0,masterPriKey,masterId,errorMessage
 	}
 
 
@@ -524,7 +525,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 			api.Delete(slaveTableName,e.Value,nil)
 		}
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
-		return 0,errorMessage
+		return 0,masterKey,masterId,errorMessage
 	}
 	var operate_type string
 	var operate_table string
@@ -765,7 +766,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				api.Delete(slaveTableName,e.Value,nil)
 			}
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
-			return 0,errorMessage
+			return 0,masterKey,masterId,errorMessage
 		}else{
 			rs,errorMessage=api.exec(sql)
 
@@ -778,7 +779,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				}
 
 				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
-				return 0,errorMessage
+				return 0,masterKey,masterId,errorMessage
 			}else{
 				slaveRowAffect,err=rs.RowsAffected()
 
@@ -1292,7 +1293,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 	}
 	rowAaffect=rowAaffect+masterRowAffect
-  return rowAaffect,nil
+  return rowAaffect,masterKey,masterId,nil
 }
 func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
