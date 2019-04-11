@@ -312,7 +312,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			if operateFunc!=""{
 				var operateFuncSql string
 				// 预处理有关联关系
-				related_table:=tableName+"_detail"
+				related_table:=strings.Replace(tableName,"_detail","",-1)
 				var relatedOption QueryOption
 				relatedOption.Table=tableName
 				whereMap:= map[string]WhereOperation{}
@@ -326,11 +326,27 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				}
 				relatedOption.Wheres=whereMap
 				relatedOption.Links=[]string{related_table}
-
+				fields=append(fields, "id")
 				relatedOption.Fields=fields
 				relatedData, errorMessage:= api.Select(relatedOption)
 				fmt.Printf("errorMessage=",errorMessage)
+				extendMapArr:=option.ExtendedArr
 				for _,item:=range relatedData{
+					for _,slaveItem:=range extendMapArr{
+						if slaveItem["id"]==item["id"]{
+							var overFirstValue string
+							if len(conditionFiledArr)>0{
+								overFirstValue=conditionFiledArr[0]
+								if strings.Contains(overFirstValue,".") {
+									arr := strings.Split(overFirstValue, ".")
+									overFirstValue = arr[1]
+								}
+								item[overFirstValue]=slaveItem[overFirstValue]
+							}
+
+							continue
+						}
+					}
 					params:=ConcatObjectProperties(conditionFiledArr,item)
 					if params!="''"{
 						operateFuncSql="select "+operateFunc+"("+params+") as result;"

@@ -968,13 +968,15 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		}
 
 		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH")
+		var option QueryOption
+		option.ExtendedArr=slaveInfoMap
+		option.ExtendedMap=masterTableInfoMap
+		mysql.PreEvent(api,slaveTableName,"PATCH",nil,option,"")
 		rowesAffected, errorMessage := api.RelatedUpdate(operates, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
-		var option QueryOption
-		option.ExtendedArr=slaveInfoMap
-		option.ExtendedMap=masterTableInfoMap
+
 		mysql.PostEvent(api,slaveTableName,"PATCH",nil,option,"")
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
