@@ -885,7 +885,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				fmt.Print("syncComplexData=",syncComplexData)
 				fmt.Print(errorMessage)
 				for _,item:=range syncComplexData{
-					operateFuncSql:="select "+operateFunc+"('"+item[conditionFieldKey].(string)+"') as result;"
+					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
 					result:=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
 
