@@ -872,18 +872,19 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		}
 		if "SYNC_COMPLEX"==operate_type{
 			if operateFunc!=""{
-				var relatedOption QueryOption
-				relatedOption.Table=tableName
-				whereMap:= map[string]WhereOperation{}
-				whereMap[tableName+"."+conditionFieldKey]=WhereOperation{
+				var syncComplexOption QueryOption
+				syncComplexOption.Table=tableName
+				complexWhereMap:= map[string]WhereOperation{}
+				complexWhereMap[tableName+"."+conditionFieldKey]=WhereOperation{
 					"eq",
 					option.ExtendedMap[conditionFieldKey],
 				}
 
-				relatedOption.Wheres=whereMap
-				rsData, errorMessage:= api.Select(relatedOption)
+				syncComplexOption.Wheres=complexWhereMap
+				syncComplexData, errorMessage:= api.Select(syncComplexOption)
+				fmt.Print("syncComplexData=",syncComplexData)
 				fmt.Print(errorMessage)
-				for _,item:=range rsData{
+				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item[conditionFieldKey].(string)+"') as result;"
 					result:=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
