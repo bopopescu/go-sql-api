@@ -392,13 +392,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var filterFunc string
 	var filterFieldKey string
 	//	var actionType string
-	var conditionFiledArr [5]string
-	var resultFieldsArr [5]string
-	var actionFieldsArr [5]string
+	var conditionFiledArr []string
+	var resultFieldsArr []string
+	var actionFieldsArr []string
 	var operateCondJsonMap map[string]interface{}
 	var operateCondContentJsonMap map[string]interface{}
 	var operateFilterContentJsonMap map[string]interface{}
 	fieldList:=list.New()
+
 	for _,operate:=range operates {
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
@@ -437,7 +438,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			filterFieldKey=operateFilterContentJsonMap["filterFieldKey"].(string)
 		}
 		for _,item:= range conditionFiledArr{
-			if item!=""{
+			if item !=""{
 				fieldList.PushBack(item)
 			}
 		}
@@ -866,6 +867,17 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				result:=api.ExecFuncForOne(operateFuncSql,"result")
 				fmt.Printf("result=",result)
 				fmt.Printf("errorMessage=",errorMessage)
+
+			}
+		}
+		if "SYNC_COMPLEX"==operate_type{
+			if operateFunc!=""{
+				for _,item:=range option.ExtendedArr{
+					operateFuncSql:="select "+operateFunc+"('"+item[conditionFieldKey].(string)+"') as result;"
+					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					fmt.Printf("result=",result)
+
+				}
 
 			}
 		}
