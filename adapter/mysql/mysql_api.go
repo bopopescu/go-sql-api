@@ -462,7 +462,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 				masterPriKey=col.ColumnName
-				if masterInfoMap[masterPriKey]==nil{
+				if masterInfoMap[masterPriKey]==nil || masterInfoMap[masterPriKey]==""{
 					uuid := uuid.NewV4()
 					masterId=uuid.String()
 					masterInfoMap[masterPriKey]=masterId
