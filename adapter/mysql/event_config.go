@@ -341,7 +341,10 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 									arr := strings.Split(overFirstValue, ".")
 									overFirstValue = arr[1]
 								}
-								item[overFirstValue]=slaveItem[overFirstValue]
+								if(slaveItem[overFirstValue]!=nil){
+									item[overFirstValue]=slaveItem[overFirstValue]
+								}
+
 							}
 
 							continue
@@ -389,6 +392,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var operate_type string
 	var operate_table string
 	var operateFunc string
+	var operateProcedure string
 	var filterFunc string
 	var filterFieldKey string
 	//	var actionType string
@@ -451,7 +455,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 			fmt.Printf("operateFunc=",operateFunc)
 		}
-
+// operateProcedure
+		if operateCondContentJsonMap["operate_procedure"]!=nil{
+			operateProcedure=operateCondContentJsonMap["operate_procedure"].(string)
+			fmt.Printf("operateProcedure=",operateProcedure)
+		}
 		var conditionFieldKeyValue string
 		if strings.Contains(conditionFieldKey,"="){
 			arr:=strings.Split(conditionFieldKey,"=")
@@ -868,6 +876,12 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				fmt.Printf("result=",result)
 				fmt.Printf("errorMessage=",errorMessage)
 
+			}
+			if operateProcedure!=""{
+				operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
+				result:=api.ExecFuncForOne(operateProcedureSql,"result")
+				fmt.Printf("result=",result)
+				fmt.Printf("errorMessage=",errorMessage)
 			}
 		}
 		if "SYNC_COMPLEX"==operate_type{
