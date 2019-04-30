@@ -398,16 +398,21 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	slaveIds := list.New()
 	masterTableName:=obj["masterTableName"].(string)
 	slaveTableName:=obj["slaveTableName"].(string)
-	masterTableInfo:=obj["masterTableInfo"].(string)
+	masterTableInfo:=obj["masterTableInfo"]
 
 	slaveTableInfo:=obj["slaveTableInfo"].(string)
 	fmt.Printf("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
 	//slaveInfoMap:=make([]map[string]interface{})
+	if masterTableInfo!=nil{
+		if masterTableInfo.(string)!=""{
+			masterInfoMap,errorMessage=Json2map(masterTableInfo.(string))
+		}
+
+	}
 
 
-	masterInfoMap,errorMessage=Json2map(masterTableInfo)
 	if errorMessage!=nil{
 		fmt.Printf("err=",errorMessage)
 	}
@@ -1819,9 +1824,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		var updateSql string
 		var isNewCreatedSlaveId string
 		if slave["id"]!=nil{
-			updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
-			rs,errorMessage=api.exec(updateSql)
-			fmt.Printf("err=",err)
+			if slave["id"].(string)!=""{
+				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
+				rs,errorMessage=api.exec(updateSql)
+				fmt.Printf("err=",err)
+			}
+
 		}else{
 			slave["id"]=uuid.NewV4().String()
 			//rs,errorMessage=api.Create(slaveTableName,slave)

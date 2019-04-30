@@ -122,9 +122,16 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		masterTableName := payload["masterTableName"].(string)
 		slaveTableName := payload["slaveTableName"].(string)
 		slaveTableInfo:=payload["slaveTableInfo"].(string)
-		masterTableInfo:=payload["masterTableInfo"].(string)
+		masterTableInfo:=payload["masterTableInfo"]
 		slaveInfoMap,errorMessage:=mysql.JsonArr2map(slaveTableInfo)
-		masterTableInfoMap,errorMessage:=mysql.Json2map(masterTableInfo)
+		masterTableInfoMap:=make(map[string]interface{})
+		if payload["masterTableInfo"]!=nil{
+			if masterTableInfo.(string)!=""{
+				masterTableInfoMap,errorMessage=mysql.Json2map(masterTableInfo.(string))
+			}
+
+		}
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, errorMessage)
 		}
