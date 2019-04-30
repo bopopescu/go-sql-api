@@ -1828,6 +1828,21 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
 				rs,errorMessage=api.exec(updateSql)
 				fmt.Printf("err=",err)
+			}else{
+				slave["id"]=uuid.NewV4().String()
+				//rs,errorMessage=api.Create(slaveTableName,slave)
+
+				objCreate:=make(map[string]interface{})
+				objCreate=obj
+				var createSlaveMap []map[string]interface{}
+				createSlaveMap=append(createSlaveMap,slave)
+				byte,error:=json.Marshal(createSlaveMap)
+				fmt.Printf("error=",error)
+				objCreate["slaveTableInfo"]=string(byte[:])
+				objCreate["isCreated"]="1"
+				api.RelatedCreate(operates,objCreate)
+				fmt.Printf("rsCreate=",rs)
+				isNewCreatedSlaveId=slave["id"].(string)
 			}
 
 		}else{
