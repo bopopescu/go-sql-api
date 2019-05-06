@@ -292,6 +292,31 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 			}
 		}
+		if "PRE_SYNC"==operate_type{
+			if operateFunc!=""{
+				var operateFuncSql string
+				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+				if params!="''"{
+					operateFuncSql="select "+operateFunc+"("+params+") as result;"
+					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					if result!="" && conditionFieldKey!=""{
+						option.ExtendedMap[conditionFieldKey]=result
+					}
+				}else if len(option.Ids)>0{
+					for _,id:=range option.Ids{
+						operateFuncSql="select "+operateFunc+"('"+id+"') as result;"
+						result:=api.ExecFuncForOne(operateFuncSql,"result")
+						if result!="" && conditionFieldKey!=""{
+							option.ExtendedMap[conditionFieldKey]=result
+						}
+					}
+
+				}
+
+
+
+			}
+		}
 		if "PRE_SYNC_COMPLEX"==operate_type{
 				var conditionComplexKey,conditionComplexValue,paramComplexValue string
 				if strings.Contains(conditionComplex,"=") {
