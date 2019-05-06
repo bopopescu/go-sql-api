@@ -878,10 +878,21 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 			}
 			if operateProcedure!=""{
-				operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
-				result:=api.ExecFuncForOne(operateProcedureSql,"result")
-				fmt.Printf("result=",result)
-				fmt.Printf("errorMessage=",errorMessage)
+				if conditionFieldKeyValue!=""{
+					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
+					result:=api.ExecFuncForOne(operateProcedureSql,"result")
+					fmt.Printf("result=",result)
+					fmt.Printf("errorMessage=",errorMessage)
+				}else if len(conditionFiledArr)>0{
+					params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+					if params!=""{
+						operateProcedureSql:="CALL "+operateProcedure+"("+params+");"
+						result:=api.ExecFuncForOne(operateProcedureSql,"result")
+						fmt.Printf("result=",result)
+						fmt.Printf("errorMessage=",errorMessage)
+					}
+				}
+
 			}
 		}
 		if "SYNC_COMPLEX"==operate_type{
