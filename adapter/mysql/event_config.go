@@ -803,7 +803,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			var farm_type string
 			for _,item:=range rsQuery0{
 				fmt.Printf("item=",item)
-				farm_type=item["farm_type"].(string)
+				farm_type_o:=item["farm_type"]
+
+				if farm_type_o==nil {
+					farm_type="1"
+				}else{
+					farm_type=farm_type_o.(string)
+				}
 
 				break
 			}
