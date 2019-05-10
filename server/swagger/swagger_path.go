@@ -402,7 +402,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 	withoutIDPathPatchItem := spec.PathItem{}
 	withIDPathItem := spec.PathItem{}
 	withoutIDBatchPathItem := spec.PathItem{}
-
+	withoutIDBatchPutPathItem := spec.PathItem{}
 	databaseName:=metaBase.DatabaseName
 	apiNoIDPath := fmt.Sprintf("/api/"+databaseName+"/%s", tName)
 	if !isView {
@@ -526,6 +526,28 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 
 
 		paths[apiBatchPath] = withoutIDBatchPathItem
+		// withoutIDBatchPutPathItem
+		withoutIDBatchPutPathItem.Put = NewOperation(
+			tName,
+			fmt.Sprintf("在%s表里,批量更新记录(根据主键id更新)", tName),
+			"",
+			[]spec.Parameter{NewParamForArrayDefinition(tName)},
+			fmt.Sprintf("执行成功,返回影响行数(注意:以影响行数为判断成功与否的依据)"),
+			&spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: spec.StringOrArray{"integer"},
+				},
+				SwaggerSchemaProps: spec.SwaggerSchemaProps{
+					Example: 0,
+				},
+			},
+		)
+
+		apiBatchPutPath := fmt.Sprintf("/api/"+databaseName+"/%s/batch/", tName)
+
+
+		paths[apiBatchPutPath] = withoutIDBatchPutPathItem
+
 		withoutIDPathPatchItem.Patch = NewOperation(
 			tName,
 			fmt.Sprintf("从%s表里,更新满足条件的记录", tName),

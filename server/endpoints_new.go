@@ -67,6 +67,7 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Put Record By ID"
 
 	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
+	s.PUT("/api/"+databaseName+"/:table/batch/", endpointBatchPut(api,redisHost)).Name = "Batch put Records"
     //手动执行异步任务
 	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost)).Name = "exec async task"
 	//手动执行异步任务1
@@ -3493,6 +3494,97 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+	}
+}
+// endpointBatchPut
+func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		payload, errorMessage := bodySliceOf(c)
+		tableName := c.Param("table")
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+		primaryColumns:=meta.GetPrimaryColumns()
+
+		var priId string
+		var priKey string
+		for _, col := range primaryColumns {
+			if col.Key == "PRI" {
+				priKey=col.ColumnName
+
+				fmt.Printf("priId",priId)
+				break;//取第一个主键
+			}
+		}
+
+
+		var totalRowesAffected int64=0
+		r_msg:=[]string{}
+		var savedIds []string
+		for _, record := range payload {
+			recordItem:=record.(map[string]interface{})
+			priId=recordItem[priKey].(string)
+			var option QueryOption
+			option.ExtendedMap=recordItem
+			option.PriKey=priKey
+			data,_:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
+			if len(data)>0{
+				recordItem=data[0]
+			}
+
+			rs, errorMessage := api.Update(tableName,priId, recordItem)
+			savedIds=append(savedIds,recordItem[priKey].(string))
+			// 如果插入失败回滚
+			if errorMessage!=nil{
+				r_msg=append(r_msg,errorMessage.Error())
+				break;
+			}
+			rowesAffected, err := rs.RowsAffected()
+			// 后置事件
+			if rowesAffected>0{
+				mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
+			}
+
+			if err != nil {
+				r_msg=append(r_msg,err.Error())
+			} else {
+				totalRowesAffected+=1
+			}
+		}
+
+
+
+
+
+
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
+		if strings.Contains(tableName,"related"){
+			endIndex:=strings.LastIndex(tableName,"related")
+			cacheTable:=string(tableName[0:endIndex])
+			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
+		}
+
+		if(redisHost!=""){
+			pool:=newPool(redisHost)
+			redisConn:=pool.Get()
+			defer redisConn.Close()
+			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+			fmt.Println(val, err)
+			//redisConn.Send("MULTI")
+			for i, _ := range val {
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
+				}
+				fmt.Printf("DEL-CACHE",val[i], err)
+			}
+		}
+		if len(r_msg)>0{
+			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
+		}
+		return c.JSON(http.StatusOK, totalRowesAffected)
 	}
 }
 
