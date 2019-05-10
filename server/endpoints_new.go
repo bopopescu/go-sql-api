@@ -3521,36 +3521,69 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 		var totalRowesAffected int64=0
 		r_msg:=[]string{}
-		var savedIds []string
+
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
-			priId=recordItem[priKey].(string)
 			var option QueryOption
-			option.ExtendedMap=recordItem
-			option.PriKey=priKey
-			data,_:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
-			if len(data)>0{
-				recordItem=data[0]
+			if recordItem[priKey]==nil{// 没有主键值 则是添加
+				uuid := uuid.NewV4()
+				priId=uuid.String()
+				recordItem[priKey]=priId
+				option.ExtendedMap=recordItem
+				option.PriKey=priKey
+				data,_:=mysql.PreEvent(api,tableName,"POST",nil,option,"")
+				if len(data)>0{
+					recordItem=data[0]
+				}
+				if meta.HaveField("create_time"){
+					recordItem["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+				}
+				rs, errorMessage := api.Create(tableName, recordItem)
+				// 如果插入失败回滚
+				if errorMessage!=nil{
+					r_msg=append(r_msg,errorMessage.Error())
+					break;
+				}
+				rowesAffected, err := rs.RowsAffected()
+				// 后置事件
+				if rowesAffected>0{
+					mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+				}
+
+				if err != nil {
+					r_msg=append(r_msg,err.Error())
+				} else {
+					totalRowesAffected+=1
+				}
+			}else{
+				priId=recordItem[priKey].(string)
+				option.ExtendedMap=recordItem
+				option.PriKey=priKey
+				data,_:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
+				if len(data)>0{
+					recordItem=data[0]
+				}
+				rs, errorMessage := api.Update(tableName,priId, recordItem)
+				// 如果插入失败回滚
+				if errorMessage!=nil{
+					r_msg=append(r_msg,errorMessage.Error())
+					break;
+				}
+				rowesAffected, err := rs.RowsAffected()
+				// 后置事件
+				if rowesAffected>0{
+					mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
+				}
+
+				if err != nil {
+					r_msg=append(r_msg,err.Error())
+				} else {
+					totalRowesAffected+=1
+				}
 			}
 
-			rs, errorMessage := api.Update(tableName,priId, recordItem)
-			savedIds=append(savedIds,recordItem[priKey].(string))
-			// 如果插入失败回滚
-			if errorMessage!=nil{
-				r_msg=append(r_msg,errorMessage.Error())
-				break;
-			}
-			rowesAffected, err := rs.RowsAffected()
-			// 后置事件
-			if rowesAffected>0{
-				mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
-			}
 
-			if err != nil {
-				r_msg=append(r_msg,err.Error())
-			} else {
-				totalRowesAffected+=1
-			}
+
 		}
 
 

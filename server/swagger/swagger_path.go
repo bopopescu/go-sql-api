@@ -529,7 +529,7 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 		// withoutIDBatchPutPathItem
 		withoutIDBatchPutPathItem.Put = NewOperation(
 			tName,
-			fmt.Sprintf("在%s表里,批量更新记录(根据主键id更新)", tName),
+			fmt.Sprintf("在%s表里,批量更新记录(根据主键id更新,如果没有主键值则添加)", tName),
 			"",
 			[]spec.Parameter{NewParamForArrayDefinition(tName)},
 			fmt.Sprintf("执行成功,返回影响行数(注意:以影响行数为判断成功与否的依据)"),
