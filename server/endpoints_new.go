@@ -3525,7 +3525,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
 			var option QueryOption
-			if recordItem[priKey]==nil || (recordItem[priKey]!=nil && recordItem[priKey].(string)!=""){// 没有主键值 则是添加
+			if (recordItem[priKey]==nil || (recordItem[priKey]!=nil && recordItem[priKey].(string)=="")){// 没有主键值 则是添加
 				uuid := uuid.NewV4()
 				priId=uuid.String()
 				recordItem[priKey]=priId
