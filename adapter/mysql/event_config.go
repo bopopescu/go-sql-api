@@ -416,8 +416,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var resultFileds string
 	var operate_type string
 	var operate_table string
-	var operateFunc string
-	var operateProcedure string
+
 	var filterFunc string
 	var filterFieldKey string
 	//	var actionType string
@@ -425,11 +424,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var resultFieldsArr []string
 	var actionFieldsArr []string
 	var operateCondJsonMap map[string]interface{}
-	var operateCondContentJsonMap map[string]interface{}
+
 	var operateFilterContentJsonMap map[string]interface{}
 	fieldList:=list.New()
 
 	for _,operate:=range operates {
+		var operateCondContentJsonMap map[string]interface{}
+		var operateFunc string
+		var operateProcedure string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
@@ -902,10 +904,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		}
 		if "SYNC"==operate_type {
 			if operateFunc!=""{
-				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-				result:=api.ExecFuncForOne(operateFuncSql,"result")
-				fmt.Printf("result=",result)
-				fmt.Printf("errorMessage=",errorMessage)
+				if conditionFieldKeyValue!=""{
+					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
+					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					fmt.Printf("result=",result)
+					fmt.Printf("errorMessage=",errorMessage)
+				}
+
 
 			}
 			if operateProcedure!=""{
@@ -915,9 +920,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
 				}else if len(conditionFiledArr)>0{
-					params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
-					if params!=""{
-						operateProcedureSql:="CALL "+operateProcedure+"("+params+");"
+					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+					if paramsPro!=""{
+						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
 						result:=api.ExecFuncForOne(operateProcedureSql,"result")
 						fmt.Printf("result=",result)
 						fmt.Printf("errorMessage=",errorMessage)
