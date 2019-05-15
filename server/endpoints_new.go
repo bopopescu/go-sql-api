@@ -136,7 +136,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, errorMessage)
 		}
-		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST")
+		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST","0")
 
 		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreate(operates,payload)
 		// 后置条件处理
@@ -321,7 +321,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		opK,errorMessage:=mysql.SelectOperaInfoByOperateKey(api,masterTableName+"-"+slaveTableName+"-DELETE")
 		fmt.Printf("errorMessage=",errorMessage)
 
-		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "DELETE")
+		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "DELETE","0")
 
 		if opK!=nil{
 			for _, item := range opK {
@@ -975,7 +975,7 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			slaveTableName=payload["slaveTableName"].(string)
 		}
 
-		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH")
+		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH","0")
 		var option QueryOption
 		option.ExtendedArr=slaveInfoMap
 		option.ExtendedMap=masterTableInfoMap
@@ -2696,6 +2696,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		//copy the uploaded file to the destination file
 		io.Copy(dst, file)
 		dst.Close()
+        importBatchNo:= uuid.NewV4().String()
 
 		//根据导入模板key查询模板基本信息
 		templateWhere := map[string]WhereOperation{}
@@ -2927,6 +2928,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 						tableMap["order_num"]=orderNum
 						orderNum=orderNum+1
 					}
+					if api.GetDatabaseTableMetadata(tableName).HaveField("import_batch_no"){
+						tableMap["import_batch_no"]=importBatchNo
+
+					}
+					// import_batch_no 导入批次号
+
 					_,errorMessage:=api.Create(tableName,tableMap)
 					fmt.Printf("errorMessage=",errorMessage)
 					var optionEvent QueryOption
@@ -2939,12 +2946,23 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			}
 
 
-
-
+        //  异步任务
+		c1 := make (chan int);
+		go asyncImportBatch(api,templateKey,importBatchNo,c1)
 		// 清除上传的文件
 		os.Remove("./upload/"+fileHeader.Filename)
 		return c.String(http.StatusOK, strconv.Itoa(len(rows)-row_start+1))
 	}
+}// api adapter.IDatabaseAPI,where string,asyncKey string,c chan int
+func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,importBatchNo string,c chan int){
+	tableName:=strings.Replace(templateKey,"_template","",-1)
+	var optionEvent QueryOption
+	tableMap:=make(map[string]interface{})
+	tableMap["import_batch_no"]=importBatchNo
+	optionEvent.ExtendedMap=tableMap
+
+	mysql.AsyncEvent(api,tableName,"POST",nil,optionEvent,"")
+	c <- 1
 }
 func processBlock(line []byte) {
 	os.Stdout.Write(line)

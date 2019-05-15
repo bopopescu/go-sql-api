@@ -1300,7 +1300,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rowAaffect=rowAaffect+masterRowAffect
   return rowAaffect,masterKey,masterId,nil
 }
-func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
+func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string,isAsyncTask string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
 	whereOption := map[string]WhereOperation{}
 	whereOption["cond_table"] = WhereOperation{
@@ -1310,6 +1310,11 @@ func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string)
 	whereOption["api_method"] = WhereOperation{
 		Operation: "eq",
 		Value:     apiMethod,
+	}
+	// is_async_task 0 不是异步任务
+	whereOption["is_async_task"] = WhereOperation{
+		Operation: "eq",
+		Value:     isAsyncTask,
 	}
 	querOption := QueryOption{Wheres: whereOption, Table: "operate_config"}
 	orders:=make(map[string]string)
