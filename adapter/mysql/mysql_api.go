@@ -387,7 +387,7 @@ func GenerateRandnum() int {
 	return randNum
 }
 // batch Create related table by Table name and obj map
-func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[string]interface{}) (rowAffect int64,masterKey string,masterId string,errorMessage *ErrorMessage) {
+func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[string]interface{},submitPerson string) (rowAffect int64,masterKey string,masterId string,errorMessage *ErrorMessage) {
 
  	var rowAaffect int64
 	var masterRowAffect int64
@@ -432,7 +432,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 		masterInfoMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 	}
 
-
+	if masterMeta.HaveField("submit_person"){
+		masterInfoMap["submit_person"]=submitPerson
+	}
 	// 如果是一对一 且有相互依赖
 	if len(slaveInfoMap)==1 {
 		for _, slave := range slaveInfoMap {
@@ -1530,7 +1532,7 @@ func BuildMapFromBody(properties []string,fromObjec map[string]interface{},disOb
 	return disObjec;
 }
 
-func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[string]interface{}) (rowAffect int64,errorMessage *ErrorMessage) {
+func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[string]interface{},updatePerson string) (rowAffect int64,errorMessage *ErrorMessage) {
 	var rowAaffect int64
 	var masterRowAffect int64
 	var slaveRowAffect int64
@@ -1554,7 +1556,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	var fundsExists5 []map[string]interface{}
 	//slaveInfoMap:=make([]map[string]interface{})
 	var primaryColumns []*ColumnMetadata
-	primaryColumns=api.GetDatabaseMetadata().GetTableMeta(masterTableName).GetPrimaryColumns()
+	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+	primaryColumns=masterMeta.GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			masterKeyColName=col.ColumnName
@@ -1573,7 +1576,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	}
 	fmt.Printf("slaveTableName",slaveTableName)
 	fmt.Printf("slaveInfoMap",slaveInfoMap)
-
+	if masterMeta.HaveField("submit_person"){
+		masterInfoMap["submit_person"]=updatePerson
+	}
 	sql, err := api.sql.UpdateByTableAndId(masterTableName,masterId, masterInfoMap)
 
 	if errorMessage != nil {
@@ -1877,7 +1882,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				fmt.Printf("error=",error)
 				objCreate["slaveTableInfo"]=string(byte[:])
 				objCreate["isCreated"]="1"
-				api.RelatedCreate(operates,objCreate)
+				api.RelatedCreate(operates,objCreate,updatePerson)
 				fmt.Printf("rsCreate=",rs)
 				isNewCreatedSlaveId=slave["id"].(string)
 			}
@@ -1894,7 +1899,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			fmt.Printf("error=",error)
 			objCreate["slaveTableInfo"]=string(byte[:])
 			objCreate["isCreated"]="1"
-			api.RelatedCreate(operates,objCreate)
+			api.RelatedCreate(operates,objCreate,updatePerson)
 			fmt.Printf("rsCreate=",rs)
 			isNewCreatedSlaveId=slave["id"].(string)
 			// 新增的也y要同步计算
