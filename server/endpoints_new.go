@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/shiyongabc/go-api-gateway/enforcer"
 	"net/http"
 	"github.com/shiyongabc/go-mysql-api/server/swagger"
 	"github.com/labstack/echo"
@@ -142,7 +141,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -993,7 +992,7 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -2552,7 +2551,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -2741,7 +2740,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -3218,7 +3217,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -3378,7 +3377,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -3635,7 +3634,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
@@ -3773,7 +3772,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,enforcer.GetValidationKey)
+		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
 		fmt.Printf("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
