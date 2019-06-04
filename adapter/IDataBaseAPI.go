@@ -16,6 +16,7 @@ type IDatabaseAPI interface {
 	Delete(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
 	Select(option QueryOption) (rs []map[string]interface{},errorMessage *ErrorMessage)
 	ExecFunc(sql string) (rs []map[string]interface{},errorMessage *ErrorMessage)
+	ExecSql(sql string) (rs []map[string]interface{},errorMessage *ErrorMessage)
 	ExecFuncForOne(sql string,key string)(string)
 	SelectTotalCount(option QueryOption) (totalCount int,errorMessage *ErrorMessage)
 	GetDatabaseMetadata() *DataBaseMetadata

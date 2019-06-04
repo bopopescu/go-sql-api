@@ -2773,12 +2773,14 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		var tableKeyValue string
 
   		var dependTableKey string
-  		var dependTableKeyValue string
+  		//var dependTableKeyValue string
   		var extractParam string
   		var extractParamMap map[string]interface{}
 		var extractParamArr [5]string
-  		var orderNum int
-		orderNum=1
+		var importBuffer bytes.Buffer
+
+  		//var orderNum int
+		//orderNum=1
   		for _,item:=range data{
 			row_start_str:=item["row_start"].(string)
 			row_start,_=strconv.Atoi(row_start_str)
@@ -2795,15 +2797,16 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			}
 
 		}
+		importBuffer.WriteString("REPLACE INTO "+master_table+"(")
 		var tableMeta *TableMetadata
 		tableMeta=api.GetDatabaseMetadata().GetTableMeta(master_table)
-		//if tableMeta!=nil{
-		//	primaryColumns:=tableMeta.GetPrimaryColumns()
-		//	if len(primaryColumns)>0{
-		//		dependTableKey=primaryColumns[0].ColumnName
-		//		dependTableKeyValue=uuid.NewV4().String()
-		//	}
-		//}
+		if tableMeta!=nil{
+			primaryColumns:=tableMeta.GetPrimaryColumns()
+			if len(primaryColumns)>0{
+				tableKey=primaryColumns[0].ColumnName
+				importBuffer.WriteString("`"+tableKey+"`,")
+			}
+		}
 
 		//  primaryColumns []*ColumnMetadata
 
@@ -2829,7 +2832,51 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			Operation: "eq",
 			Value:     templateKey,
 		}
+       // 查询模板详情
+		templateDetailOption := QueryOption{Wheres: templateDetailWhere, Table: "import_template_detail"}
+		orders:=make(map[string]string)
+		orders["col_num"]="asc"
+		templateDetailOption.Orders =orders
+		dataDetail, errorMessage := api.Select(templateDetailOption)
+		fmt.Printf("dataDetail", dataDetail)
+		fmt.Printf("errorMessage", errorMessage)
 
+
+		for _, detail := range dataDetail {
+			// 获取配置数据库表列名和excel列名
+			var excelColName string
+			excelColName=detail["column_name"].(string)
+				// 从有效数据导入的第一行 拼接字段
+			importBuffer.WriteString("`"+excelColName+"`,")
+
+			}
+		// 除模板外的字段
+		if extractParamMap!=nil{
+			// obtain_from_where
+			if extractParamMap["obtain_from_where"]!=nil{
+				obtain_from_where_str:=extractParamMap["obtain_from_where"].(string)
+				//extractParamArrStr:=operateCondJsonMap["conditionFields"].(string)
+				json.Unmarshal([]byte(obtain_from_where_str), &extractParamArr)
+			}
+		}
+		for _,item:=range extractParamArr{
+			if item!=""{
+				importBuffer.WriteString("`"+item+"`,")
+
+			}
+		}
+
+		if tableMeta.HaveField("import_batch_no"){
+			importBuffer.WriteString("`import_batch_no`,")
+		}
+
+		if tableMeta.HaveField("submit_person"){
+			importBuffer.WriteString("`submit_person`,")
+		}
+		importBuffer.WriteString("`create_time`)values")
+
+
+       //print("importBuffer-head=",importBuffer.String())
 		//xlsx,error := excelize.OpenFile("./upload/商品导入模板.xlsx")
 		xlsx,error := excelize.OpenFile("./upload/"+fileHeader.Filename)
 		if error!=nil{
@@ -2843,174 +2890,93 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			rows = xlsx.GetRows("汇总表")
 		}
 		    var rowIndex int
-		    if row_start>1{
-				tableMap:=make(map[string]interface{})
-				 existWhere:=make(map[string]WhereOperation)
-				for key,value:=range option.Wheres{
-					if strings.Contains(key,"."){
-						arr:=strings.Split(key,".")
-						if len(arr)>0{
-							tableMap[arr[1]]=value.Value
-							existWhere[arr[1]]=WhereOperation{
-								Operation:"eq",
-								Value:value.Value,
-							}
-						}
-					}
 
-				}
-				tableMap[dependTableKey]=dependTableKeyValue
-				tableMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-				_,errorMessage:=api.Create(dependency_table,tableMap)
-				fmt.Printf("errorMessage=",errorMessage)
-				if templateKey=="off_line_report_template"{
-					option.Table="report_monitor"
-					option.Wheres=existWhere
-					data,errorMessage:= api.Select(option)
-					fmt.Printf("errorMessage=",errorMessage)
-					var timeOutDays string
-					for _,item:=range data{
-						id:=item["id"].(string)
-						if item["timeout_days"]!=""{
-							timeOutDays=item["timeout_days"].(string)
-						}
-						api.Delete("report_monitor",id,nil)
-
-					}
-
-					monitorMap:=make(map[string]interface{})
-					delete(tableMap,"off_line_report_head_id")
-					monitorMap=tableMap
-					monitorMap["report_status"]="1"
-					if timeOutDays!=""&& timeOutDays!="0"{
-						monitorMap["report_status"]="2"
-					}
-					monitorMap["is_use_account_platform"]="0"
-
-
-					monitorMap["id"]=uuid.NewV4().String()
-					//monitorMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-					//
-					//monitorMap["farm_id"]=farmId
-					//monitorMap["account_year"]=accountYear
-					//monitorMap["quarter"]=quarter
-					//monitorMap["report_status"]="1"
-					//if timeOutDays!=""&& timeOutDays!="0"{
-					//	monitorMap["report_status"]="2"
-					//}
-					//monitorMap["is_use_account_platform"]="1"
-
-
-					_,errorMessage=api.Create("report_monitor",monitorMap)
-					fmt.Printf("errorMessage=",errorMessage)
-				}
-			}
 	    	rowIndex=0
 			for _, row := range rows {
-				var tableName string
 				rowIndex=rowIndex+1
 				if row_start>rowIndex{
 					continue
 				}
+				importBuffer.WriteString("(")
+				tableKeyValue=uuid.NewV4().String()
+				importBuffer.WriteString("'"+tableKeyValue+"',")
 				templateDetailWhere["row_num"] = WhereOperation{
 					Operation: "gte",
 					Value:     row_start,
 				}
 				//主表map
-				tableMap:=make(map[string]interface{})
+				 tableMap:=make(map[string]interface{})
 				var colIndex int
 				for _, colCell := range row {
 
 					// 获取配置数据库表列名和excel列名
 					colIndex=colIndex+1
+					var excelColName string
+					excelColName=dataDetail[colIndex-1]["column_name"].(string)
 
-					templateDetailWhere["col_num"] = WhereOperation{
-						Operation: "eq",
-						Value:     colIndex,
-					}
-					templateDetailOption := QueryOption{Wheres: templateDetailWhere, Table: "import_template_detail"}
-					dataDetail, errorMessage := api.Select(templateDetailOption)
-					fmt.Printf("dataDetail", dataDetail)
-					fmt.Printf("errorMessage", errorMessage)
-					//var colOrder string
-
-					for _,item :=range dataDetail{
-						var excelColName string
-						if item["table_name"]!=nil{
-							tableName=item["table_name"].(string)
-							// tableMeta=api.GetDatabaseMetadata().GetTableMeta(tableName)
-							if tableMeta!=nil{
-								primaryColumns:=tableMeta.GetPrimaryColumns()
-								if len(primaryColumns)>0{
-									tableKey=primaryColumns[0].ColumnName
-									tableKeyValue=uuid.NewV4().String()
-								}
-							}
-
-						}
-						//colOrder=item["column_order"].(string)
-						excelColName=item["column_name"].(string)
-						if excelColName!="" && colIndex>=col_start{
-							b:=tableMeta.HaveField(excelColName)
-							if b==true{
-								tableMap[excelColName]=colCell
-							}
-
+					if excelColName!="" && colIndex>=col_start{
+						b:=tableMeta.HaveField(excelColName)
+						if b==true{
+							 tableMap[excelColName]=colCell
+							// 从有效数据导入的第一行 拼接字段
+							importBuffer.WriteString("'"+colCell+"',")
 						}
 					}
 
 				}
-				fmt.Println()
 				if len(tableMap)>0{
-
-					tableMap[tableKey]=tableKeyValue
-					if dependTableKey!=""{
-						tableMap[dependTableKey]=dependTableKeyValue
-					}
-				if extractParamMap!=nil{
-						// obtain_from_where
-					if extractParamMap["obtain_from_where"]!=nil{
-						obtain_from_where_str:=extractParamMap["obtain_from_where"].(string)
-						//extractParamArrStr:=operateCondJsonMap["conditionFields"].(string)
-						json.Unmarshal([]byte(obtain_from_where_str), &extractParamArr)
-					  }
-					}
 					for _,item:=range extractParamArr{
 						if item!=""{
-							tableMap[item]=option.Wheres[tableName+"."+item].Value
+							tableMap[item]=option.Wheres[master_table+"."+item].Value
+							itemValue:=option.Wheres[master_table+"."+item].Value
+							if itemValue!=nil{
+								importBuffer.WriteString("'"+itemValue.(string)+"',")
+							}
+
 						}
 					}
-					tableMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-					if tableMeta.HaveField("order_num"){
-						tableMap["order_num"]=orderNum
-						orderNum=orderNum+1
-					}
+
 					if tableMeta.HaveField("import_batch_no"){
 						tableMap["import_batch_no"]=importBatchNo
-
+						importBuffer.WriteString("'"+importBatchNo+"',")
 					}
 
 					if tableMeta.HaveField("submit_person"){
 						tableMap["submit_person"]=submitPerson
+						if submitPerson!=nil{
+							importBuffer.WriteString("'"+submitPerson.(string)+"',")
+						}
 
 					}
-					_,errorMessage:=api.Create(tableName,tableMap)
-					fmt.Printf("errorMessage=",errorMessage)
-					var optionEvent QueryOption
-					optionEvent.ExtendedMap=tableMap
+					createTime:=time.Now().Format("2006-01-02 15:04:05")
+					tableMap["create_time"]=createTime
+					if rowIndex==len(rows){
+						importBuffer.WriteString("'"+createTime+"');")
+					}else{
+						importBuffer.WriteString("'"+createTime+"'),")
+					}
 
-					mysql.PostEvent(api,tableName,"POST",nil,optionEvent,"")
+					//
+					//_,errorMessage:=api.Create(tableName,tableMap)
+					//fmt.Printf("errorMessage=",errorMessage)
+					//var optionEvent QueryOption
+					//optionEvent.ExtendedMap=tableMap
+
+					// mysql.PostEvent(api,tableName,"POST",nil,optionEvent,"")
 				}
 
-
 			}
-
-
+		print("import-sql=",importBuffer.String())
+		importRs,errorMessage:=api.ExecSql(importBuffer.String())
+		print("importRs=",importRs)
         //  异步任务
 		c1 := make (chan int);
 		go asyncImportBatch(api,templateKey,importBatchNo,c1)
 		// 清除上传的文件
 		os.Remove("./upload/"+fileHeader.Filename)
+		if errorMessage!=nil{
+			return c.String(http.StatusInternalServerError, errorMessage.Error())
+		}
 		return c.String(http.StatusOK, strconv.Itoa(len(rows)-row_start+1))
 	}
 }// api adapter.IDatabaseAPI,where string,asyncKey string,c chan int

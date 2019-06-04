@@ -162,6 +162,10 @@ func (api *MysqlAPI)ExecFunc(sql string) (rs []map[string]interface{},errorMessa
 	//api.exec(sql,params)
 	return api.query(sql)
 }
+func (api *MysqlAPI)ExecSql(sql string) (rs []map[string]interface{},errorMessage *ErrorMessage){
+	//api.exec(sql,params)
+	return api.query(sql)
+}
 // GetConnectionPool which Pool is Singleton Connection Pool
 func (api *MysqlAPI) GetConnectionPool(dbURI string) *sql.DB {
 	if api.connection == nil {
