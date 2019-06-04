@@ -2897,6 +2897,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 				if row_start>rowIndex{
 					continue
 				}
+				//某一行的第一列必须有值 否则当前行不添加
+				if row[0]==""{
+					break
+				}
 				importBuffer.WriteString("(")
 				tableKeyValue=uuid.NewV4().String()
 				importBuffer.WriteString("'"+tableKeyValue+"',")
