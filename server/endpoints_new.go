@@ -2973,6 +2973,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		print("import-sql=",importBuffer.String())
 		importRs,errorMessage:=api.ExecSql(importBuffer.String())
 		print("importRs=",importRs)
+		// 同步任务
+		var optionEvent QueryOption
+		tableMap:=make(map[string]interface{})
+		tableMap["import_batch_no"]=importBatchNo
+		optionEvent.ExtendedMap=tableMap
+		mysql.PostEvent(api,master_table,"POST",nil,optionEvent,"")
         //  异步任务
 		c1 := make (chan int);
 		go asyncImportBatch(api,templateKey,importBatchNo,c1)
