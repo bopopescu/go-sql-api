@@ -2778,8 +2778,26 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
   		var extractParamMap map[string]interface{}
 		var extractParamArr [5]string
 		var importBuffer bytes.Buffer
+		var systemEnumMap =make(map[string]interface{})
+		// 查询枚举值
+		enumWhere := map[string]WhereOperation{}
+		enumWhere["enum_field"] = WhereOperation{
+			Operation: "like",
+			Value:     master_table+"%",
+		}
+		// 查询枚举值
+		enumOption := QueryOption{Wheres: enumWhere, Table: "system_enum"}
 
-  		//var orderNum int
+		enumData, errorMessage := api.Select(enumOption)
+		fmt.Printf("enumData", enumData)
+		fmt.Printf("errorMessage", errorMessage)
+        for _,item:=range enumData{
+        	if item["enum_field"]!=nil && item["enum_key"]!=nil{
+				systemEnumMap[item["enum_field"].(string)+item["enum_key"].(string)]=item["enum_value"]
+			}
+
+		}
+		//var orderNum int
 		//orderNum=1
   		for _,item:=range data{
 			row_start_str:=item["row_start"].(string)
@@ -2921,7 +2939,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					if excelColName!="" && colIndex>=col_start{
 						b:=tableMeta.HaveField(excelColName)
 						if b==true{
-							 tableMap[excelColName]=colCell
+							if systemEnumMap!=nil&&systemEnumMap[master_table+"."+excelColName+colCell]!=nil{
+								tableMap[excelColName]=systemEnumMap[master_table+"."+excelColName+colCell]
+							}else{
+								tableMap[excelColName]=colCell
+							}
+
 							// 从有效数据导入的第一行 拼接字段
 							importBuffer.WriteString("'"+colCell+"',")
 						}
