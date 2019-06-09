@@ -1149,13 +1149,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				}
 
 			}
+			if whereOption ==nil{
+				continue
+			}
 
 			querOption := QueryOption{Wheres: whereOption, Table: tableName}
 			rsQuery, errorMessage:= api.Select(querOption)
 			if errorMessage!=nil{
 				fmt.Printf("errorMessage", errorMessage)
-			}else{
-				fmt.Printf("rs", rsQuery)
 			}
 			//operate_type:=operateCondContentJsonMap["operate_type"].(string)
 			pri_key:=operateCondContentJsonMap["pri_key"].(string)
@@ -1260,6 +1261,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
                if len(updateWhere)<=0{
 				   updateWhere=whereOption
 			   }
+				if len(updateWhere)<=0{
+					continue
+				}
 				rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
 				if err!=nil{
 					fmt.Printf("err=",err)
