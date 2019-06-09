@@ -2779,7 +2779,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		var extractParamArr [5]string
 		var importBuffer bytes.Buffer
 		var systemEnumMap =make(map[string]interface{})
-
+        totalCount:=1
 		//var orderNum int
 		//orderNum=1
   		for _,item:=range data{
@@ -2946,7 +2946,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 							if systemEnumMap!=nil&&systemEnumMap[master_table+"."+excelColName+colCell]!=nil{
 								tableMap[excelColName]=systemEnumMap[master_table+"."+excelColName+colCell]
 								// 从有效数据导入的第一行 拼接字段
-								importBuffer.WriteString("'"+colCell+"',")
+								importBuffer.WriteString("'"+systemEnumMap[master_table+"."+excelColName+colCell].(string)+"',")
 							}else{
 								tableMap[excelColName]=colCell
 								// 从有效数据导入的第一行 拼接字段
@@ -2984,10 +2984,11 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					}
 					createTime:=time.Now().Format("2006-01-02 15:04:05")
 					tableMap["create_time"]=createTime
-					if rowIndex==len(rows){
+					if rowIndex==len(rows) || rows[rowIndex][0]==""{
 						importBuffer.WriteString("'"+createTime+"');")
 					}else{
 						importBuffer.WriteString("'"+createTime+"'),")
+						totalCount=totalCount+1
 					}
 
 					//
@@ -3017,7 +3018,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		if errorMessage!=nil{
 			return c.String(http.StatusInternalServerError, errorMessage.Error())
 		}
-		return c.String(http.StatusOK, strconv.Itoa(len(rows)-row_start+1))
+		return c.String(http.StatusOK, strconv.Itoa(totalCount))
 	}
 }// api adapter.IDatabaseAPI,where string,asyncKey string,c chan int
 func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,importBatchNo string,c chan int){
