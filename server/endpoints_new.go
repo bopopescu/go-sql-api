@@ -2779,6 +2779,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		var extractParamArr [5]string
 		var importBuffer bytes.Buffer
 		var systemEnumMap =make(map[string]interface{})
+		var tableDataTypeMap =make(map[string]interface{})
         totalCount:=1
 		//var orderNum int
 		//orderNum=1
@@ -2831,7 +2832,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		}
 
 		//  primaryColumns []*ColumnMetadata
-
+		for _,item:=range tableMeta.Columns{
+			tableDataTypeMap[item.ColumnName]=item.DataType
+		}
 
 		// 删除已经导入的数据
 		var existsDependId string
@@ -2942,15 +2945,23 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 					if excelColName!="" && colIndex>=col_start{
 						b:=tableMeta.HaveField(excelColName)
+
 						if b==true{
 							if systemEnumMap!=nil&&systemEnumMap[master_table+"."+excelColName+colCell]!=nil{
 								tableMap[excelColName]=systemEnumMap[master_table+"."+excelColName+colCell]
 								// 从有效数据导入的第一行 拼接字段
 								importBuffer.WriteString("'"+systemEnumMap[master_table+"."+excelColName+colCell].(string)+"',")
 							}else{
-								tableMap[excelColName]=colCell
-								// 从有效数据导入的第一行 拼接字段
-								importBuffer.WriteString("'"+colCell+"',")
+								if colCell=="" && tableDataTypeMap[excelColName]!="varchar" && tableDataTypeMap[excelColName]!="text"&& tableDataTypeMap[excelColName]!="datetime"&& tableDataTypeMap[excelColName]!="timestamp" {
+									tableMap[excelColName]="0"
+									// 从有效数据导入的第一行 拼接字段
+									importBuffer.WriteString("'0',")
+								}else{
+									tableMap[excelColName]=colCell
+									// 从有效数据导入的第一行 拼接字段
+									importBuffer.WriteString("'"+colCell+"',")
+								}
+
 							}
 
 
