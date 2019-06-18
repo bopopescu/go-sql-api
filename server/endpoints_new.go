@@ -2941,7 +2941,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					// 获取配置数据库表列名和excel列名
 					colIndex=colIndex+1
 					var excelColName string
-					excelColName=dataDetail[colIndex-1]["column_name"].(string)
+					if colCell!=""{
+						excelColName=dataDetail[colIndex-1]["column_name"].(string)
+
+					}
 
 					if excelColName!="" && colIndex>=col_start{
 						b:=tableMeta.HaveField(excelColName)
