@@ -2767,12 +2767,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
   		var row_start int
   		var col_start int
 		var master_table string
-  		var dependency_table string
+  		//var dependency_table string
 
 		var tableKey string
 		var tableKeyValue string
 
-  		var dependTableKey string
+  		//var dependTableKey string
   		//var dependTableKeyValue string
   		var extractParam string
   		var extractParamMap map[string]interface{}
@@ -2789,9 +2789,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			col_start_str:=item["col_start"].(string)
 			col_start,_=strconv.Atoi(col_start_str)
 			master_table=item["table_name"].(string)
-			if item["dependency_table"]!=nil{
-				dependency_table=item["dependency_table"].(string)
-			}
+			//if item["dependency_table"]!=nil{
+			//	dependency_table=item["dependency_table"].(string)
+			//}
 			if item["extract_param"]!=nil{
 				extractParam=item["extract_param"].(string)
 				json.Unmarshal([]byte(extractParam), &extractParamMap)
@@ -2837,20 +2837,20 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		}
 
 		// 删除已经导入的数据
-		var existsDependId string
-		if dependency_table!=""{
-			option.Table=dependency_table
-			data,errorMessage:= api.Select(option)
-			fmt.Printf("errorMessage=",errorMessage)
-			for _,item:=range data{
-					existsDependId=item[dependTableKey].(string)
-					api.Delete(dependency_table,existsDependId,nil)
-					deMap:=make(map[string]interface{})
-					deMap[dependTableKey]=existsDependId
-					api.Delete(master_table,nil,deMap)
-				}
-
-		}
+		//var existsDependId string
+		//if dependency_table!=""{
+		//	option.Table=dependency_table
+		//	data,errorMessage:= api.Select(option)
+		//	fmt.Printf("errorMessage=",errorMessage)
+		//	for _,item:=range data{
+		//			existsDependId=item[dependTableKey].(string)
+		//			api.Delete(dependency_table,existsDependId,nil)
+		//			deMap:=make(map[string]interface{})
+		//			deMap[dependTableKey]=existsDependId
+		//			api.Delete(master_table,nil,deMap)
+		//		}
+		//
+		//}
 
 		templateDetailWhere := map[string]WhereOperation{}
 		templateDetailWhere["template_key"] = WhereOperation{
