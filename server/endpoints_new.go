@@ -2945,7 +2945,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					}
 					var excelColName string
 					if colCell!=""{
-						excelColName=dataDetail[colIndex-1]["column_name"].(string)
+						excelColName=dataDetail[colIndex-col_start]["column_name"].(string)
 
 					}
 
