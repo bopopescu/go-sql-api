@@ -2766,6 +2766,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		fmt.Printf("errorMessage", errorMessage)
   		var row_start int
   		var col_start int
+		var col_end int
 		var master_table string
   		//var dependency_table string
 
@@ -2788,6 +2789,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			row_start,_=strconv.Atoi(row_start_str)
 			col_start_str:=item["col_start"].(string)
 			col_start,_=strconv.Atoi(col_start_str)
+
+			col_end_str:=item["col_end"].(string)
+			col_end,_=strconv.Atoi(col_end_str)
 			master_table=item["table_name"].(string)
 			//if item["dependency_table"]!=nil{
 			//	dependency_table=item["dependency_table"].(string)
@@ -2944,7 +2948,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 						continue
 					}
 					var excelColName string
-					if colCell!=""{
+					if col_end>=colIndex{
 						excelColName=dataDetail[colIndex-col_start]["column_name"].(string)
 
 					}
