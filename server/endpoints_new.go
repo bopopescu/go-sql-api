@@ -2306,7 +2306,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 					}else{
 						for j, k:=range keys{
-							if systemEnumMap[templateKey+"."+k+d[k].(string)] !=nil{
+							if d[k]!=nil&&systemEnumMap[templateKey+"."+k+d[k].(string)] !=nil{
 								xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), systemEnumMap[templateKey+"."+k+d[k].(string)].(string))
 							}else{
 								xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
