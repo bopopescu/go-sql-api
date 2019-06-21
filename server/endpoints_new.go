@@ -2088,7 +2088,27 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 		}
 		var headCols int
+		var systemEnumMap=make(map[string]interface{})
 		if len(data1)>0{
+			// 查询枚举值
+			enumWhere := map[string]WhereOperation{}
+			enumWhere["enum_field"] = WhereOperation{
+				Operation: "like",
+				Value:     templateKey+"%",
+			}
+			// 查询枚举值
+			enumOption := QueryOption{Wheres: enumWhere, Table: "system_enum"}
+
+			enumData, errorMessage := api.Select(enumOption)
+			fmt.Printf("enumData", enumData)
+			fmt.Printf("errorMessage", errorMessage)
+			for _,item:=range enumData{
+				if item["enum_field"]!=nil && item["enum_key"]!=nil{
+					systemEnumMap[item["enum_field"].(string)+item["enum_key"].(string)]=item["enum_value"]
+				}
+
+			}
+
 			//取到表头
 			var keys []string
 			//keys:=list.New()
@@ -2286,7 +2306,12 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 					}else{
 						for j, k:=range keys{
-							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
+							if systemEnumMap[templateKey+"."+k+d[k].(string)] !=nil{
+								xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), systemEnumMap[templateKey+"."+k+d[k].(string)].(string))
+							}else{
+								xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
+							}
+
 						}
 					}
 
