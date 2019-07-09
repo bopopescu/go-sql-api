@@ -2566,10 +2566,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			option.Authorization=cookie.Value
 		}
 
-		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
-		if len(data)>0{
-			option.ExtendedMap=data[0]
-		}
+
 		if meta.HaveField("create_time"){
 			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
@@ -2587,8 +2584,12 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		fmt.Printf("userIdJwt=",userIdJwt)
         if meta.HaveField("submit_person"){
 			payload["submit_person"]=userIdJwt
+			option.ExtendedMap["submit_person"]=userIdJwt
 		}
-
+		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
+		if len(data)>0{
+			option.ExtendedMap=data[0]
+		}
 		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -2973,9 +2974,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 						continue
 					}
 					var excelColName string
+					//var isDate string
 					if col_end>=colIndex{
 						excelColName=dataDetail[colIndex-col_start]["column_name"].(string)
-
+						//isDate = dataDetail[colIndex-col_start]["is_date"].(string)
 					}
 
 					if excelColName!="" && colIndex>=col_start{
@@ -2989,9 +2991,14 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 							}else{
 								if colCell=="" && tableDataTypeMap[excelColName]!="varchar" && tableDataTypeMap[excelColName]!="text"&& tableDataTypeMap[excelColName]!="datetime"&& tableDataTypeMap[excelColName]!="timestamp" {
 									tableMap[excelColName]="0"
+									//if isDate =="1" {
+									//	colCell=convertToFormatDay(colCell)
+									//}
 									// 从有效数据导入的第一行 拼接字段
 									importBuffer.WriteString("'0',")
 								}else{
+
+
 									tableMap[excelColName]=colCell
 									// 从有效数据导入的第一行 拼接字段
 									importBuffer.WriteString("'"+colCell+"',")
@@ -3067,6 +3074,24 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		return c.String(http.StatusOK, strconv.Itoa(totalCount))
 	}
 }// api adapter.IDatabaseAPI,where string,asyncKey string,c chan int
+
+// excel日期字段格式化 yyyy-mm-dd
+func convertToFormatDay(excelDaysString string)string {
+	// 2006-01-02 距离 1900-01-01的天数
+	baseDiffDay := 38719 //在网上工具计算的天数需要加2天，什么原因没弄清楚
+	curDiffDay := excelDaysString
+	b, _ := strconv.Atoi(curDiffDay)
+	// 获取excel的日期距离2006-01-02的天数
+	realDiffDay := b - baseDiffDay
+	//fmt.Println("realDiffDay:",realDiffDay)
+	// 距离2006-01-02 秒数
+	realDiffSecond := realDiffDay * 24 * 3600
+	//fmt.Println("realDiffSecond:",realDiffSecond)
+	// 2006-01-02 15:04:05距离1970-01-01 08:00:00的秒数 网上工具可查出
+	baseOriginSecond := 1136185445
+	resultTime := time.Unix(int64(baseOriginSecond+realDiffSecond), 0).Format("2006-01-02")
+	return resultTime
+}
 func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,importBatchNo string,c chan int){
 	tableName:=strings.Replace(templateKey,"_template","",-1)
 	var optionEvent QueryOption
@@ -3683,18 +3708,24 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 
 		var totalRowesAffected int64=0
+		var userIdJwt interface{}
+		var cl jwt.MapClaims
 		r_msg:=[]string{}
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",err,error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
+		fmt.Printf("err=",err)
+		if cookie!=nil {
+			jwtToken:=  cookie.Value;
+			jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
+			token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
+			fmt.Printf("jwtToken=",err,error)
+			//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
+			//  a,error:=  jwt.DecodeSegment(jwtToken)
+
+			//	var cc Claims
+			cl = token.Claims.(jwt.MapClaims)
+			userIdJwt=cl["userId"]
+
+		}
 
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
