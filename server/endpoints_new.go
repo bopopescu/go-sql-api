@@ -2590,6 +2590,9 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if len(data)>0{
 			option.ExtendedMap=data[0]
 		}
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
 		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)

@@ -831,6 +831,8 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					fmt.Println("responseBody",string(body))
 
 					option.ExtendedMap[conditionFieldKey]=resultMap[priKey]
+				}else{
+					errorMessage.ErrorDescription="api remote error"
 				}
 			}
 			if operateFunc!=""{
@@ -958,7 +960,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
     if data== nil && option.ExtendedMap!=nil{
     	data=append(data,option.ExtendedMap)
 	}
-	return data,nil;
+	return data,errorMessage;
 }
 
 
@@ -1522,7 +1524,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
 
-	return data,nil;
+	return data,errorMessage;
 }
 func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperateMap map[string]interface{},extendMap map[string]interface{},conditionFieldKeyValue string){
 	fmt.Printf("item=",item)
