@@ -3344,7 +3344,8 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
-        rs,error:=tx.Exec(api.UpdateBatchSql(tableName, option.Wheres, payload))
+		sql,errorMessage:=api.UpdateBatchSql(tableName, option.Wheres, payload)
+        rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3508,7 +3509,8 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
-		rs,error:=tx.Exec(api.UpdateSql(tableName, id, payload))
+		sql,errorMessage:=api.UpdateSql(tableName, id, payload)
+		rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.Update(tableName, id, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3681,8 +3683,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			break
 		}
 
-
-		rs,error:=tx.Exec(api.DeleteSql(tableName, id, nil))
+        sql,errorMessage:=api.DeleteSql(tableName, id, nil)
+		rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.Delete(tableName, id, nil)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3798,7 +3800,8 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if meta.HaveField("submit_person"){
 					recordItem["submit_person"]=userIdJwt
 				}
-				rs,error:=tx.Exec(api.CreateSql(tableName, recordItem))
+				sql,errorMessage:=api.CreateSql(tableName, recordItem)
+				rs,error:=tx.Exec(sql)
 				fmt.Print("error",error)
 				//rs, errorMessage := api.Create(tableName, recordItem)
 				// 如果插入失败回滚
@@ -3953,7 +3956,8 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			if len(data)>0{
 				recordItem=data[0]
 			}
-           _,error:=tx.Exec(api.CreateSql(tableName, recordItem))
+			sql,errorMessage:=api.CreateSql(tableName, recordItem)
+           _,error:=tx.Exec(sql)
            fmt.Print("error",error)
 			//_, err := api.Create(tableName, recordItem)
 			savedIds=append(savedIds,recordItem[priKey].(string))
