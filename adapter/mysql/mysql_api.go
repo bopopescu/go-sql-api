@@ -2,26 +2,25 @@ package mysql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"time"
-	. "github.com/shiyongabc/go-mysql-api/types"
-	"github.com/shiyongabc/go-mysql-api/server/lib"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/gommon/log"
+	"github.com/shiyongabc/go-mysql-api/adapter"
+	"github.com/shiyongabc/go-mysql-api/server/lib"
+	. "github.com/shiyongabc/go-mysql-api/types"
 	"gopkg.in/doug-martin/goqu.v4"
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
-	"github.com/shiyongabc/go-mysql-api/adapter"
 	"strconv"
 	"strings"
-	"encoding/json"
+	"time"
 
+	"bytes"
 	//"github.com/mkideal/pkg/option"
 	"container/list"
 	"github.com/satori/go.uuid"
-	"bytes"
 
 	"math/rand"
-
 )
 
 // MysqlAPI
@@ -67,6 +66,7 @@ func  createDatabase(api *MysqlAPI,dbURI string) (err error) {
 func (api *MysqlAPI) Connection() *sql.DB {
 	return api.connection
 }
+
 
 // SQL instance
 func (api *MysqlAPI) SQL() *SQL {
@@ -189,6 +189,7 @@ func (api *MysqlAPI) Stop() *MysqlAPI {
 	}
 	return api
 }
+
 
 // CurrentDatabaseName return current database
 func (api *MysqlAPI) CurrentDatabaseName() string {
@@ -359,6 +360,14 @@ func (api *MysqlAPI) Create(table string, obj map[string]interface{}) (rs sql.Re
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 	}
 	return api.exec(sql)
+}
+// Create by Table name and obj map
+func (api *MysqlAPI) CreateSql(table string, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
+	sql, err := api.sql.InsertByTable(table, obj)
+	if err != nil {
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+	}
+	return sql,errorMessage
 }
 // Create by Table name and obj map
 func (api *MysqlAPI) ReplaceCreate(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
@@ -611,9 +620,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				rebuildSlaveObjectMap["subject_key"]=slaveKey
 				rebuildSlaveObjectMap["summary"]=summary
 				laste_date_sql := "SELECT DATE_FORMAT(LAST_DAY('" + masterInfoMap["account_period_year"].(string) + "'),'%Y-%m-%d') AS last_date;"
-				result1 := api.ExecFuncForOne(laste_date_sql, "last_date")
+				result1 ,errorMessage:= api.ExecFuncForOne(laste_date_sql, "last_date")
 				masterInfoMap["account_period_year"]=result1
-
+				fmt.Print(errorMessage)
 				for _, slave := range slaveInfoMap {
 				var paramStr string
 				paramsMap := make(map[string]interface{})
@@ -629,7 +638,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						fields := strings.Split(calculate_field, ",")
 						for index, item := range fields {
 							calculate_func_sql_str := "select ROUND(" + calculate_func + "(" + paramStr + ",'" + strconv.Itoa(index+1) + "'" + "),2) as result;"
-							result := api.ExecFuncForOne(calculate_func_sql_str, "result")
+							result ,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str, "result")
+							fmt.Print(errorMessage)
 							if result==""{
 								result="0"
 							}
@@ -851,7 +861,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
-							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+							result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+							fmt.Print(errorMessage)
 							if result==""{
 								result="0"
 							}
@@ -862,11 +873,11 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						in_subject_key:=paramsMap["subject_key"].(string)
 						in_farm_id:=paramsMap["farm_id"].(string)
 						obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-						pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
-
+						pre_subject_key,errorMessage:= api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+						fmt.Print(errorMessage)
 						asyncObjectMap["subject_key_pre"]=pre_subject_key
 						judgeExistsSql:="select judgeCurrentKnotsExists("+paramStr+") as id;"
-						id:=api.ExecFuncForOne(judgeExistsSql,"id")
+						id,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
 						if id==""{
 							asyncObjectMap["id"]=slave["id"]
 							r,errorMessage:=api.Create(operate_table,asyncObjectMap)
@@ -905,13 +916,13 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						if calculate_func!=""{
 							// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
 							laste_date_sql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y-%m'),'-01') AS first_date;"
-							resultFirstDate:=api.ExecFuncForOne(laste_date_sql,"first_date")
-
+							resultFirstDate,errorMessage:= api.ExecFuncForOne(laste_date_sql,"first_date")
+							fmt.Print(errorMessage)
 							beginYearSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-01') AS beginYear;"
-							beginYearResult:=api.ExecFuncForOne(beginYearSql,"beginYear")
+							beginYearResult,errorMessage:= api.ExecFuncForOne(beginYearSql,"beginYear")
 
 							latestYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-31') AS beginYear;"
-							latestYearKnots:=api.ExecFuncForOne(latestYearKnotsSql,"beginYear")
+							latestYearKnots,errorMessage:= api.ExecFuncForOne(latestYearKnotsSql,"beginYear")
 							//masterInfoMap["account_period_year"]=result1
 
 							asyncObjectMap["voucher_type"]=nil
@@ -935,7 +946,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+									fmt.Print(errorMessage)
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 									if result==""{
 										result="0"
@@ -944,12 +956,12 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 								}
 							}
-							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							id,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
 							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 							// 判断是否需要新增上年结转记录
 							judgeIsNeedCreateKnotsSql:="select judgeNeedCreateLatestKnots("+paramStr+") as id"
-							lastYearKnotsId:=api.ExecFuncForOne(judgeIsNeedCreateKnotsSql,"id")
+							lastYearKnotsId,errorMessage:= api.ExecFuncForOne(judgeIsNeedCreateKnotsSql,"id")
 							//  	asyncObjectMap["summary"]="上年结转"
 							if lastYearKnotsId==""{
 								asyncObjectMap["summary"]="上年结转"
@@ -1031,9 +1043,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+							result1,errorMessage:= api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
-
+							fmt.Print(errorMessage)
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=100
 							asyncObjectMap["order_num"]=100
@@ -1053,7 +1065,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+									fmt.Print(errorMessage)
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 									if result==""{
 										result="0"
@@ -1065,7 +1078,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
-							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							id,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
 							if id=="" {
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-peroid"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
@@ -1101,9 +1114,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+							result1,errorMessage:= api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
-
+							fmt.Print(errorMessage)
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["order_num"]=101
 							asyncObjectMap["line_number"]=101
@@ -1123,7 +1136,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+									fmt.Print(errorMessage)
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 									if result==""{
 										result="0"
@@ -1134,7 +1148,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							}
 
 							asyncObjectMap["subject_key_pre"]=slave["subject_key"]
-							id:=api.ExecFuncForOne(judgeExistsSql,"id")
+							id,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
 							if id=="" {
 								asyncObjectMap["id"]=asyncObjectMap["id"].(string)+"-year"
 								r,errorMessage:=api.Create(operate_table,asyncObjectMap)
@@ -1153,10 +1167,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							// 判断是否需要新增上年结转记录
 							judgeIsNeedCreateNextKnotsSql:="select judgeNeedCreateNextKnots("+paramStr+") as id"
-							nextYearKnotsId:=api.ExecFuncForOne(judgeIsNeedCreateNextKnotsSql,"id")
+							nextYearKnotsId,errorMessage:= api.ExecFuncForOne(judgeIsNeedCreateNextKnotsSql,"id")
 							nextYearKnots:=make(map[string]interface{})
 							nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
-							nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+							nextYearKnotsResult,errorMessage:= api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
 							if nextYearKnotsId=="" && nextYearKnotsResult==result1{
 								nextYearKnots=asyncObjectMap
 								nextYearKnots["line_number"]=102
@@ -1170,7 +1184,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							// 判断是否需要新增上年结转记录
 							judgeNeedUpdateNextKnotsSql:="select judgeNeedUpdateNextKnots("+paramStr+") as id"
-							judgeNeedUpdateNextKnotsId:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
+							judgeNeedUpdateNextKnotsId,errorMessage:= api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
 
 							if judgeNeedUpdateNextKnotsId!=""{
 								nextYearKnots=asyncObjectMap
@@ -1213,8 +1227,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							// 直接执行func 所有逻辑在func处理
 							operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-							result:=api.ExecFuncForOne(operate_func_sql,"result")
+							result,errorMessage:= api.ExecFuncForOne(operate_func_sql,"result")
 							fmt.Printf("operate_func_sql-result",result)
+							fmt.Print(errorMessage)
 
 
 
@@ -1244,9 +1259,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 							// 直接执行func 所有逻辑在func处理
 							operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-							result:=api.ExecFuncForOne(operate_func_sql,"result")
+							result,errorMessage:= api.ExecFuncForOne(operate_func_sql,"result")
 							fmt.Printf("operate_func_sql-result",result)
-
+							fmt.Print(errorMessage)
 
 
 						}
@@ -1274,7 +1289,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							in_subject_key:=paramsMap["subject_key"].(string)
 							in_farm_id:=paramsMap["farm_id"].(string)
 							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+							pre_subject_key,errorMessage:= api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+							fmt.Print(errorMessage)
 							paramsMap["subject_key_pre"]=pre_subject_key
 							//把对象的所有属性的值拼成字符串
 							paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
@@ -1282,8 +1298,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 							if pre_subject_key!="" && pre_subject_key!=in_subject_key{
 								// 直接执行func 所有逻辑在func处理
 								operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-								result:=api.ExecFuncForOne(operate_func_sql,"result")
+								result,errorMessage:= api.ExecFuncForOne(operate_func_sql,"result")
 								fmt.Printf("operate_func_sql-result",result)
+								fmt.Print(errorMessage)
 							}
 
 
@@ -1405,12 +1422,11 @@ func SelectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (r
 	return rs,errorMessage
 }
 
-func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(string){
-	rs,error:= api.ExecFunc(sql)
+func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(result string,errorMessage *ErrorMessage){
+	rs,errorMessage:= api.ExecFunc(sql)
 	//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-	fmt.Printf("error",error)
+	fmt.Printf("error",errorMessage)
 	fmt.Printf("rs1",rs)
-	var result string
 	for _,item:=range rs{
 		fmt.Printf("")
 		if item[key]!=nil{
@@ -1418,7 +1434,7 @@ func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(string){
 		}
 
 	}
-return result
+return result,errorMessage
 }
 func ConverStrFromMap(key string,mm map[string]interface{})(string){
 	b := bytes.Buffer{}
@@ -1958,7 +1974,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 //				in_subject_key_s:=slave["subject_key"].(string)
 //				in_farm_id_s:=masterInfoMap["farm_id"].(string)
 //				obtianPreSubjectSqls:="select obtainPreSubjectKey('"+in_subject_key_s+"','"+in_farm_id_s+"'"+") as pre_subject_key;"
-//				pre_subject_key_s:=api.ExecFuncForOne(obtianPreSubjectSqls,"pre_subject_key")
+//				pre_subject_key_s,errorMessage:= api.ExecFuncForOne(obtianPreSubjectSqls,"pre_subject_key")
 
 				if opK!=nil &&((len(fundsExists)>0 && len(subjectKeyExists)>0)||len(updatedSubjectRs)>0){// || pre_subject_key_s!=in_subject_key_s
 					for _, item := range opK {
@@ -2332,7 +2348,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 								calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
-								result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+								result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+								fmt.Print(errorMessage)
 								if result==""{
 									result="0"
 								}
@@ -2356,7 +2373,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							in_subject_key:=paramsMap["subject_key"].(string)
 							in_farm_id:=paramsMap["farm_id"].(string)
 							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+							pre_subject_key,errorMessage:= api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 							asyncObjectMap["subject_key_pre"]=pre_subject_key
 
@@ -2395,12 +2412,12 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								if calculate_func!=""{
 									// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
 									laste_date_sql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y-%m'),'-01') AS first_date;"
-									result1:=api.ExecFuncForOne(laste_date_sql,"first_date")
+									result1,errorMessage:= api.ExecFuncForOne(laste_date_sql,"first_date")
 									//masterInfoMap["account_period_year"]=result1
 									beginYearSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-01') AS beginYear;"
-									beginYearResult:=api.ExecFuncForOne(beginYearSql,"beginYear")
+									beginYearResult,errorMessage:= api.ExecFuncForOne(beginYearSql,"beginYear")
 									lastDaySql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-31') AS lastDay;"
-									lastDayResult:=api.ExecFuncForOne(lastDaySql,"lastDay")
+									lastDayResult,errorMessage:= api.ExecFuncForOne(lastDaySql,"lastDay")
 
 									asyncObjectMap["voucher_type"]=nil
 									asyncObjectMap["line_number"]=beginLineNum
@@ -2422,15 +2439,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 									judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+",'2') as id;"
-									id0:=api.ExecFuncForOne(judgeExistsSql,"id")
-
+									id0,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
+									fmt.Print(errorMessage)
 									judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
-									idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
+									idSub,errorMessage:= api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 									if strings.Contains(calculate_field,","){
 										fields:=strings.Split(calculate_field,",")
 										for index,item:=range fields{
 											calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-											result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+											result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+											fmt.Print(errorMessage)
 											//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 											if result==""{
 												result="0"
@@ -2463,7 +2481,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 									judgeNeedUpdateLatestKnotsSql:="select judgeNeedUpdateLatestKnots("+paramStr+",'1') as id;"
-									judgeNeedUpdateLatestKnotsId:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql,"id")
+									judgeNeedUpdateLatestKnotsId,errorMessage:= api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql,"id")
 									//var latestKnotsFunds string
 									asyncObjectMap["summary"]="上年结转"
 									asyncObjectMap["line_number"]="-1"
@@ -2492,7 +2510,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 									judgeNeedUpdateLatestKnotsSqlCureent:="select judgeNeedUpdateLatestKnots("+paramStr+",'2') as id;"
-									judgeNeedUpdateLatestKnotsIdCurrent:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlCureent,"id")
+									judgeNeedUpdateLatestKnotsIdCurrent,errorMessage:= api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlCureent,"id")
 									asyncObjectMap["summary"]="本期合计"
 									asyncObjectMap["line_number"]=100
 									asyncObjectMap["order_num"]=0
@@ -2517,7 +2535,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									}
 									// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 									judgeNeedUpdateLatestKnotsSqlYear:="select judgeNeedUpdateLatestKnots("+paramStr+",'3') as id;"
-									judgeNeedUpdateLatestKnotsIdYear:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlYear,"id")
+									judgeNeedUpdateLatestKnotsIdYear,errorMessage:= api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlYear,"id")
 									asyncObjectMap["summary"]="本年累计"
 									asyncObjectMap["line_number"]=101
 									asyncObjectMap["order_num"]=0
@@ -2565,9 +2583,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							if calculate_func!=""{
 								// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 								laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-								result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+								result1,errorMessage:= api.ExecFuncForOne(laste_date_sql,"last_date")
 								//masterInfoMap["account_period_year"]=result1
-
+								fmt.Print(errorMessage)
 								asyncObjectMap["voucher_type"]=nil
 								asyncObjectMap["line_number"]=100
 								asyncObjectMap["order_num"]=100
@@ -2586,7 +2604,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									fields:=strings.Split(calculate_field,",")
 									for index,item:=range fields{
 										calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-										result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+										result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+										fmt.Print(errorMessage)
 										//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 										if result==""{
 											result="0"
@@ -2601,11 +2620,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 								judgeExistsSql:="select judgeCurrentPeroidExists("+paramStr+") as id;"
 
-								id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+								id0,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
 
 								judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 
-								idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
+								idSub,errorMessage:= api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 								asyncObjectMap["subject_key_pre"]=slave["subject_key"]
 
 								if id0==""{
@@ -2646,9 +2665,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 							if calculate_func!=""{
 								// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 								laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-								result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+								result1,errorMessage:= api.ExecFuncForOne(laste_date_sql,"last_date")
 								//masterInfoMap["account_period_year"]=result1
-
+								fmt.Print(errorMessage)
 								asyncObjectMap["voucher_type"]=nil
 								asyncObjectMap["order_num"]=101
 								asyncObjectMap["line_number"]=101
@@ -2665,7 +2684,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 									fields:=strings.Split(calculate_field,",")
 									for index,item:=range fields{
 										calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-										result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+										result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
+										fmt.Print(errorMessage)
 										//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 										if result==""{
 											result="0"
@@ -2680,9 +2700,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 								judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
-								id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+								id0,errorMessage:= api.ExecFuncForOne(judgeExistsSql,"id")
 								judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
-								idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
+								idSub,errorMessage:= api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 								if id0==""{
 									if idSub!=""{
 										asyncObjectMap["id"]=uuid.NewV4().String()+"-year"
@@ -2704,10 +2724,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								// 判断是否需要新增上年结转记录
 								judgeNeedUpdateNextKnotsSql:="select judgeNeedUpdateNextKnots("+paramStr+") as id"
-								judgeNeedUpdateNextKnotsId:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
+								judgeNeedUpdateNextKnotsId,errorMessage:= api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
 								nextYearKnots:=make(map[string]interface{})
 								nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
-								nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+								nextYearKnotsResult,errorMessage:= api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
 
 								if asyncObjectMap["account_period_num"].(string)=="12"{
 									nextYearKnots=asyncObjectMap
@@ -2766,8 +2786,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 								// 直接执行func 所有逻辑在func处理
 								operate_func_sql := "select " + operate_func + "(" + paramStr + ") as result;"
-								result := api.ExecFuncForOne(operate_func_sql, "result")
+								result ,errorMessage:= api.ExecFuncForOne(operate_func_sql, "result")
 								fmt.Printf("operate_func_sql-result", result)
+								fmt.Print(errorMessage)
 
 							}
 
@@ -2798,9 +2819,9 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 									// 直接执行func 所有逻辑在func处理
 									operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-									result:=api.ExecFuncForOne(operate_func_sql,"result")
+									result,errorMessage:= api.ExecFuncForOne(operate_func_sql,"result")
 									fmt.Printf("operate_func_sql-result",result)
-
+									fmt.Print(errorMessage)
 
 
 								}
@@ -2821,7 +2842,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								  in_subject_key:=repeatItem["subject_key"].(string)
 								  in_farm_id:=repeatItem["farm_id"].(string)
 								  obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-								  pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+								  pre_subject_key,errorMessage:= api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 								  subjectKeyPreWhereOption := map[string]WhereOperation{}
 
@@ -2863,7 +2884,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 								  orders["N4line_number"]="ASC"
 								  preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: slaveTableName+"_category_merge"}
 								  preOption.Orders=orders
-								  repeatCalculatePreData0, errorMessage:= api.Select(preOption)
+								  repeatCalculatePreData0, errorMessage= api.Select(preOption)
 								  fmt.Printf("errorMessage=",errorMessage)
 
 
@@ -2980,7 +3001,19 @@ func (api *MysqlAPI) CreateTableStructure(execSql string) (errorMessage *ErrorMe
 		return nil
 	}
 }
-
+func (api *MysqlAPI) UpdateSql(table string, id interface{}, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
+	if id != nil {
+		sql, err := api.sql.UpdateByTableAndId(table, id, obj)
+		if err != nil {
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return sql,errorMessage
+		}
+		return sql,errorMessage
+	} else {
+		errorMessage = &ErrorMessage{ERR_PARAMETER,"Only primary key updates are supported(must primary id) !"}
+		return sql,errorMessage
+	}
+}
 // Update by Table name and obj map
 func (api *MysqlAPI) Update(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
 	if id != nil {
@@ -2995,6 +3028,16 @@ func (api *MysqlAPI) Update(table string, id interface{}, obj map[string]interfa
 		return
 	}
 }
+func (api *MysqlAPI) UpdateBatchSql(table string, where map[string]WhereOperation, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
+
+	sql, err := api.sql.UpdateByTableAndFields(table, where, obj)
+	if err != nil {
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+		return
+	}
+	return sql,errorMessage
+
+}
 func (api *MysqlAPI) UpdateBatch(table string, where map[string]WhereOperation, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
 
 		sql, err := api.sql.UpdateByTableAndFields(table, where, obj)
@@ -3005,6 +3048,22 @@ func (api *MysqlAPI) UpdateBatch(table string, where map[string]WhereOperation, 
 		return api.exec(sql)
 
 }
+// Delete by Table name and where obj
+func (api *MysqlAPI) DeleteSql(table string, id interface{}, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
+	var sSQL string
+	var err error
+	if id != nil {
+		sSQL, err= api.sql.DeleteByTableAndId(table, id)
+	} else {
+		sSQL, err= api.sql.DeleteByTable(table, obj)
+	}
+	if err != nil {
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+		return
+	}
+	return sSQL,errorMessage
+}
+
 // Delete by Table name and where obj
 func (api *MysqlAPI) Delete(table string, id interface{}, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage) {
 	var sSQL string
@@ -3102,7 +3161,7 @@ func (api *MysqlAPI) SelectTotalCount(option QueryOption) (totalCount int,errorM
 //		fields:=strings.Split(calculate_field,",")
 //		for index,item:=range fields{
 //			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-//			result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+//			result,errorMessage:= api.ExecFuncForOne(calculate_func_sql_str,"result")
 //			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 //			if result==""{
 //				result="0"

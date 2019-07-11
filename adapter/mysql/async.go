@@ -14,6 +14,8 @@ import (
 
 // 异步执行
 func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[string]interface{},calpreMap map[string]interface{},isCalPre bool,index int,c chan int){
+	tx,err:=api.Connection().Begin()
+	fmt.Print("tx-error",err)
 	var operate_type string
 	var operate_table string
 	var calculate_field string
@@ -121,9 +123,12 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					paramStr=ConcatObjectProperties(funcParamFields,paramsMap)
 					calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
-					result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+					result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 					if result==""{
 						result="0"
+					}
+					if errorMessage!=nil{
+						// tx.Rollback()
 					}
 					asyncObjectMap[calculate_field]=result
 
@@ -145,7 +150,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				in_subject_key:=paramsMap["subject_key"].(string)
 				in_farm_id:=paramsMap["farm_id"].(string)
 				obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-				pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+				pre_subject_key,errorMessage:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 				asyncObjectMap["subject_key_pre"]=pre_subject_key
 
@@ -184,12 +189,13 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				if calculate_func!=""{
 					// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
 					laste_date_sql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y-%m'),'-01') AS first_date;"
-					result1:=api.ExecFuncForOne(laste_date_sql,"first_date")
+					result1,errorMessage:=api.ExecFuncForOne(laste_date_sql,"first_date")
+					fmt.Print(errorMessage)
 					//masterInfoMap["account_period_year"]=result1
 					beginYearSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-01') AS beginYear;"
-					beginYearResult:=api.ExecFuncForOne(beginYearSql,"beginYear")
+					beginYearResult,errorMessage:=api.ExecFuncForOne(beginYearSql,"beginYear")
 					lastDaySql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-01-31') AS lastDay;"
-					lastDayResult:=api.ExecFuncForOne(lastDaySql,"lastDay")
+					lastDayResult,errorMessage:=api.ExecFuncForOne(lastDaySql,"lastDay")
 
 					asyncObjectMap["voucher_type"]=nil
 					asyncObjectMap["line_number"]=beginLineNum
@@ -211,18 +217,21 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 					judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+",'2') as id;"
-					id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+					id0,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 
 					judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
-					idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
+					idSub,errorMessage:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 					if strings.Contains(calculate_field,","){
 						fields:=strings.Split(calculate_field,",")
 						for index,item:=range fields{
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+							result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 							if result==""{
 								result="0"
+							}
+							if errorMessage!=nil{
+								// tx.Rollback().Rollback()
 							}
 							asyncObjectMap[item]=result
 
@@ -252,7 +261,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 					judgeNeedUpdateLatestKnotsSql:="select judgeNeedUpdateLatestKnots("+paramStr+",'1') as id;"
-					judgeNeedUpdateLatestKnotsId:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql,"id")
+					judgeNeedUpdateLatestKnotsId,errorMessage:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSql,"id")
 					//var latestKnotsFunds string
 					asyncObjectMap["summary"]="上年结转"
 					asyncObjectMap["line_number"]="-1"
@@ -281,7 +290,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 					judgeNeedUpdateLatestKnotsSqlCureent:="select judgeNeedUpdateLatestKnots("+paramStr+",'2') as id;"
-					judgeNeedUpdateLatestKnotsIdCurrent:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlCureent,"id")
+					judgeNeedUpdateLatestKnotsIdCurrent,errorMessage:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlCureent,"id")
 					asyncObjectMap["summary"]="本期合计"
 					asyncObjectMap["line_number"]=100
 					asyncObjectMap["order_num"]=0
@@ -306,7 +315,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					}
 					// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
 					judgeNeedUpdateLatestKnotsSqlYear:="select judgeNeedUpdateLatestKnots("+paramStr+",'3') as id;"
-					judgeNeedUpdateLatestKnotsIdYear:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlYear,"id")
+					judgeNeedUpdateLatestKnotsIdYear,errorMessage:=api.ExecFuncForOne(judgeNeedUpdateLatestKnotsSqlYear,"id")
 					asyncObjectMap["summary"]="本年累计"
 					asyncObjectMap["line_number"]=101
 					asyncObjectMap["order_num"]=0
@@ -354,9 +363,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				if calculate_func!=""{
 					// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 					laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-					result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+					result1,errorMessage:=api.ExecFuncForOne(laste_date_sql,"last_date")
 					//masterInfoMap["account_period_year"]=result1
-
+                    if errorMessage!=nil{
+                    	tx.Rollback()
+					}
 					asyncObjectMap["voucher_type"]=nil
 					asyncObjectMap["line_number"]=100
 					asyncObjectMap["order_num"]=100
@@ -375,10 +386,13 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						fields:=strings.Split(calculate_field,",")
 						for index,item:=range fields{
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+							result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 							if result==""{
 								result="0"
+							}
+							if errorMessage!=nil{
+								tx.Rollback()
 							}
 							asyncObjectMap[item]=result
 
@@ -390,11 +404,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 					judgeExistsSql:="select judgeCurrentPeroidExists("+paramStr+") as id;"
 
-					id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+					id0,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 
 					judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
 
-					idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
+					idSub,errorMessage:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 					asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
 
 					if id0==""{
@@ -435,9 +449,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				if calculate_func!=""{
 					// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 					laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-					result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+					result1,errorMessage:=api.ExecFuncForOne(laste_date_sql,"last_date")
 					//masterInfoMap["account_period_year"]=result1
-
+                    if errorMessage!=nil{
+                    	tx.Rollback()
+					}
 					asyncObjectMap["voucher_type"]=nil
 					asyncObjectMap["order_num"]=101
 					asyncObjectMap["line_number"]=101
@@ -454,10 +470,13 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						fields:=strings.Split(calculate_field,",")
 						for index,item:=range fields{
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+							result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 							//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 							if result==""{
 								result="0"
+							}
+							if errorMessage!=nil{
+								tx.Rollback()
 							}
 							asyncObjectMap[item]=result
 
@@ -469,9 +488,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 					judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
-					id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+					id0,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 					judgeExistsSqlSub:="select judgeSubjectPeroidExists("+paramStr+") as id1;"
-					idSub:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
+					idSub,errorMessage:=api.ExecFuncForOne(judgeExistsSqlSub,"id1")
 					if id0==""{
 						if idSub!=""{
 							asyncObjectMap["id"]=uuid.NewV4().String()+"-year"
@@ -493,10 +512,10 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 判断是否需要新增上年结转记录
 					judgeNeedUpdateNextKnotsSql:="select judgeNeedUpdateNextKnots("+paramStr+") as id"
-					judgeNeedUpdateNextKnotsId:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
+					judgeNeedUpdateNextKnotsId,errorMessage:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
 					nextYearKnots:=make(map[string]interface{})
 					nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
-					nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+					nextYearKnotsResult,errorMessage:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
 
 					if asyncObjectMap["account_period_num"].(string)=="12"{
 						nextYearKnots=asyncObjectMap
@@ -555,9 +574,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 直接执行func 所有逻辑在func处理
 					operate_func_sql := "select " + operate_func + "(" + paramStr + ") as result;"
-					result := api.ExecFuncForOne(operate_func_sql, "result")
-					fmt.Printf("operate_func_sql-result", result)
-
+					result,errorMessage := api.ExecFuncForOne(operate_func_sql, "result")
+					fmt.Printf("operate_func_sql-result-error", result,errorMessage)
+                    if errorMessage!=nil{
+                    	tx.Rollback()
+					}
 				}
 
 
@@ -587,8 +608,8 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 					// 直接执行func 所有逻辑在func处理
 					operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-					result:=api.ExecFuncForOne(operate_func_sql,"result")
-					fmt.Printf("operate_func_sql-result",result)
+					result,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
+					fmt.Printf("operate_func_sql-result",result,errorMessage)
 
 
 
@@ -610,7 +631,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					in_subject_key:=repeatItem["subject_key"].(string)
 					in_farm_id:=repeatItem["farm_id"].(string)
 					obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-					pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+					pre_subject_key,errorMessage:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 					subjectKeyPreWhereOption := map[string]WhereOperation{}
 
@@ -652,7 +673,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					orders["N4line_number"]="ASC"
 					preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: "account_voucher_detail_category_merge"}
 					preOption.Orders=orders
-					repeatCalculatePreData0, errorMessage:= api.Select(preOption)
+					repeatCalculatePreData0,errorMessage= api.Select(preOption)
 					fmt.Printf("errorMessage=",errorMessage)
 
 

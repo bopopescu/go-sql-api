@@ -16,6 +16,8 @@ import (
 
 // 异步任务
 func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
+	//tx,err:=api.Connection().Begin()
+	//fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"1")
 	fmt.Printf("errorMessage=",errorMessage)
 	var operate_condition string
@@ -456,7 +458,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				if filterFunc!=""{
 
 					filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
-					filterResult:=api.ExecFuncForOne(filterFuncSql,"result")
+					filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
 					if filterResult==""{
 						break
 					}
@@ -505,21 +510,26 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if "CAL_DEPEND_FIELD"==operate_type {
 			if operateFunc!=""{
 				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-				result:=api.ExecFuncForOne(operateFuncSql,"result")
+				result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 				if result!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
 				fmt.Printf("errorMessage=",errorMessage)
-
+                if errorMessage!=nil{
+                	//tx.Rollback()
+				}
 			}
 		}
 		if "SYNC"==operate_type {
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
 				}
 
 
@@ -527,16 +537,22 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if operateProcedure!=""{
 				if conditionFieldKeyValue!=""{
 					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
-					result:=api.ExecFuncForOne(operateProcedureSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
+					if errorMessage!=nil {
+						//tx.Rollback()
+					}
 				}else if len(conditionFiledArr)>0{
 					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 					if paramsPro!=""{
 						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
-						result:=api.ExecFuncForOne(operateProcedureSql,"result")
+						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 						fmt.Printf("result=",result)
 						fmt.Printf("errorMessage=",errorMessage)
+						if errorMessage!=nil{
+							//tx.Rollback()
+						}
 					}
 				}
 
@@ -558,9 +574,11 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				fmt.Print(errorMessage)
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
-
+				    if errorMessage!=nil{
+				    	//tx.Rollback()
+					}
 				}
 
 			}
@@ -576,6 +594,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 //前置事件处理
 
 func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
+	//tx,err:=api.Connection().Begin()
+	//fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
 	fmt.Printf("errorMessage=",errorMessage)
 	var operate_condition string
@@ -711,7 +731,10 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		}
 		if filterFunc!=""{
 			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterKey,option.ExtendedMap)+"') as result;"
-			filterResult:=api.ExecFuncForOne(filterFuncSql,"result")
+			filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
+			if errorMessage!=nil{
+				//tx.Rollback()
+			}
 			if filterResult!=""{
 				continue
 			}
@@ -844,7 +867,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					operateFuncSql="select "+operateFunc+"() as result;"
 				}
 
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
@@ -859,16 +882,22 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 				if params!="''"{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
+					}
+					if errorMessage!=nil{
+						//tx.Rollback()
 					}
 				}else if len(option.Ids)>0{
 					for _,id:=range option.Ids{
 						operateFuncSql="select "+operateFunc+"('"+id+"') as result;"
-						result:=api.ExecFuncForOne(operateFuncSql,"result")
+						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 						if result!="" && conditionFieldKey!=""{
 							option.ExtendedMap[conditionFieldKey]=result
+						}
+						if errorMessage!=nil{
+							//tx.Rollback()
 						}
 					}
 
@@ -943,11 +972,14 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 						operateFuncSql="select "+operateFunc+"() as result;"
 					}
 
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
 					fmt.Printf("errorMessage=",errorMessage)
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
 				}
 
 
@@ -966,6 +998,8 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 //后置事件处理
 func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
+    //tx,err:=api.Connection().Begin()
+    //fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
 	fmt.Printf("errorMessage=",errorMessage)
 	var operate_condition string
@@ -1286,6 +1320,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				if option.ExtendedMap[conditionFieldKey]!=nil{
 					updateSql:="select "+operateFunc+"('"+option.ExtendedMap[conditionFieldKey].(string)+"')"
 					result,errorMessage:=api.ExecFunc(updateSql)
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
 					fmt.Printf("result=",result,"errorMessage=",errorMessage)
 				}
 
@@ -1303,11 +1340,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				rsU,err:=	api.Update(operate_table,pri_key_value,actionFiledMap)
 				if err!=nil{
 					fmt.Print("err=",err)
+					//tx.Rollback()
 				}
 
 				rowesAffected,error:=rsU.RowsAffected()
 				if error!=nil{
 					fmt.Printf("err=",error)
+					//tx.Rollback()
 				}else{
 					fmt.Printf("rowesAffected=",rowesAffected)
 				}
@@ -1410,7 +1449,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				if filterFunc!=""{
 
 					filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
-					filterResult:=api.ExecFuncForOne(filterFuncSql,"result")
+					filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
+
 					if filterResult==""{
 						break
 					}
@@ -1459,7 +1502,10 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		if "CAL_DEPEND_FIELD"==operate_type {
 			if operateFunc!=""{
 				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-				result:=api.ExecFuncForOne(operateFuncSql,"result")
+				result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
+				if errorMessage!=nil{
+					//tx.Rollback()
+				}
 				if result!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
@@ -1471,9 +1517,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					var result string
+					result,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
+					if errorMessage!=nil{
+						// //tx.Rollback()
+					}
+
 				}
 
 
@@ -1481,16 +1532,22 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			if operateProcedure!=""{
 				if conditionFieldKeyValue!=""{
 					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
-					result:=api.ExecFuncForOne(operateProcedureSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
 				}else if len(conditionFiledArr)>0{
 					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 					if paramsPro!=""{
 						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
-						result:=api.ExecFuncForOne(operateProcedureSql,"result")
+						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 						fmt.Printf("result=",result)
 						fmt.Printf("errorMessage=",errorMessage)
+						if errorMessage!=nil{
+							//tx.Rollback()
+						}
 					}
 				}
 
@@ -1512,9 +1569,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				fmt.Print(errorMessage)
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
-					result:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
-
+					if errorMessage!=nil{
+						//tx.Rollback()
+					}
 				}
 
 			}
@@ -1527,6 +1586,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	return data,errorMessage;
 }
 func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperateMap map[string]interface{},extendMap map[string]interface{},conditionFieldKeyValue string){
+	//tx,err:=api.Connection().Begin()
+	//fmt.Print("//tx-error",err)
 	fmt.Printf("item=",item)
 	credit_level_model_id:=item["credit_level_model_id"].(string)
 	var pre_operate_func string
@@ -1553,7 +1614,11 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 
 			if pre_operate_func!=""{
 				pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],extendMap)+"','"+conditionFieldKeyValue+"') as result;"
-				result=api.ExecFuncForOne(pre_operate_func_sql,"result")
+				result,errorMesssage:=api.ExecFuncForOne(pre_operate_func_sql,"result")
+				fmt.Print(result)
+				if errorMesssage!=nil{
+					//tx.Rollback()
+				}
 			}
 			if result==""{
 				result=ConverStrFromMap(second_level_norm_arr[0],extendMap)
@@ -1574,24 +1639,36 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 		}
 		if pre_operate_func!=""{
 			pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"') as result;"
-			result=api.ExecFuncForOne(pre_operate_func_sql,"result")
+			result,errorMesssage:=api.ExecFuncForOne(pre_operate_func_sql,"result")
+			fmt.Print(result)
+			if errorMesssage!=nil{
+				//tx.Rollback()
+			}
 		}
 
 	}
 
 	//fmt.Printf("errorMessage=",errorMessage)
 	operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+credit_level_model_id+"') as result;"
-	result1:=api.ExecFuncForOne(operate_func_sql,"result")
+	result1,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
+	if errorMessage!=nil{
+		//tx.Rollback()
+	}
 	fmt.Printf("result1=",result1)
 
 }
 func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
+	//tx,err:=api.Connection().Begin()
+	//fmt.Print("//tx-error",err)
 	if strings.Contains(calculate_field,","){
 		fields:=strings.Split(calculate_field,",")
 		for index,item:=range fields{
 			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-			result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+			result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+            if errorMessage!=nil{
+            	//tx.Rollback()
+			}
 			if result==""{
 				result="0"
 			}
@@ -1602,7 +1679,8 @@ func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func str
 }
 
 func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},funcParamFields []string,pre_subject_key string,operate_func string){
-
+	//tx,err:=api.Connection().Begin()
+	//fmt.Print("//tx-error",err)
 	//	asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
 	//asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 	//slave["subject_key_pre"]=slave["subject_key"]
@@ -1633,7 +1711,11 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 		if pre_subject_key!="" && pre_subject_key!=in_subject_key{
 			// 直接执行func 所有逻辑在func处理
 			operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-			result:=api.ExecFuncForOne(operate_func_sql,"result")
+			result,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
+			fmt.Print("errorMessage",errorMessage)
+			if errorMessage!=nil{
+				//tx.Rollback()
+			}
 			fmt.Printf("operate_func_sql-result",result)
 		}
 
@@ -1645,7 +1727,7 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 }
 func GetValidationKey(*jwt.Token) (interface{}, error) {
 	//return []byte("-----BEGIN PUBLIC KEY-----\n"+
-	//"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgNyqMbehSVf5AxAVO+v/K3FmgkvwKeI0VcySCDjl/Lag55EuOxBWUPLKBu/ujnpK34mohr0uhPn/UhawNuXM96zz1wKEFUqE8F9Srwg/V2o+Ugl8ZuCQxtSpCVVwc+RfpL60Y5zWYlrYO2JTmCIhfZ9cG4NzE0n/TV6PHeVsjpucFiMcUD+V6nHDSzuXCOVnp1UIuaf8cL3y1EXDanndYeABeOt2xg3elXLNO5VGJTKfhstbfn/YspdBScA7tGR5uQ4upHD4pIg6OxCyTs27DvnIAQMdQ+OnMJR02e4gC1eDwTxsw/y2UcsZFthfK77lvACPySBukiK+C0qjLBfj9QIDAQAB\n"+
+	//"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgNyqMbehSVf5AxAVO+v/K3FmgkvwKeI0VcySCDjl/Lag55EuOxBWUPLKBu/ujnpK34mohr0uhPn/UhawNuXM96zz1wKEFUqE8F9Srwg/V2o+Ugl8ZuCQxtSpCVVwc+RfpL60Y5zWYlrYO2JTmCIhfZ9cG4NzE0n/TV6PHeVsjpucFiMcUD+V6nHDSzuXCOVnp1UIuaf8cL3y1EXDanndYeABeOt2xg3elXLNO5VGJTKfhstbfn/YspdBScA7tGR5uQ4upHD4pIg6OxCyTs27DvnIAQMdQ+OnMJR02e4gC1eDw//txsw/y2UcsZFthfK77lvACPySBukiK+C0qjLBfj9QIDAQAB\n"+
 	//"-----END PUBLIC KEY-----"), nil
 	//return []byte("MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCA3Koxt6FJV/kDEBU76/8rcWaCS/Ap4jRVzJIIOOX8tqDnkS47EFZQ8soG7+6OekrfiaiGvS6E+f9SFrA25cz3rPPXAoQVSoTwX1KvCD9Xaj5SCXxm4JDG1KkJVXBz5F+kvrRjnNZiWtg7YlOYIiF9n1wbg3MTSf9NXo8d5WyOm5wWIxxQP5XqccNLO5cI5WenVQi5p/xwvfLURcNqed1h4AF463bGDd6Vcs07lUYlMp+Gy1t+f9iyl0FJwDu0ZHm5Di6kcPikiDo7ELJOzbsO+cgBAx1D46cwlHTZ7iALV4PBPGzD/LZRyxkW2F8rvuW8AI/JIG6SIr4LSqMsF+P1AgMBAAECggEANrBwMuWCOAR0FE6xFFtWUnOwU8AyzzPHjlph58duJFDF/UFqY3rNh1FjWIpfrmxMdo6PzY9gvOL07zvd0Y657KukWS4iLH8R6IosJ0jSySC4Dk0kVO0dxKTgkKuILEdSKDMfj98yRU/U0W8rlzd1C0Gk77BcGGWhSo7FIqUJ64OVUvwW1BWkwkZ7aXFtYvgcyN1AmMjc8AoJzJdEoBKlAw41/WMESt6QSKWoWziUxdkrmRlUsvwQHfP9c2BZnkxIPhpGDSkIHAeBj47+JC3hsFuqZM5ahwdma9p9ONz/00PrnB5p399mqW2dknzBIg1TRg2xN9DcqNeo07U0AGJLSQKBgQDiUZIH0rzruLtjF33JQDRc963kfgJHGxM9inH3FJVE7NDJHaOyVjaIxRPG5/7RGEYrrJDZE69iP2ohzK6ew7nGbZN7KaKfKY5Vc4egVZcBMubR5+djwjIqHMTcuJgz/Qu17cvF42rUqpBnS2BbWDRj6+TE0zYEjqdsXri+UiXHgwKBgQCRwxTBEEqazkw8+EtV1XPyp5u3Er/sg3T6CVWU7vsGX8l2bpl3CEUXawkkZaffCi5ukR8xnyQnWcD7RHdO3ab6G1sl+49dNRpZyg1fCXfDPtt5Aut3CoCQsFNit1chdHsyUJiGDZo72EP/75Bak2dDENcxYyEsbFSqUH4pywhVJwKBgFp1hivwVKjXXrbdxd4x9nwOV4gTwa9QKCGZ+7Fpnbw997nbSfnXMdb7BsujIRvMWwfL4t2RW7GmbTJzUHyO+OtSEvfQjXqWrpiDI/u3GjNVeCMAUWFzVn+0ng8nDVcCVrLyCFfhbWrxfeR7oVkBaXdi6z6suVOa/Vp4hdk0lnsnAoGAcBPoaWr1coMd6+OfSaiPNw3ZlbM9D8cksv1qaNI5AnW0mvP/3J7nQVJz/SCNK9rQSQQdUDJlwjwpPwsuEd4s/jL6qwH7AlhKoq/SCDlndSFn8GxmUWop4Rczhrwiqv69m7qNDMZ4yXtJDgpOnNaql87jKH5oi5fgofSyjcAn8BECgYEAh5aOvUmVHqz+L9WcdU1DWzUo2JvNgOfkOzsCRFQkQq/NOCFofysccmoKjPieSgr7oOyrBCVsYRi2ZYrUfL6nvKkqSjYV94bjEyZthb53Uv3euQmZQjMpPKHFs4ae1rB7RUBjH6JiCTjyd7iTnKem7s9uR/DVeNjZe1lT6LWKlmY="),nil
 	return []byte("SHA256withRSA"),nil

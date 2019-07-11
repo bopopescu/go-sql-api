@@ -120,6 +120,7 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 }
 func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		//tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName := payload["masterTableName"].(string)
 		slaveTableName := payload["slaveTableName"].(string)
@@ -160,8 +161,10 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		option.ExtendedArr=slaveInfoMap
 		masterTableInfoMap[masterKey]=masterId
 		option.ExtendedMap=masterTableInfoMap
-		mysql.PostEvent(api,slaveTableName,"POST",nil,option,redisHost)
-
+		_,errorMessage=mysql.PostEvent(api,slaveTableName,"POST",nil,option,redisHost)
+        if errorMessage!=nil{
+        	// tx.Rollback()
+		}
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -205,6 +208,8 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	var count int
 	return func(c echo.Context) error {
+		//tx,error:=api.Connection().Begin()
+		//fmt.Print(error)
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName:=payload["masterTableName"].(string)
 		slaveTableName:=payload["slaveTableName"].(string)
@@ -304,7 +309,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			ids=append(ids,slaveId)
 			option.Ids=ids
 		}
-		mysql.PreEvent(api,slaveTableName,"DELETE",nil,option,"")
+		_,errorMessage=mysql.PreEvent(api,slaveTableName,"DELETE",nil,option,"")
+		if errorMessage!=nil{
+			// tx.Rollback()
+		}
 		for _,slaveInfo:=range slaveInfoMap {
 			slaveId:= slaveInfo[slaveColumnName].(string)
 			api.Delete(slaveTableName,slaveId,nil)
@@ -516,23 +524,25 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							paramStr=mysql.ConcatObjectProperties(funcParamFields,paramsMap)
 							calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+"),2) as result;"
 
-							result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+							result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 							if result==""{
 								result="0"
 							}
 							asyncObjectMap[calculate_field]=result
+							if errorMessage!=nil{
 
+							}
 						}
 						in_subject_key:=paramsMap["subject_key"].(string)
 						in_farm_id:=paramsMap["farm_id"].(string)
 						obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-						pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+						pre_subject_key,errorMessage:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 						asyncObjectMap["subject_key_pre"]=pre_subject_key
 
 
 						//judgeExistsSql:="select judgeCurrentKnotsExists("+paramStr+") as id;"
-						//id:=api.ExecFuncForOne(judgeExistsSql,"id")
+						//id,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 						//if id==""{
 						//	//asyncObjectMap["id"]=repea["id"]
 						//	r,errorMessage:=api.Create(operate_table,asyncObjectMap)
@@ -564,9 +574,11 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 						if calculate_func!=""{
 							// SELECT CONCAT(DATE_FORMAT(NOW(),'%Y-%m'),'-01') as first_date;
 							laste_date_sql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y-%m'),'-01') AS first_date;"
-							result1:=api.ExecFuncForOne(laste_date_sql,"first_date")
+							result1,errorMessage:=api.ExecFuncForOne(laste_date_sql,"first_date")
 							//masterInfoMap["account_period_year"]=result1
-
+							if errorMessage!=nil{
+								// tx.Rollback()
+							}
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=beginLineNum
 							asyncObjectMap["order_num"]=100
@@ -582,18 +594,21 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentBeginPeroidExists("+paramStr+",'2') as id;"
-							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+							id0,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 
 							judgeExistsSql1:="select judgeCurrentBeginPeroidExists1("+paramStr+") as id1;"
-							id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
+							id1,errorMessage:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 									if result==""{
 										result="0"
+									}
+									if errorMessage!=nil{
+										// tx.Rollback()
 									}
 									asyncObjectMap[item]=result
 
@@ -643,9 +658,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+							result1,errorMessage:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
-
+							fmt.Print(errorMessage)
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["line_number"]=100
 							asyncObjectMap["order_num"]=100
@@ -659,11 +674,11 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentPeroidExists("+paramStr+") as id;"
 
-							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+							id0,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 
 							judgeExistsSql1:="select judgeCurrentPeroidExists1("+paramStr+") as id1;"
 
-							id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
+							id1,errorMessage:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 
 
 
@@ -671,7 +686,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									fmt.Print(errorMessage)
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 									if result==""{
 										result="0"
@@ -724,9 +740,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 						if calculate_func!=""{
 							// SELECT DATE_FORMAT(LAST_DAY(CURDATE()),'%Y-%m-%d') AS last_date;
 							laste_date_sql:="SELECT DATE_FORMAT(LAST_DAY('"+asyncObjectMap["account_period_year"].(string)+"'),'%Y-%m-%d') AS last_date;"
-							result1:=api.ExecFuncForOne(laste_date_sql,"last_date")
+							result1,errorMessage:=api.ExecFuncForOne(laste_date_sql,"last_date")
 							//masterInfoMap["account_period_year"]=result1
-
+							fmt.Print(errorMessage)
 							asyncObjectMap["voucher_type"]=nil
 							asyncObjectMap["order_num"]=100
 							asyncObjectMap["line_number"]=101
@@ -739,14 +755,15 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							paramStr=mysql.ConcatObjectProperties(funcParamFields,paramsMap)
 							// 先判断是否已经存在当期累计数据  如果存在 更新即可  否则 新增
 							judgeExistsSql:="select judgeCurrentYearExists("+paramStr+") as id;"
-							id0:=api.ExecFuncForOne(judgeExistsSql,"id")
+							id0,errorMessage:=api.ExecFuncForOne(judgeExistsSql,"id")
 							judgeExistsSql1:="select judgeCurrentYearExists1("+paramStr+") as id1;"
-							id1:=api.ExecFuncForOne(judgeExistsSql1,"id1")
+							id1,errorMessage:=api.ExecFuncForOne(judgeExistsSql1,"id1")
 							if strings.Contains(calculate_field,","){
 								fields:=strings.Split(calculate_field,",")
 								for index,item:=range fields{
 									calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
-									result:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
+									fmt.Print(errorMessage)
 									//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 									if result==""{
 										result="0"
@@ -778,10 +795,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							// 判断是否需要新增上年结转记录
 							judgeNeedUpdateNextKnotsSql:="select judgeNeedUpdateNextKnots("+paramStr+") as id"
-							judgeNeedUpdateNextKnotsId:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
+							judgeNeedUpdateNextKnotsId,errorMessage:=api.ExecFuncForOne(judgeNeedUpdateNextKnotsSql,"id")
 							nextYearKnots:=make(map[string]interface{})
 							nextYearKnotsSql:="SELECT CONCAT(DATE_FORMAT('"+asyncObjectMap["account_period_year"].(string)+"','%Y'),'-12-31') AS beginYear;"
-							nextYearKnotsResult:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
+							nextYearKnotsResult,errorMessage:=api.ExecFuncForOne(nextYearKnotsSql,"beginYear")
 
 							if asyncObjectMap["account_period_num"].(string)=="12"{
 								nextYearKnots=asyncObjectMap
@@ -835,7 +852,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							// 直接执行func 所有逻辑在func处理
 							operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-							result:=api.ExecFuncForOne(operate_func_sql,"result")
+							result,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
+							fmt.Print(errorMessage)
 							fmt.Printf("operate_func_sql-result",result)
 
 
@@ -867,9 +885,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 							// 直接执行func 所有逻辑在func处理
 							operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-							result:=api.ExecFuncForOne(operate_func_sql,"result")
+							result,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
 							fmt.Printf("operate_func_sql-result",result)
-
+							fmt.Print(errorMessage)
 
 
 						}
@@ -896,9 +914,9 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							in_subject_key:=paramsMap["subject_key"].(string)
 							in_farm_id:=paramsMap["farm_id"].(string)
 							obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-							pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+							pre_subject_key,errorMessage:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 							paramsMap["subject_key_pre"]=pre_subject_key
-
+							fmt.Print(errorMessage)
 							paramsMap["id"]=id
 							paramsMap["account_period_year"]=accountYear
 							//把对象的所有属性的值拼成字符串
@@ -907,7 +925,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 							if pre_subject_key!="" && pre_subject_key!=in_subject_key{
 								// 直接执行func 所有逻辑在func处理
 								operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
-								result:=api.ExecFuncForOne(operate_func_sql,"result")
+								result,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
+								fmt.Print(errorMessage)
 								fmt.Printf("operate_func_sql-result",result)
 							}
 
@@ -1080,7 +1099,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		  in_subject_key:=strings.Replace(option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string),"%","",-1)
 		  in_farm_id:=option.Wheres["account_voucher_detail_category_merge_view.farm_id"].Value.(string)
 		  obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-		  pre_subject_key:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
+		  pre_subject_key,errorMessage:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
 		  option.Wheres["subject_key_pre"]=WhereOperation{
 		    	Operation:"eq",
@@ -1980,7 +1999,8 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 		if preWhereKey=="pre"{
 			preWhereKey="account_period_year"
 		}
-		yesYear:=api.ExecFuncForOne("SELECT EXTRACT(YEAR FROM DATE_ADD(NOW(), INTERVAL -1 YEAR)) as preYear;","preYear")
+		yesYear,errorMessage:=api.ExecFuncForOne("SELECT EXTRACT(YEAR FROM DATE_ADD(NOW(), INTERVAL -1 YEAR)) as preYear;","preYear")
+		fmt.Print(errorMessage)
 		wheres[preWhereKey]=WhereOperation{
 			Operation:"like",
 			Value: yesYear+"%",
@@ -2528,6 +2548,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -2593,14 +2614,23 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
-		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
+		//rs, errorMessage := api.CreateTx(tableName, option.ExtendedMap)
+		sql, errorMessage := api.CreateSql(tableName, option.ExtendedMap)
+		rs,error:=tx.Exec(sql)
+
+		if error != nil {
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+		}
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		rowesAffected, err := rs.RowsAffected()
 		// 后置事件
-		mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
-
+		_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+       if errorMessage!=nil{
+	      // tx.Rollback() // 回滚
+        }
 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
@@ -2633,10 +2663,13 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
-       if rowesAffected>0 {
+		tx.Commit()
+       if rowesAffected>0 && errorMessage==nil {
 		   return c.String(http.StatusOK, priId)
+	   }else{
+		   return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
 	   }
-		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+
 	}
 }
 
@@ -3284,6 +3317,7 @@ func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string) func(c e
 }
 func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 
@@ -3310,8 +3344,8 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
-
-		rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
+        rs,error:=tx.Exec(api.UpdateBatchSql(tableName, option.Wheres, payload))
+		//rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -3360,7 +3394,10 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			}
 			option.ExtendedMap=extendMap
 
-			mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
+			_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
+			if errorMessage!=nil{
+				tx.Rollback()
+			}
 
 		}
 		if err != nil {
@@ -3391,7 +3428,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			}
 
 		}
-
+       tx.Commit()
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3399,6 +3436,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 
 func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -3449,7 +3487,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		option.PriKey=firstPrimaryKey
 		extendMap[firstPrimaryKey]=id
 		option.ExtendedMap=extendMap
-		data,_:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
+		data,errorMessage:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
 		if len(data)>0{
 			payload=data[0]
 		}
@@ -3470,7 +3508,8 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
-		rs, errorMessage := api.Update(tableName, id, payload)
+		rs,error:=tx.Exec(api.UpdateSql(tableName, id, payload))
+		//rs, errorMessage := api.Update(tableName, id, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -3521,7 +3560,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			option.ExtendedMap=extendMap
 			option.ExtendedMapSecond=beforeUpdateMap
 
-			mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
+			_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
+			if errorMessage!=nil{
+				tx.Rollback()
+			}
 
 		}
 
@@ -3550,7 +3592,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			}
 
 		}
-
+       tx.Commit()
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3607,10 +3649,11 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		ids=append(ids,id)
 		option.Ids=ids
 		// 前置事件
-		mysql.PreEvent(api,tableName,"DELETE",nil,option,"")
+		_,errorMessage:=mysql.PreEvent(api,tableName,"DELETE",nil,option,"")
 
-
-		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+       tx,error:=api.Connection().Begin()
+       fmt.Print("error",error)
+       meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 
 		primaryColumns:=meta.GetPrimaryColumns()
 		var priId string
@@ -3639,8 +3682,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 
 
-
-		rs, errorMessage := api.Delete(tableName, id, nil)
+		rs,error:=tx.Exec(api.DeleteSql(tableName, id, nil))
+		//rs, errorMessage := api.Delete(tableName, id, nil)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -3650,7 +3693,10 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 		// 后置事件
 
-		mysql.PostEvent(api,tableName,"DELETE",nil,option,"")
+		_,errorMessage=mysql.PostEvent(api,tableName,"DELETE",nil,option,"")
+		if errorMessage!=nil{
+			tx.Rollback()
+		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
@@ -3683,13 +3729,15 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 
 			}
 		}
-
+		tx.Commit()
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
 // endpointBatchPut
 func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
+		fmt.Print("error",error)
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -3750,7 +3798,9 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if meta.HaveField("submit_person"){
 					recordItem["submit_person"]=userIdJwt
 				}
-				rs, errorMessage := api.Create(tableName, recordItem)
+				rs,error:=tx.Exec(api.CreateSql(tableName, recordItem))
+				fmt.Print("error",error)
+				//rs, errorMessage := api.Create(tableName, recordItem)
 				// 如果插入失败回滚
 				if errorMessage!=nil{
 					r_msg=append(r_msg,errorMessage.Error())
@@ -3759,7 +3809,10 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				rowesAffected, err := rs.RowsAffected()
 				// 后置事件
 				if rowesAffected>0{
-					mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+					_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+					if errorMessage!=nil{
+						tx.Rollback()
+					}
 				}
 
 				if err != nil {
@@ -3787,7 +3840,10 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				rowesAffected, err := rs.RowsAffected()
 				// 后置事件
 				if rowesAffected>0{
-					mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
+					_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
+					if errorMessage!=nil{
+						tx.Rollback()
+					}
 				}
 
 				if err != nil {
@@ -3832,12 +3888,14 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if len(r_msg)>0{
 			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 		}
+		tx.Commit()
 		return c.JSON(http.StatusOK, totalRowesAffected)
 	}
 }
 
 func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -3895,8 +3953,9 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			if len(data)>0{
 				recordItem=data[0]
 			}
-
-			_, err := api.Create(tableName, recordItem)
+           _,error:=tx.Exec(api.CreateSql(tableName, recordItem))
+           fmt.Print("error",error)
+			//_, err := api.Create(tableName, recordItem)
 			savedIds=append(savedIds,recordItem[priKey].(string))
 			// 如果插入失败回滚
 			if err!=nil{
@@ -3908,7 +3967,10 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			}
 
 			// 后置事件
-			mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+			_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+			if errorMessage!=nil{
+				tx.Rollback()
+			}
 			if err != nil {
 				r_msg=append(r_msg,err.Error())
 			} else {
@@ -3947,6 +4009,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if len(r_msg)>0{
 			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 		}
+		tx.Commit()
 		return c.JSON(http.StatusOK, totalRowesAffected)
 	}
 }
