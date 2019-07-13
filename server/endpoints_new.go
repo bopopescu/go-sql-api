@@ -2616,10 +2616,11 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 		//rs, errorMessage := api.CreateTx(tableName, option.ExtendedMap)
 		sql, errorMessage := api.CreateSql(tableName, option.ExtendedMap)
+		fmt.Print("sql",sql)
 		rs,error:=tx.Exec(sql)
 
 		if error != nil {
-			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 		}
 
 		if errorMessage != nil {
@@ -2629,7 +2630,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		// 后置事件
 		_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
        if errorMessage!=nil{
-	      // tx.Rollback() // 回滚
+	       tx.Rollback() // 回滚
         }
 
 		if err != nil {
@@ -3345,6 +3346,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			payload["update_person"]=userIdJwt
 		}
 		sql,errorMessage:=api.UpdateBatchSql(tableName, option.Wheres, payload)
+		fmt.Print("sql",sql)
         rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
 		if errorMessage != nil {
@@ -3510,6 +3512,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			payload["update_person"]=userIdJwt
 		}
 		sql,errorMessage:=api.UpdateSql(tableName, id, payload)
+		fmt.Print("sql",sql)
 		rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.Update(tableName, id, payload)
 		if errorMessage != nil {
@@ -3684,6 +3687,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 
         sql,errorMessage:=api.DeleteSql(tableName, id, nil)
+		fmt.Print("sql",sql)
 		rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.Delete(tableName, id, nil)
 		if errorMessage != nil {
@@ -3801,6 +3805,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 					recordItem["submit_person"]=userIdJwt
 				}
 				sql,errorMessage:=api.CreateSql(tableName, recordItem)
+				fmt.Print("sql",sql)
 				rs,error:=tx.Exec(sql)
 				fmt.Print("error",error)
 				//rs, errorMessage := api.Create(tableName, recordItem)
@@ -3957,6 +3962,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				recordItem=data[0]
 			}
 			sql,errorMessage:=api.CreateSql(tableName, recordItem)
+			fmt.Print("sql",sql)
            _,error:=tx.Exec(sql)
            fmt.Print("error",error)
 			//_, err := api.Create(tableName, recordItem)
