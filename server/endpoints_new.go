@@ -3452,7 +3452,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		beforeWhere:=make(map[string]WhereOperation)
 
 		var firstPrimaryKey string
-		masterTableName:=strings.Replace(tableName,"_detail","",-1)
+		masterTableName:=tableName //strings.Replace(tableName,"_detail","",-1)
 		tableMetadata:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
 		var primaryColumns []*ColumnMetadata
 		if tableMetadata!=nil{
