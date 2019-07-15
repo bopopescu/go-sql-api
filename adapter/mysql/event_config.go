@@ -459,9 +459,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 					filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
 					filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
+					fmt.Print(errorMessage)
+
 					if filterResult==""{
 						break
 					}
@@ -1521,9 +1520,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					result,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
-					if errorMessage!=nil{
-						// //tx.Rollback()
-					}
+					errorMessage=errorMessage
+
 
 				}
 
@@ -1535,9 +1533,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
+					errorMessage=errorMessage
+
 				}else if len(conditionFiledArr)>0{
 					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 					if paramsPro!=""{
@@ -1545,9 +1542,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 						fmt.Printf("result=",result)
 						fmt.Printf("errorMessage=",errorMessage)
-						if errorMessage!=nil{
-							//tx.Rollback()
-						}
+						errorMessage=errorMessage
+
 					}
 				}
 
@@ -1570,10 +1566,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
 					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					fmt.Printf("result=",result)
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
+					fmt.Printf("result,errorMessage",result,errorMessage)
+
 				}
 
 			}
@@ -1615,10 +1609,8 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 			if pre_operate_func!=""{
 				pre_operate_func_sql:="select "+pre_operate_func+"('"+ConverStrFromMap(second_level_norm_arr[0],extendMap)+"','"+conditionFieldKeyValue+"') as result;"
 				result,errorMesssage:=api.ExecFuncForOne(pre_operate_func_sql,"result")
-				fmt.Print(result)
-				if errorMesssage!=nil{
-					//tx.Rollback()
-				}
+				fmt.Print(result,errorMesssage)
+
 			}
 			if result==""{
 				result=ConverStrFromMap(second_level_norm_arr[0],extendMap)
@@ -1640,10 +1632,8 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 		if pre_operate_func!=""{
 			pre_operate_func_sql:="select "+pre_operate_func+"("+paramStr+",'"+conditionFieldKeyValue+"') as result;"
 			result,errorMesssage:=api.ExecFuncForOne(pre_operate_func_sql,"result")
-			fmt.Print(result)
-			if errorMesssage!=nil{
-				//tx.Rollback()
-			}
+			fmt.Print(result,errorMesssage)
+
 		}
 
 	}
@@ -1651,10 +1641,8 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 	//fmt.Printf("errorMessage=",errorMessage)
 	operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+credit_level_model_id+"') as result;"
 	result1,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
-	if errorMessage!=nil{
-		//tx.Rollback()
-	}
-	fmt.Printf("result1=",result1)
+
+	fmt.Printf("result1,errorMesssage",result1,errorMessage)
 
 }
 func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
@@ -1666,9 +1654,8 @@ func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func str
 			calculate_func_sql_str:="select ROUND("+calculate_func+"("+paramStr+",'"+strconv.Itoa(index+1)+"'"+"),2) as result;"
 			result,errorMessage:=api.ExecFuncForOne(calculate_func_sql_str,"result")
 			//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-            if errorMessage!=nil{
-            	//tx.Rollback()
-			}
+
+			fmt.Print("errorMessage",errorMessage)
 			if result==""{
 				result="0"
 			}
