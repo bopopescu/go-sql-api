@@ -23,7 +23,7 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	server.HideBanner = true
 	server.Logger = lib.Logger
 	server.Use(lib.LoggerMiddleware)
-	databaseName:=api.GetDatabaseMetadata().DatabaseName
+	databaseName:=api.GetDatabaseMetadataWithView().DatabaseName
 	server.Static("/api/"+databaseName+"/docs", "docs")
 	server.api = api
 //	databaseName:=api.GetDatabaseMetadata().DatabaseName

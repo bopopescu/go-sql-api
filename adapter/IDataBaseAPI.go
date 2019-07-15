@@ -25,6 +25,7 @@ type IDatabaseAPI interface {
 
 	SelectTotalCount(option QueryOption) (totalCount int,errorMessage *ErrorMessage)
 	GetDatabaseMetadata() *DataBaseMetadata
+	GetDatabaseMetadataWithView() *DataBaseMetadata
 	GetDatabaseTableMetadata(tableName string) *TableMetadata
 	UpdateAPIMetadata() (api IDatabaseAPI)
 	Connection()*sql.DB

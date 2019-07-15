@@ -72,9 +72,8 @@ func (api *MysqlAPI) Connection() *sql.DB {
 func (api *MysqlAPI) SQL() *SQL {
 	return api.sql
 }
-
 // GetDatabaseMetadata return database meta
-func (api *MysqlAPI) GetDatabaseMetadata() *DataBaseMetadata {
+func (api *MysqlAPI) GetDatabaseMetadataWithView() *DataBaseMetadata {
 	meta:=api.databaseMetadata
 	for _, t := range meta.Tables {
 		if t.TableType == "VIEW" && t.Comment != "" {
@@ -102,6 +101,12 @@ func (api *MysqlAPI) GetDatabaseMetadata() *DataBaseMetadata {
 
 		}
 	}
+	return meta
+}
+
+// GetDatabaseMetadata return database meta
+func (api *MysqlAPI) GetDatabaseMetadata() *DataBaseMetadata {
+	meta:=api.databaseMetadata
 	return meta
 }
 
