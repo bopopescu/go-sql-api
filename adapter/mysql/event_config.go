@@ -854,7 +854,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 					option.ExtendedMap[conditionFieldKey]=resultMap[priKey]
 				}else{
-					errorMessage.ErrorDescription="api remote error"
+					// errorMessage.ErrorDescription="api remote error"
 				}
 			}
 			if operateFunc!=""{

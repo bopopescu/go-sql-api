@@ -422,6 +422,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	fmt.Printf("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
+	slaveMetaData:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
 	//slaveInfoMap:=make([]map[string]interface{})
 	if masterTableInfo!=nil{
 		if masterTableInfo.(string)!=""{
@@ -778,6 +779,9 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	//	}else {
 		//	slave[slavePriKey]=slavePriId
 		//}
+		if slaveMetaData.HaveField("create_time"){
+			slave["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		}
 
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
