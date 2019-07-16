@@ -2622,16 +2622,17 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if error != nil {
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 		}
-
+		// 后置事件的事物回滚 需要用tx来提交执行
+		tx.Commit()
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		rowesAffected, err := rs.RowsAffected()
 		// 后置事件
 		_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
-       if errorMessage!=nil{
-	       tx.Rollback() // 回滚
-        }
+       //if errorMessage!=nil{
+	   //    tx.Rollback() // 回滚
+       // }
 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
@@ -2664,7 +2665,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
-		tx.Commit()
+
        if rowesAffected>0 && errorMessage==nil {
 		   return c.String(http.StatusOK, priId)
 	   }else{
