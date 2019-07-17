@@ -3905,7 +3905,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		tx,error:=api.Connection().Begin()
+		//tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -3963,11 +3963,11 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			if len(data)>0{
 				recordItem=data[0]
 			}
-			sql,errorMessage:=api.CreateSql(tableName, recordItem)
-			fmt.Print("sql",sql)
-           _,error:=tx.Exec(sql)
+			_,errorMessage:=api.Create(tableName, recordItem)
+			//fmt.Print("sql",sql)
+           //_,error:=tx.Exec(sql)
            fmt.Print("error",error,errorMessage)
-			tx.Commit()
+			//tx.Commit()
 			//_, err := api.Create(tableName, recordItem)
 			savedIds=append(savedIds,recordItem[priKey].(string))
 			// 如果插入失败回滚
