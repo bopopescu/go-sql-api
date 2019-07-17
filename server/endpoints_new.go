@@ -3744,8 +3744,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 // endpointBatchPut
 func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		tx,error:=api.Connection().Begin()
-		fmt.Print("error",error)
+		//tx,error:=api.Connection().Begin()
+		//fmt.Print("error",error)
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -3806,10 +3806,10 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if meta.HaveField("submit_person"){
 					recordItem["submit_person"]=userIdJwt
 				}
-				sql,errorMessage:=api.CreateSql(tableName, recordItem)
-				fmt.Print("sql",sql)
-				rs,error:=tx.Exec(sql)
-				fmt.Print("error",error)
+				rs,errorMessage:=api.Create(tableName, recordItem)
+				//fmt.Print("sql",sql)
+				//rs,error:=tx.Exec(sql)
+				//fmt.Print("error",error)
 				//rs, errorMessage := api.Create(tableName, recordItem)
 				// 如果插入失败回滚
 				if errorMessage!=nil{
@@ -3820,9 +3820,9 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				// 后置事件
 				if rowesAffected>0{
 					_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
-					if errorMessage!=nil{
-						tx.Rollback()
-					}
+					//if errorMessage!=nil{
+					//	tx.Rollback()
+					//}
 				}
 
 				if err != nil {
@@ -3851,9 +3851,9 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				// 后置事件
 				if rowesAffected>0{
 					_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
-					if errorMessage!=nil{
-						tx.Rollback()
-					}
+					//if errorMessage!=nil{
+					//	tx.Rollback()
+					//}
 				}
 
 				if err != nil {
@@ -3898,7 +3898,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if len(r_msg)>0{
 			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 		}
-		tx.Commit()
+		//tx.Commit()
 		return c.JSON(http.StatusOK, totalRowesAffected)
 	}
 }
