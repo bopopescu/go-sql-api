@@ -3966,7 +3966,8 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			sql,errorMessage:=api.CreateSql(tableName, recordItem)
 			fmt.Print("sql",sql)
            _,error:=tx.Exec(sql)
-           fmt.Print("error",error)
+           fmt.Print("error",error,errorMessage)
+			tx.Commit()
 			//_, err := api.Create(tableName, recordItem)
 			savedIds=append(savedIds,recordItem[priKey].(string))
 			// 如果插入失败回滚
@@ -3980,9 +3981,9 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 			// 后置事件
 			_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
-			if errorMessage!=nil{
-				tx.Rollback()
-			}
+			//if errorMessage!=nil{
+			//	tx.Rollback()
+			//}
 			if err != nil {
 				r_msg=append(r_msg,err.Error())
 			} else {
@@ -4021,7 +4022,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if len(r_msg)>0{
 			return c.JSON(http.StatusInternalServerError, &map[string]interface{}{"rowesAffected":totalRowesAffected,"error": r_msg})
 		}
-		tx.Commit()
+
 		return c.JSON(http.StatusOK, totalRowesAffected)
 	}
 }

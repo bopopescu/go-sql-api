@@ -1520,7 +1520,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					result,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
-					errorMessage=errorMessage
 
 
 				}
