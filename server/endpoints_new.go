@@ -3515,6 +3515,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		sql,errorMessage:=api.UpdateSql(tableName, id, payload)
 		fmt.Print("sql",sql)
 		rs,error:=tx.Exec(sql)
+		tx.Commit()
 		//rs, errorMessage := api.Update(tableName, id, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3567,9 +3568,9 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			option.ExtendedMapSecond=beforeUpdateMap
 
 			_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
-			if errorMessage!=nil{
-				tx.Rollback()
-			}
+			//if errorMessage!=nil{
+			//	tx.Rollback()
+			//}
 
 		}
 
@@ -3598,7 +3599,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			}
 
 		}
-       tx.Commit()
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
