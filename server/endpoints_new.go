@@ -2548,7 +2548,7 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 
 	return func(c echo.Context) error {
-		tx,error:=api.Connection().Begin()
+		//tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -2615,15 +2615,15 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		//rs, errorMessage := api.CreateTx(tableName, option.ExtendedMap)
-		sql, errorMessage := api.CreateSql(tableName, option.ExtendedMap)
-		fmt.Print("sql",sql)
-		rs,error:=tx.Exec(sql)
+		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
+		//fmt.Print("sql",sql)
+		//rs,error:=tx.Exec(sql)
 
 		if error != nil {
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 		}
 		// 后置事件的事物回滚 需要用tx来提交执行
-		tx.Commit()
+		//tx.Commit()
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
@@ -3319,7 +3319,7 @@ func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string) func(c e
 }
 func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		tx,error:=api.Connection().Begin()
+		//tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 
@@ -3346,9 +3346,9 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
-		sql,errorMessage:=api.UpdateBatchSql(tableName, option.Wheres, payload)
-		fmt.Print("sql",sql)
-        rs,error:=tx.Exec(sql)
+		rs,errorMessage:=api.UpdateBatch(tableName, option.Wheres, payload)
+		//fmt.Print("sql",sql)
+        //rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3399,9 +3399,9 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			option.ExtendedMap=extendMap
 
 			_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
-			if errorMessage!=nil{
-				tx.Rollback()
-			}
+			//if errorMessage!=nil{
+			//	tx.Rollback()
+			//}
 
 		}
 		if err != nil {
@@ -3432,7 +3432,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			}
 
 		}
-       tx.Commit()
+       //tx.Commit()
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3440,7 +3440,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 
 func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		tx,error:=api.Connection().Begin()
+		//tx,error:=api.Connection().Begin()
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -3512,10 +3512,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
-		sql,errorMessage:=api.UpdateSql(tableName, id, payload)
-		fmt.Print("sql",sql)
-		rs,error:=tx.Exec(sql)
-		tx.Commit()
+		rs,errorMessage:=api.Update(tableName, id, payload)
+		//fmt.Print("sql",sql)
+		//rs,error:=tx.Exec(sql)
+		//tx.Commit()
 		//rs, errorMessage := api.Update(tableName, id, payload)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3658,8 +3658,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		// 前置事件
 		_,errorMessage:=mysql.PreEvent(api,tableName,"DELETE",nil,option,"")
 
-       tx,error:=api.Connection().Begin()
-       fmt.Print("error",error)
+       //tx,error:=api.Connection().Begin()
+       //fmt.Print("error",error)
        meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 
 		primaryColumns:=meta.GetPrimaryColumns()
@@ -3688,9 +3688,9 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			break
 		}
 
-        sql,errorMessage:=api.DeleteSql(tableName, id, nil)
-		fmt.Print("sql",sql)
-		rs,error:=tx.Exec(sql)
+        rs,errorMessage:=api.Delete(tableName, id, nil)
+		//fmt.Print("sql",sql)
+		//rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.Delete(tableName, id, nil)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3702,9 +3702,9 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		// 后置事件
 
 		_,errorMessage=mysql.PostEvent(api,tableName,"DELETE",nil,option,"")
-		if errorMessage!=nil{
-			tx.Rollback()
-		}
+		//if errorMessage!=nil{
+		//	tx.Rollback()
+		//}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
@@ -3737,7 +3737,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 
 			}
 		}
-		tx.Commit()
+		//tx.Commit()
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
