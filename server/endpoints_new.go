@@ -2666,7 +2666,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			}
 		}
 
-       if rowesAffected>0 && errorMessage==nil {
+       if rowesAffected>0 {
 		   return c.String(http.StatusOK, priId)
 	   }else{
 		   return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
