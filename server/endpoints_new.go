@@ -2618,7 +2618,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)
-		
+
 		// 后置事件的事物回滚 需要用tx来提交执行
 		//tx.Commit()
 		if errorMessage != nil {
