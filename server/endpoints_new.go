@@ -2976,6 +2976,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 			return c.String(http.StatusInternalServerError, error.Error())
 		}
 		rows := xlsx.GetRows("Sheet1")
+
         if rows==nil{
 			rows = xlsx.GetRows("汇总表")
 		}
