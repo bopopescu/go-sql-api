@@ -156,7 +156,9 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		}
 		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreate(operates,payload,userIdJwtStr)
 		// 后置条件处理
-
+		if errorMessage != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}
 		var option QueryOption
 		option.ExtendedArr=slaveInfoMap
 		masterTableInfoMap[masterKey]=masterId

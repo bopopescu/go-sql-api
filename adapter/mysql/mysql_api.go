@@ -437,6 +437,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	}
 	//
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
+
 	var primaryColumns []*ColumnMetadata
     var masterPriKey string
 	var slavePriId string
@@ -759,6 +760,13 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 	for _, slave := range slaveInfoMap {
+		if slave["extra_info"]!=nil{
+			slave["extra_info"]=slave["extra_info"]
+			extraBytes,err:=json.Marshal(slave["extra_info"])
+			fmt.Print(err)
+			extraStr:=string(extraBytes[:])
+			slave["extra_info"]=extraStr
+		}
 		for _, col := range primaryColumns1 {
 			if col.Key == "PRI" {
 				slavePriKey = col.ColumnName
@@ -1753,6 +1761,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	 var leftRepeatData []map[string]interface{}
 	 calpreMap["initid"]="initid"
 	for i, slave := range slaveInfoMap {
+		if slave["extra_info"]!=nil{
+			slave["extra_info"]=slave["extra_info"]
+			extraBytes,err:=json.Marshal(slave["extra_info"])
+			fmt.Print(err)
+			extraStr:=string(extraBytes[:])
+			slave["extra_info"]=extraStr
+		}
 		whereOption:=make(map[string]WhereOperation)
 		judgeExistsFundsWhereOption := map[string]WhereOperation{}
 		judgeExistsFundsOrWhereOption := map[string]WhereOperation{}
