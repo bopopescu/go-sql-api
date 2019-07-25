@@ -1522,6 +1522,16 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					fmt.Printf("errorMessage=",errorMessage)
 
 
+				}else if len(conditionFiledArr)>0{
+					paramsFunc:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+					if paramsFunc!=""{
+						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
+						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
+						fmt.Printf("result=",result)
+						fmt.Printf("errorMessage=",errorMessage)
+						errorMessage=errorMessage
+
+					}
 				}
 
 
