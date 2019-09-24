@@ -1,9 +1,9 @@
 ﻿package main
 
 import (
-	"github.com/shiyongabc/go-mysql-api/server"
+	"github.com/shiyongabc/go-sql-api/server"
 	"github.com/mkideal/cli"
-	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
+	"github.com/shiyongabc/go-sql-api/adapter/mysql"
 
 //	"fmt"
 	"github.com/robfig/cron"

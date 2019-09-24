@@ -3,8 +3,8 @@ package swagger
 import (
 	"github.com/go-openapi/spec"
 	"fmt"
-	"github.com/shiyongabc/go-mysql-api/server/key"
-	. "github.com/shiyongabc/go-mysql-api/types"
+	"github.com/shiyongabc/go-sql-api/server/key"
+	. "github.com/shiyongabc/go-sql-api/types"
 	//"github.com/shiyongabc/go-mysql-api/adapter/mysql"
 )
 

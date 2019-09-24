@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"encoding/json"
 	"strconv"
-	"github.com/shiyongabc/go-mysql-api/adapter"
-	."github.com/shiyongabc/go-mysql-api/types"
+	"github.com/shiyongabc/go-sql-api/adapter"
+	."github.com/shiyongabc/go-sql-api/types"
 
 	"github.com/satori/go.uuid"
 	"time"

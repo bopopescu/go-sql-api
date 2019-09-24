@@ -3,7 +3,7 @@ package mysql
 import (
 	"fmt"
 
-	. "github.com/shiyongabc/go-mysql-api/types"
+	. "github.com/shiyongabc/go-sql-api/types"
 	"gopkg.in/doug-martin/goqu.v4"
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
 	"regexp"

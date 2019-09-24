@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"database/sql"
-	. "github.com/shiyongabc/go-mysql-api/types"
+	. "github.com/shiyongabc/go-sql-api/types"
 )
 
 type IDatabaseAPI interface {

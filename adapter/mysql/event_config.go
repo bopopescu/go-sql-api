@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"container/list"
-	"github.com/shiyongabc/go-mysql-api/adapter"
-	."github.com/shiyongabc/go-mysql-api/types"
+	"github.com/shiyongabc/go-sql-api/adapter"
+	."github.com/shiyongabc/go-sql-api/types"
 	"github.com/shiyongabc/jwt-go"
 )
 
@@ -1106,7 +1106,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				conditionFieldKey=option.PriKey
 			}
 			if option.ExtendedMap[conditionFieldKey]!=nil{
-				conditionFieldKeyValue=option.ExtendedMap[conditionFieldKey].(string)
+				conditionFieldKeyValue=InterToStr(option.ExtendedMap[conditionFieldKey])
 			}
 		}
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
@@ -1738,6 +1738,15 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 
 	}
 
+}
+func InterToStr(fieldInter interface{})(string){
+	var result string
+	switch fieldInter.(type){
+	case string: result=fieldInter.(string)
+	case int:result=strconv.Itoa(fieldInter.(int))
+	case float64: result=strconv.FormatFloat(fieldInter.(float64),'f',-1,64)
+	}
+	return result
 }
 func GetValidationKey(*jwt.Token) (interface{}, error) {
 	//return []byte("-----BEGIN PUBLIC KEY-----\n"+

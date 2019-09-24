@@ -2,26 +2,26 @@ package server
 
 import (
 	"net/http"
-	"github.com/shiyongabc/go-mysql-api/server/swagger"
+	"github.com/shiyongabc/go-sql-api/server/swagger"
 	"github.com/labstack/echo"
-	"github.com/shiyongabc/go-mysql-api/server/static"
-	"github.com/shiyongabc/go-mysql-api/adapter"
-	. "github.com/shiyongabc/go-mysql-api/types"
-	. "github.com/shiyongabc/go-mysql-api/server/util"
+	"github.com/shiyongabc/go-sql-api/server/static"
+	"github.com/shiyongabc/go-sql-api/adapter"
+	. "github.com/shiyongabc/go-sql-api/types"
+	. "github.com/shiyongabc/go-sql-api/server/util"
 	"math"
 	"encoding/json"
 	"strconv"
 	"fmt"
 	"strings"
 	"regexp"
-	"github.com/shiyongabc/go-mysql-api/server/key"
+	"github.com/shiyongabc/go-sql-api/server/key"
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"os"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
 	"github.com/garyburd/redigo/redis"
 
-	"github.com/shiyongabc/go-mysql-api/adapter/mysql"
+	"github.com/shiyongabc/go-sql-api/adapter/mysql"
 	"time"
 	"github.com/shiyongabc/jwt-go"
 //	"github.com/shiyongabc/go-mysql-api/async"
@@ -2568,17 +2568,16 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 
 		primaryColumns:=meta.GetPrimaryColumns()
-		var priId string
+		var priId interface{}
 		var priKey string
 		for _, col := range primaryColumns {
 			if col.Key == "PRI" {
 				priKey=col.ColumnName
 				if payload[priKey]!=nil{
-					priId=payload[priKey].(string)
+					priId=payload[priKey]
 				}else{
 					uuid := uuid.NewV4()
-					priId=uuid.String()
-					payload[priKey]=priId
+					payload[priKey]=uuid.String()
 
 				}
 
@@ -2675,7 +2674,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 
        if rowesAffected>0 {
-		   return c.String(http.StatusOK, priId)
+		   return c.String(http.StatusOK, mysql.InterToStr(priId))
 	   }else{
 		   return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
 	   }
@@ -3533,7 +3532,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			payload["update_person"]=userIdJwt
 		}
 		//修改时不能修改主键值
-		delete(payload, "id")
+		delete(payload, firstPrimaryKey)
 		rs,errorMessage:=api.Update(tableName, id, payload)
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)

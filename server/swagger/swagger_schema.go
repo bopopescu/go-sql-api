@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-openapi/spec"
 	"fmt"
-	types    "github.com/shiyongabc/go-mysql-api/types"
+	types    "github.com/shiyongabc/go-sql-api/types"
 )
 
 func dbTypeToSchemaType(t string) (rt_t string) {

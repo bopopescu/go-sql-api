@@ -3,7 +3,7 @@ package swagger
 import (
 	"github.com/go-openapi/spec"
 	"fmt"
-	. "github.com/shiyongabc/go-mysql-api/types"
+	. "github.com/shiyongabc/go-sql-api/types"
 )
 
 func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]spec.PathItem) {

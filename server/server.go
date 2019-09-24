@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/shiyongabc/go-mysql-api/server/lib"
+	"github.com/shiyongabc/go-sql-api/server/lib"
 	"github.com/labstack/echo"
-	"github.com/shiyongabc/go-mysql-api/adapter"
+	"github.com/shiyongabc/go-sql-api/adapter"
 	"github.com/robfig/cron"
 
 	"fmt"
