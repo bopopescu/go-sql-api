@@ -19,6 +19,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 	//tx,err:=api.Connection().Begin()
 	//fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"1")
+	if len(operates)==0{
+		return
+	}
+
 	fmt.Printf("errorMessage=",errorMessage)
 	var operate_condition string
 	var operate_content string
@@ -33,18 +37,21 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 	var filterFunc string
 	var filterFieldKey string
 	//	var actionType string
-	var conditionFiledArr []string
-	var resultFieldsArr []string
-	var actionFieldsArr []string
-	var operateCondJsonMap map[string]interface{}
 
-	var operateFilterContentJsonMap map[string]interface{}
+
+
 	fieldList:=list.New()
 
 	for _,operate:=range operates {
 		var operateCondContentJsonMap map[string]interface{}
+		var operateCondJsonMap map[string]interface{}
+
+		var operateFilterContentJsonMap map[string]interface{}
 		var operateFunc string
 		var operateProcedure string
+		var resultFieldsArr []string
+		var actionFieldsArr []string
+		var conditionFiledArr []string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
@@ -608,24 +615,28 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	var operateFunc string
 	var priKey string
 	var actionType string
-	var actionFiledArr []string
+
 	var actionFiledArrStr string
 
 	var filter_content string
-	var filterFiledArr []string
+
 	var filterFiledArrStr string
 	var filterKey string
 	var filterFunc string
 	//	var actionType string
-	var conditionFiledArr []string
-	var resultFieldsArr []string
+
 	//var actionFieldsArr [5]string
-	var operateCondJsonMap map[string]interface{}
-	var operateCondContentJsonMap map[string]interface{}
-	var filterCondContentJsonMap map[string]interface{}
+
 	fieldList:=list.New()
 	var fields []string
 	for _,operate:=range operates {
+		var conditionFiledArr []string
+		var resultFieldsArr []string
+		var filterFiledArr []string
+		var actionFiledArr []string
+		var operateCondJsonMap map[string]interface{}
+		var operateCondContentJsonMap map[string]interface{}
+		var filterCondContentJsonMap map[string]interface{}
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content=operate["filter_content"].(string)
@@ -1017,13 +1028,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var conditionFiledArr []string
 	var resultFieldsArr []string
 	var actionFieldsArr []string
-	var operateCondJsonMap map[string]interface{}
 
-	var operateFilterContentJsonMap map[string]interface{}
 	fieldList:=list.New()
 
 	for _,operate:=range operates {
 		var operateCondContentJsonMap map[string]interface{}
+		var operateCondJsonMap map[string]interface{}
+		var operateFilterContentJsonMap map[string]interface{}
 		var operateFunc string
 		var operateProcedure string
 		operate_condition= operate["operate_condition"].(string)
@@ -1521,6 +1532,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
 
+					if result!="" && conditionFieldKey!=""{
+						option.ExtendedMap[conditionFieldKey]=result
+					}
+
+
 
 				}else if len(conditionFiledArr)>0{
 					paramsFunc:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
@@ -1583,7 +1599,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		}
 // limit
 	}
-
+	if data== nil && option.ExtendedMap!=nil{
+		data=append(data,option.ExtendedMap)
+	}
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
 
 	return data,errorMessage;

@@ -10,15 +10,15 @@ deploy:
   api_key:
     secure: K2KCzT9y+L8Pey+/XetWvJoHCxVs5EvyrPXzk/ThXB3g3DNwxno6ubNSQDdqS0Pcs2Rrrw/XSASI4vEptAQr4jPnSAdsf/HCwqrfSC57uhkZ5PKZUVlor5E8GdpMM3r0sOXgPl2zitSKe/qiMfx/jDH2H7K297VPP4rTpe+u58VdlMEfZ6X+gyCwFNZBYhAE6ri4QMqYS8yLt7lMVq+dbe02LsU5jmhB03JXMbxIrCRwV5i1cw5NmrNBhYcrJ0apKvslTsL0ZpNjsGoHZZefedI9ttef37gVRTfq7QE28en1uOopt0lHf2M4AoUBFrhs0BjydlxuvopZr0pVupLIF6oj8VpKq7yQEoFP09DSQbjyi/r+Tq3vB13xCMfe4eDBQFiuLaqdl2bhb4VA0IGzhvVxYCQUbSZrOU41GafLpOYtOC6/5ksmDzpcPKaa4rmC3hTmq9OOVQPRQb2WKdzC0uovkdcnAVd9sS7vchZnzbu9TJVhFPau9OnqbD6XS+zAA58SB1JCpXQqlc9hucrWW8aRMf8WHdnWfiZYkwpBlT12biVu/mnXIOk6pLKCJKxd9EJSQ1+9mSw3sSRcC1ryFdTofEDKfOUGwhsYIoqn9InOF88e0v6V+4bj19hM2VyzVjehNFDwIlvpXU3CPGtoaHpulCVAt3KdKOzYghpz+8A=
   file:
-    - "go-mysql-api-linux-amd64"
-    - "go-mysql-api-windows-amd64.exe"
-    - "go-mysql-api-darwin-amd64"
+    - "go-sql-api-linux-amd64"
+    - "go-sql-api-windows-amd64.exe"
+    - "go-sql-api-darwin-amd64"
   skip_cleanup: true
   on:
     tags: true
     go: 1.9.2
-    repo: shiyongabc/go-mysql-api
-after_deploy: 'curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"$TRAVIS_TAG\"}" -X POST https://registry.hub.docker.com/r/shiyongabc/go-mysql-api/trigger/$DOCKER_TOKEN/'
+    repo: shiyongabc/go-sql-api
+after_deploy: 'curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"$TRAVIS_TAG\"}" -X POST https://registry.hub.docker.com/r/shiyongabc/go-sql-api/trigger/$DOCKER_TOKEN/'
 env:
   global:
     secure: ZqotW3T7F6xvswsvKxWgidIEIbKTJ6B5KPZpjsU5P2qEFQtkn9pcQI7lvTsbOz5fGaHqDTVYCamhKeAEWbpMC/54hBX6rSZH0l40ceRpPjKCqUz1/E9q4j81UDdZqNVH6CgEyxvmen1sWEvLGIAql/UHos+HEe5EcVvqL4ojeEDka7HKos1eD2LMY1s67ksDzOaRpo0tTF9EmuBTxRNqaW4gRL5ypfCQIjVUdsZagdrNzaISLqxVTzhvnBtuRmUXoun6jgA25hCr+blk/RKsuzC3W+M15X4AzNcCqIWm3N75e/Ys7DQGl9a/kSEdtUUfjEAdRzV2InBTLFjJ+nsrTSCMOve4hCzamckHIKWlBpF4uOUEzFiZxZkmcVU8GmID9Pfb9eEk++h3+jwOyDocC10/SrtolSHm8QrrbZ45wsfsHnoXmXDD9CY3xo/TWFI3IgLjwB9KEvPM/VSTBg/5E8iTd6H00LSSUddDDxIMq4xKCocovkFfSfrNq2R9QPT4XUFP9GSaE5MMXizQ3sUQ7HVN1KwLI2CSOgPJDJUpgq05eFWfNM97gcizI1UyOiWlYTu9PDzfamU4eVjKr2TOxyGg3UR5OyyzBFQcxmkAidS0xTW/oG9GoAwtJydc7KoFDWMsrDZBwiw6D/BlYhFyyCQbbsrOU9zgk1TCMpw4wX8=

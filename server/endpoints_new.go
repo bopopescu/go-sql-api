@@ -163,13 +163,19 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		option.ExtendedArr=slaveInfoMap
 		masterTableInfoMap[masterKey]=masterId
 		option.ExtendedMap=masterTableInfoMap
-		_,errorMessage=mysql.PostEvent(api,slaveTableName,"POST",nil,option,redisHost)
+		dataR,errorMessage:=mysql.PostEvent(api,slaveTableName,"POST",nil,option,redisHost)
         if errorMessage!=nil{
         	// tx.Rollback()
 		}
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
+		if len(dataR)>0{
+			option.ExtendedMap=dataR[0]
+		}
+		// 执行异步任务 c1 := make (chan int);
+		c1 := make (chan int);
+		go asyncOptionEvent(api,slaveTableName,option,c1)
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
 		if(redisHost!=""){
 			pool:=newPool(redisHost)
@@ -2636,6 +2642,9 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
+		// 执行异步任务 c1 := make (chan int);
+		c1 := make (chan int);
+		go asyncOptionEvent(api,tableName,option,c1)
 		//添加时清楚缓存
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
@@ -3012,10 +3021,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 						continue
 					}
 					var excelColName string
-					//var isDate string
+					var isDate string
 					if col_end>=colIndex{
 						excelColName=dataDetail[colIndex-col_start]["column_name"].(string)
-						//isDate = dataDetail[colIndex-col_start]["is_date"].(string)
+						isDate = dataDetail[colIndex-col_start]["is_date"].(string)
 					}
 
 					if excelColName!="" && colIndex>=col_start{
@@ -3027,11 +3036,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 								// 从有效数据导入的第一行 拼接字段
 								importBuffer.WriteString("'"+systemEnumMap[master_table+"."+excelColName+colCell].(string)+"',")
 							}else{
+								// 如果是时间格式  excel时间默认是到1900-01-01的天数  需要加上到19900-01-01的天数
+								if isDate =="1" {
+									colCell=convertToFormatDay(colCell)
+								}
 								if colCell=="" && tableDataTypeMap[excelColName]!="varchar" && tableDataTypeMap[excelColName]!="text"&& tableDataTypeMap[excelColName]!="datetime"&& tableDataTypeMap[excelColName]!="timestamp" {
 									tableMap[excelColName]="0"
-									//if isDate =="1" {
-									//	colCell=convertToFormatDay(colCell)
-									//}
 									// 从有效数据导入的第一行 拼接字段
 									importBuffer.WriteString("'0',")
 								}else{
@@ -3115,6 +3125,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 // excel日期字段格式化 yyyy-mm-dd
 func convertToFormatDay(excelDaysString string)string {
+	if excelDaysString==""{
+		return ""
+	}
+	println("excelDaysString",excelDaysString)
 	// 2006-01-02 距离 1900-01-01的天数
 	baseDiffDay := 38719 //在网上工具计算的天数需要加2天，什么原因没弄清楚
 	curDiffDay := excelDaysString
@@ -3127,7 +3141,9 @@ func convertToFormatDay(excelDaysString string)string {
 	//fmt.Println("realDiffSecond:",realDiffSecond)
 	// 2006-01-02 15:04:05距离1970-01-01 08:00:00的秒数 网上工具可查出
 	baseOriginSecond := 1136185445
+	println("second",int64(baseOriginSecond+realDiffSecond))
 	resultTime := time.Unix(int64(baseOriginSecond+realDiffSecond), 0).Format("2006-01-02")
+	println("resultTime",resultTime)
 	return resultTime
 }
 func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,importBatchNo string,c chan int){
@@ -3137,6 +3153,10 @@ func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,importBatchNo 
 	tableMap["import_batch_no"]=importBatchNo
 	optionEvent.ExtendedMap=tableMap
 
+	//mysql.AsyncEvent(api,tableName,"POST",nil,optionEvent,"")
+	asyncOptionEvent(api,tableName,optionEvent,c)
+}
+func asyncOptionEvent(api adapter.IDatabaseAPI,tableName string,optionEvent QueryOption,c chan int){
 	mysql.AsyncEvent(api,tableName,"POST",nil,optionEvent,"")
 	c <- 1
 }
@@ -3512,6 +3532,8 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
+		//修改时不能修改主键值
+		delete(payload, "id")
 		rs,errorMessage:=api.Update(tableName, id, payload)
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)
