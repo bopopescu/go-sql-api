@@ -27,4 +27,5 @@
 *.iml
 /*.docx
 
-*go-mysql-api-darwin*
+*.darwin-amd64
+*.amd64.exe

@@ -32,7 +32,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 	var conditionFileds string
 	var resultFileds string
 	var operate_type string
-	var operate_table string
+
 
 	var filterFunc string
 	var filterFieldKey string
@@ -50,8 +50,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var operateFunc string
 		var operateProcedure string
 		var resultFieldsArr []string
-		var actionFieldsArr []string
 		var conditionFiledArr []string
+		var operateScipt string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
@@ -60,6 +60,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 			if operateCondJsonMap["conditionType"]!=nil{
 				conditionType=operateCondJsonMap["conditionType"].(string)
+				fmt.Print(conditionType)
 			}
 
 			if operateCondJsonMap["conditionFields"]!=nil{
@@ -98,6 +99,11 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if operateCondJsonMap["conditionFieldKey"]!=nil{
 			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
 		}
+		// operateScipt
+		if operateCondContentJsonMap["operate_script"]!=nil{
+			operateScipt=operateCondContentJsonMap["operate_script"].(string)
+			fmt.Printf("operateScipt=",operateScipt)
+		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 			fmt.Printf("operateFunc=",operateFunc)
@@ -129,277 +135,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if operateCondContentJsonMap["operate_type"]!=nil{
 			operate_type=operateCondContentJsonMap["operate_type"].(string)
 		}
-		if operateCondContentJsonMap["operate_table"]!=nil{
-			operate_table=operateCondContentJsonMap["operate_table"].(string)
-		}
 
-		//actionType=operateCondContentJsonMap["action_type"].(string)
-		// 动态添加列 并为每一列计算出值
-		if "DYNAMIC_ADD_COLUMN"==operate_type {
-			if "OBTAIN_FROM_SPECIFY"==conditionType{
-
-				for i,item:=range data{
-
-					fmt.Printf("i=",i," item=",item," conditionTable=",conditionTable)
-					// 根据主表主键id查询详情
-					option.Table=strings.Replace(tableName,"_view","",-1)
-					option.Links=[]string{"farm_subject"}
-					detailItem, errorMessage:= api.Select(option)
-					fmt.Printf("detailItem=",detailItem)
-
-					// 根据每一行构建查询条件
-					whereOption := map[string]WhereOperation{}
-					for e := fieldList.Front(); e != nil; e = e.Next() {
-						if item[e.Value.(string)]!=nil{
-							whereOption[e.Value.(string)] = WhereOperation{
-								Operation: "eq",
-								Value:     item[e.Value.(string)].(string),
-							}
-						}
-
-					}
-					querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
-					rsQuery, errorMessage:= api.Select(querOption)
-					if errorMessage!=nil{
-						fmt.Printf("errorMessage", errorMessage)
-					}else{
-						fmt.Printf("rs", rsQuery)
-					}
-					//
-
-
-				}
-
-
-			}
-			fmt.Printf("data=",data)
-
-		}
-		if "UPDATE"==operate_type && "QUERY"==conditionType{
-			for _,item:= range conditionFiledArr{
-				if item!=""{
-					fieldList.PushBack(item)
-				}
-			}
-			//  从配置里获取要判断的字段 并返回对象
-			whereOption := map[string]WhereOperation{}
-			for e := fieldList.Front(); e != nil; e = e.Next() {
-				// 含有= 取=后面值
-				if strings.Contains(e.Value.(string),"="){
-					arr:=strings.Split(e.Value.(string),"=")
-					whereOption[arr[0]] = WhereOperation{
-						Operation: "eq",
-						Value:     arr[1],
-					}
-				}
-				if option.Wheres!=nil&&option.Wheres[e.Value.(string)].Value!=nil{
-					whereOption[e.Value.(string)] = WhereOperation{
-						Operation: "eq",
-						Value:     option.Wheres[e.Value.(string)].Value,
-					}
-
-				}
-
-				if option.ExtendedMap!=nil&&option.ExtendedMap[e.Value.(string)]!=nil{
-
-					whereOption[e.Value.(string)] = WhereOperation{
-						Operation: "eq",
-						Value:     option.ExtendedMap[e.Value.(string)],
-					}
-
-				}
-
-			}
-
-			querOption := QueryOption{Wheres: whereOption, Table: tableName}
-			rsQuery, errorMessage:= api.Select(querOption)
-			if errorMessage!=nil{
-				fmt.Printf("errorMessage", errorMessage)
-			}else{
-				fmt.Printf("rs", rsQuery)
-			}
-			//operate_type:=operateCondContentJsonMap["operate_type"].(string)
-			pri_key:=operateCondContentJsonMap["pri_key"].(string)
-			var pri_key_value string
-			action_type:=operateCondContentJsonMap["action_type"].(string)
-			action_fields:=operateCondContentJsonMap["action_fields"].(string)
-			json.Unmarshal([]byte(action_fields), &actionFieldsArr)
-			// 操作类型是更新 动作类型是累加
-			actionFiledMap:=make(map[string]interface{})
-			//	if operate_type=="UPDATE"{
-			for _,field:=range actionFieldsArr{
-				if strings.Contains(field,"="){
-					arr:=strings.Split(field,"=")
-					actionFiledMap[arr[0]]=arr[1]
-				}
-
-
-			}
-
-			var conditionFieldKeyValueStr string
-			if len(option.ExtendedArr)>0{
-				switch  option.ExtendedArr[0][conditionFieldKey].(type) {
-				case string:
-					conditionFieldKeyValueStr=option.ExtendedArr[0][conditionFieldKey].(string)
-				case 	float64:
-					conditionFieldKeyValueStr=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
-				}
-			}
-
-			//conditionFieldKeyValueStr:=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
-			//   && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey=="")
-			if action_type=="ACC"  && (conditionFieldKeyValueStr==conditionFieldKeyValue|| option.ExtendedArr[0][conditionFieldKey]=="")&& (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
-				for _,rsQ:=range rsQuery {
-					pri_key_value=rsQ[pri_key].(string)
-					for _,field:=range actionFieldsArr{
-						if rsQ[field]!=nil{
-							action_field_value0:= rsQ[field].(string)
-							if action_field_value0!=""{
-								action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
-								action_field_value0_int=action_field_value0_int+1
-								if err0!=nil{
-									fmt.Printf("err0",err0)
-								}
-								actionFiledMap[field]=action_field_value0_int
-							}
-
-
-						}
-
-
-					}
-
-
-				}
-			}
-			if action_type=="SUB_FROM_CONFIRM_FAIL" && conditionFieldKeyValue==conditionFieldKeyValueStr && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
-
-				//	fmt.Printf("option.ExtendedArr[0][conditionFieldKey]=",option.ExtendedArr[0][conditionFieldKey],",conditionFieldKeyValue=",conditionFieldKeyValue)
-				for _,rsQ:=range rsQuery {
-					pri_key_value=rsQ[pri_key].(string)
-					for _,field:=range actionFieldsArr{
-						if rsQ[field]!=nil{
-							action_field_value0:= rsQ[field].(string)
-							if action_field_value0!=""{
-								action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
-								action_field_value0_int=action_field_value0_int-1
-								if action_field_value0_int<0{
-									action_field_value0_int=0
-								}
-								if err0!=nil{
-									fmt.Printf("err0",err0)
-								}
-								actionFiledMap[field]=action_field_value0_int
-							}
-
-
-						}
-
-
-					}
-
-
-				}
-			}
-			if action_type=="UPDATE_RECORD"{
-				updateWhere:=make(map[string]WhereOperation)
-				if option.ExtendedMap[conditionFieldKey]!=nil{
-					updateWhere[conditionFieldKey]=WhereOperation{
-						Operation:"eq",
-						Value:option.ExtendedMap[conditionFieldKey].(string),
-					}
-
-				}
-				for _,field:=range actionFieldsArr{
-					if strings.Contains(field,"="){
-						arr:=strings.Split(field,"=")
-						actionFiledMap[arr[0]]=arr[1]
-					}
-
-				}
-				// 如果 updateWhere有值  则按updateWhere更新  否则是查询条件 whereOption
-				if len(updateWhere)<=0{
-					updateWhere=whereOption
-				}
-				rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
-				if err!=nil{
-					fmt.Printf("err=",err)
-				}
-				fmt.Printf("rsU=",rsU)
-
-			}
-			//	}
-			if action_type=="UPDATE_STATUS"{
-				//updateWhere:=make(map[string]WhereOperation)
-				//if option.ExtendedMap[conditionFieldKey]!=nil{
-				//	updateWhere[conditionFieldKey]=WhereOperation{
-				//		Operation:"eq",
-				//		Value:option.ExtendedMap[conditionFieldKey].(string),
-				//	}
-				//
-				//}
-				if option.ExtendedMap[conditionFieldKey]!=nil{
-					updateSql:="select "+operateFunc+"('"+option.ExtendedMap[conditionFieldKey].(string)+"')"
-					result,errorMessage:=api.ExecFunc(updateSql)
-					fmt.Printf("result=",result,"errorMessage=",errorMessage)
-				}
-
-				//rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
-				//if err!=nil{
-				//	fmt.Printf("err=",err)
-				//}
-				//fmt.Printf("rsU=",rsU)
-
-			}
-			//	}
-
-
-			if pri_key_value!=""{
-				rsU,err:=	api.Update(operate_table,pri_key_value,actionFiledMap)
-				if err!=nil{
-					fmt.Print("err=",err)
-				}
-
-				rowesAffected,error:=rsU.RowsAffected()
-				if error!=nil{
-					fmt.Printf("err=",error)
-				}else{
-					fmt.Printf("rowesAffected=",rowesAffected)
-				}
-
-			}
-
-		}
-		if "OBTAIN_FROM_LOCAL" == conditionType {
-			for _, item := range conditionFiledArr {
-				if item != "" {
-					fieldList.PushBack(item)
-				}
-			}
-			//  从参数里获取配置中字段的值
-			var count int64
-			for e := fieldList.Front(); e != nil; e = e.Next() {
-
-				for _,itemMap:=range option.ExtendedArr{
-					if itemMap[e.Value.(string)]!=nil{
-						fielVale := itemMap[e.Value.(string)].(string)
-
-						// 操作类型级联删除
-						if operate_type == "CASCADE_DELETE" && fielVale != "" {
-
-							api.Delete(operate_table, fielVale, nil)
-							count=count+1
-
-
-						}
-					}
-
-				}
-
-
-			}
-			//	return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
-		}
 		// CAL_CREDIT_SCORE_LEVEL
 		if "CAL_CREDIT_SCORE_LEVEL"==operate_type{
 			// 如果请求方式是DELETE 构造option.ExtendedMap对象只有filterFieldKey
@@ -513,19 +249,6 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}
 
 		}
-		if "CAL_DEPEND_FIELD"==operate_type {
-			if operateFunc!=""{
-				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-				result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-				if result!=""{
-					option.ExtendedMap[conditionFieldKey]=result
-				}
-				fmt.Printf("errorMessage=",errorMessage)
-                if errorMessage!=nil{
-                	//tx.Rollback()
-				}
-			}
-		}
 		if "SYNC"==operate_type {
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
@@ -589,6 +312,20 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 			}
 		}
+		if "EMBED_SCRIPT"==operate_type {
+			if operateScipt!="" {
+				for _,itemField:=range conditionFiledArr{
+					operateScipt=strings.Replace(operateScipt,"$"+itemField,option.ExtendedMap[itemField].(string),-1)
+				}
+				fmt.Printf("operateScipt=", operateScipt)
+				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
+				fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+				if result!="" && conditionFieldKey!=""{
+					option.ExtendedMap[conditionFieldKey]=result
+				}
+			}
+
+		}
 		// limit
 	}
 
@@ -637,6 +374,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		var operateCondJsonMap map[string]interface{}
 		var operateCondContentJsonMap map[string]interface{}
 		var filterCondContentJsonMap map[string]interface{}
+		var operateScipt string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content=operate["filter_content"].(string)
@@ -679,6 +417,11 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		}
 		if operateCondJsonMap["conditionFieldKey"]!=nil{
 			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
+		}
+		// operateScipt
+		if operateCondContentJsonMap["operate_script"]!=nil{
+			operateScipt=operateCondContentJsonMap["operate_script"].(string)
+			fmt.Printf("operateScipt=",operateScipt)
 		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
@@ -893,9 +636,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				if params!="''"{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
 					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					if result!="" && conditionFieldKey!=""{
-						option.ExtendedMap[conditionFieldKey]=result
-					}
+                    fmt.Print(result,errorMessage)
 					if errorMessage!=nil{
 						//tx.Rollback()
 					}
@@ -903,9 +644,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					for _,id:=range option.Ids{
 						operateFuncSql="select "+operateFunc+"('"+id+"') as result;"
 						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-						if result!="" && conditionFieldKey!=""{
-							option.ExtendedMap[conditionFieldKey]=result
-						}
+						fmt.Print(result,errorMessage)
 						if errorMessage!=nil{
 							//tx.Rollback()
 						}
@@ -996,6 +735,20 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 			}
 		}
+		if "PRE_EMBED_SCRIPT"==operate_type {
+			if operateScipt!="" {
+				for _,itemField:=range conditionFiledArr{
+					operateScipt=strings.Replace(operateScipt,"$"+itemField,option.ExtendedMap[itemField].(string),-1)
+				}
+				fmt.Printf("operateScipt=", operateScipt)
+				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
+				fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+				if result!="" && conditionFieldKey!=""{
+					option.ExtendedMap[conditionFieldKey]=result
+				}
+			}
+
+		}
 	}
 
 	// {"conditionType":"JUDGE","conditionTable":"customer.shopping_cart","conditionFields":"[\"customer_id\",\"goods_id\"]"}
@@ -1015,7 +768,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	var operate_condition string
 	var operate_content string
 	var filter_content string
-	var conditionType string
 	var conditionTable string
 	var conditionFileds string
 	var resultFileds string
@@ -1027,7 +779,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 	//	var actionType string
 	var conditionFiledArr []string
 	var resultFieldsArr []string
-	var actionFieldsArr []string
 
 	fieldList:=list.New()
 
@@ -1036,6 +787,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var operateCondJsonMap map[string]interface{}
 		var operateFilterContentJsonMap map[string]interface{}
 		var operateFunc string
+		var operateScipt string
 		var operateProcedure string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
@@ -1043,9 +795,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 		if(operate_condition!=""){
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
-			if operateCondJsonMap["conditionType"]!=nil{
-				conditionType=operateCondJsonMap["conditionType"].(string)
-			}
 
 			if operateCondJsonMap["conditionFields"]!=nil{
 				conditionFileds=operateCondJsonMap["conditionFields"].(string)
@@ -1083,6 +832,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		if operateCondJsonMap["conditionFieldKey"]!=nil{
 			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
 		}
+		// operateScipt
+		if operateCondContentJsonMap["operate_script"]!=nil{
+			operateScipt=operateCondContentJsonMap["operate_script"].(string)
+			fmt.Printf("operateScipt=",operateScipt)
+		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 			fmt.Printf("operateFunc=",operateFunc)
@@ -1116,284 +870,10 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		}
 		if operateCondContentJsonMap["operate_table"]!=nil{
 			operate_table=operateCondContentJsonMap["operate_table"].(string)
+			fmt.Print(operate_table)
 		}
 
 		//actionType=operateCondContentJsonMap["action_type"].(string)
-		// 动态添加列 并为每一列计算出值
-		if "DYNAMIC_ADD_COLUMN"==operate_type {
-			if "OBTAIN_FROM_SPECIFY"==conditionType{
-
-				for i,item:=range data{
-
-					fmt.Printf("i=",i," item=",item," conditionTable=",conditionTable)
-					// 根据主表主键id查询详情
-					option.Table=strings.Replace(tableName,"_view","",-1)
-					option.Links=[]string{"farm_subject"}
-					detailItem, errorMessage:= api.Select(option)
-					fmt.Printf("detailItem=",detailItem)
-
-					// 根据每一行构建查询条件
-					whereOption := map[string]WhereOperation{}
-					for e := fieldList.Front(); e != nil; e = e.Next() {
-						if item[e.Value.(string)]!=nil{
-							whereOption[e.Value.(string)] = WhereOperation{
-								Operation: "eq",
-								Value:     item[e.Value.(string)].(string),
-							}
-						}
-
-					}
-					querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
-					rsQuery, errorMessage:= api.Select(querOption)
-					if errorMessage!=nil{
-						fmt.Printf("errorMessage", errorMessage)
-					}else{
-						fmt.Printf("rs", rsQuery)
-					}
-					//
-
-
-				}
-
-
-			}
-			fmt.Printf("data=",data)
-
-		}
-		if "UPDATE"==operate_type && "QUERY"==conditionType{
-			for _,item:= range conditionFiledArr{
-				if item!=""{
-					fieldList.PushBack(item)
-				}
-			}
-			//  从配置里获取要判断的字段 并返回对象
-			whereOption := map[string]WhereOperation{}
-			for e := fieldList.Front(); e != nil; e = e.Next() {
-				// 含有= 取=后面值
-				if strings.Contains(e.Value.(string),"="){
-					arr:=strings.Split(e.Value.(string),"=")
-					whereOption[arr[0]] = WhereOperation{
-						Operation: "eq",
-						Value:     arr[1],
-					}
-				}
-				if option.Wheres!=nil&&option.Wheres[e.Value.(string)].Value!=nil{
-					whereOption[e.Value.(string)] = WhereOperation{
-						Operation: "eq",
-						Value:     option.Wheres[e.Value.(string)].Value,
-					}
-
-				}
-
-				if option.ExtendedMap!=nil&&option.ExtendedMap[e.Value.(string)]!=nil{
-
-					whereOption[e.Value.(string)] = WhereOperation{
-						Operation: "eq",
-						Value:     option.ExtendedMap[e.Value.(string)],
-					}
-
-				}
-
-			}
-			if whereOption ==nil{
-				continue
-			}
-
-			querOption := QueryOption{Wheres: whereOption, Table: tableName}
-			rsQuery, errorMessage:= api.Select(querOption)
-			if errorMessage!=nil{
-				fmt.Printf("errorMessage", errorMessage)
-			}
-			//operate_type:=operateCondContentJsonMap["operate_type"].(string)
-			pri_key:=operateCondContentJsonMap["pri_key"].(string)
-			var pri_key_value string
-			action_type:=operateCondContentJsonMap["action_type"].(string)
-			action_fields:=operateCondContentJsonMap["action_fields"].(string)
-			json.Unmarshal([]byte(action_fields), &actionFieldsArr)
-			// 操作类型是更新 动作类型是累加
-			actionFiledMap:=make(map[string]interface{})
-			//	if operate_type=="UPDATE"{
-			for _,field:=range actionFieldsArr{
-				if strings.Contains(field,"="){
-					arr:=strings.Split(field,"=")
-					actionFiledMap[arr[0]]=arr[1]
-				}
-
-
-			}
-
-			var conditionFieldKeyValueStr string
-			if len(option.ExtendedArr)>0{
-				switch  option.ExtendedArr[0][conditionFieldKey].(type) {
-				case string:
-					conditionFieldKeyValueStr=option.ExtendedArr[0][conditionFieldKey].(string)
-				case 	float64:
-					conditionFieldKeyValueStr=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
-				}
-			}
-
-			//conditionFieldKeyValueStr:=strconv.FormatFloat(option.ExtendedArr[0][conditionFieldKey].(float64), 'f', -1, 64)
-			//   && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey=="")
-			if action_type=="ACC"  && (conditionFieldKeyValueStr==conditionFieldKeyValue|| option.ExtendedArr[0][conditionFieldKey]=="")&& (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
-				for _,rsQ:=range rsQuery {
-					pri_key_value=rsQ[pri_key].(string)
-					for _,field:=range actionFieldsArr{
-						if rsQ[field]!=nil{
-							action_field_value0:= rsQ[field].(string)
-							if action_field_value0!=""{
-								action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
-								action_field_value0_int=action_field_value0_int+1
-								if err0!=nil{
-									fmt.Printf("err0",err0)
-								}
-								actionFiledMap[field]=action_field_value0_int
-							}
-
-
-						}
-
-
-					}
-
-
-				}
-			}
-			if action_type=="SUB_FROM_CONFIRM_FAIL" && conditionFieldKeyValue==conditionFieldKeyValueStr && (option.ExtendedMapSecond[conditionFieldKey]!=option.ExtendedArr[0][conditionFieldKey]||conditionFieldKey==""){
-
-				//	fmt.Printf("option.ExtendedArr[0][conditionFieldKey]=",option.ExtendedArr[0][conditionFieldKey],",conditionFieldKeyValue=",conditionFieldKeyValue)
-				for _,rsQ:=range rsQuery {
-					pri_key_value=rsQ[pri_key].(string)
-					for _,field:=range actionFieldsArr{
-						if rsQ[field]!=nil{
-							action_field_value0:= rsQ[field].(string)
-							if action_field_value0!=""{
-								action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
-								action_field_value0_int=action_field_value0_int-1
-								if action_field_value0_int<0{
-									action_field_value0_int=0
-								}
-								if err0!=nil{
-									fmt.Printf("err0",err0)
-								}
-								actionFiledMap[field]=action_field_value0_int
-							}
-
-
-						}
-
-
-					}
-
-
-				}
-			}
-			if action_type=="UPDATE_RECORD"{
-				updateWhere:=make(map[string]WhereOperation)
-				if option.ExtendedMap[conditionFieldKey]!=nil{
-					updateWhere[conditionFieldKey]=WhereOperation{
-						Operation:"eq",
-						Value:option.ExtendedMap[conditionFieldKey].(string),
-					}
-
-				}
-				for _,field:=range actionFieldsArr{
-					if strings.Contains(field,"="){
-						arr:=strings.Split(field,"=")
-						actionFiledMap[arr[0]]=arr[1]
-					}
-
-				}
-               // 如果 updateWhere有值  则按updateWhere更新  否则是查询条件 whereOption
-               if len(updateWhere)<=0{
-				   updateWhere=whereOption
-			   }
-				if len(updateWhere)<=0{
-					continue
-				}
-				rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
-				if err!=nil{
-					fmt.Printf("err=",err)
-				}
-				fmt.Printf("rsU=",rsU)
-
-			}
-			//	}
-			if action_type=="UPDATE_STATUS"{
-				//updateWhere:=make(map[string]WhereOperation)
-				//if option.ExtendedMap[conditionFieldKey]!=nil{
-				//	updateWhere[conditionFieldKey]=WhereOperation{
-				//		Operation:"eq",
-				//		Value:option.ExtendedMap[conditionFieldKey].(string),
-				//	}
-				//
-				//}
-				if option.ExtendedMap[conditionFieldKey]!=nil{
-					updateSql:="select "+operateFunc+"('"+option.ExtendedMap[conditionFieldKey].(string)+"')"
-					result,errorMessage:=api.ExecFunc(updateSql)
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
-					fmt.Printf("result=",result,"errorMessage=",errorMessage)
-				}
-
-				//rsU,err:=api.UpdateBatch(operate_table,updateWhere,actionFiledMap)
-				//if err!=nil{
-				//	fmt.Printf("err=",err)
-				//}
-				//fmt.Printf("rsU=",rsU)
-
-			}
-			//	}
-
-
-			if pri_key_value!=""{
-				rsU,err:=	api.Update(operate_table,pri_key_value,actionFiledMap)
-				if err!=nil{
-					fmt.Print("err=",err)
-					//tx.Rollback()
-				}
-
-				rowesAffected,error:=rsU.RowsAffected()
-				if error!=nil{
-					fmt.Printf("err=",error)
-					//tx.Rollback()
-				}else{
-					fmt.Printf("rowesAffected=",rowesAffected)
-				}
-
-			}
-
-		}
-		if "OBTAIN_FROM_LOCAL" == conditionType {
-			for _, item := range conditionFiledArr {
-				if item != "" {
-					fieldList.PushBack(item)
-				}
-			}
-			//  从参数里获取配置中字段的值
-			var count int64
-			for e := fieldList.Front(); e != nil; e = e.Next() {
-
-				for _,itemMap:=range option.ExtendedArr{
-					if itemMap[e.Value.(string)]!=nil{
-						fielVale := itemMap[e.Value.(string)].(string)
-
-						// 操作类型级联删除
-						if operate_type == "CASCADE_DELETE" && fielVale != "" {
-
-							api.Delete(operate_table, fielVale, nil)
-							count=count+1
-
-
-						}
-					}
-
-				}
-
-
-			}
-			//	return c.String(http.StatusOK, strconv.FormatInt(rowesAffected, 10))
-		}
          // CAL_CREDIT_SCORE_LEVEL
         if "CAL_CREDIT_SCORE_LEVEL"==operate_type{
         	// 如果请求方式是DELETE 构造option.ExtendedMap对象只有filterFieldKey
@@ -1509,20 +989,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 
 		}
-		if "CAL_DEPEND_FIELD"==operate_type {
-			if operateFunc!=""{
-				operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-				result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-				if errorMessage!=nil{
-					//tx.Rollback()
-				}
-				if result!=""{
-					option.ExtendedMap[conditionFieldKey]=result
-				}
-				fmt.Printf("errorMessage=",errorMessage)
-
-			}
-		}
 		if "SYNC"==operate_type {
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
@@ -1558,7 +1024,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 					fmt.Printf("result=",result)
 					fmt.Printf("errorMessage=",errorMessage)
-					errorMessage=errorMessage
+
 
 				}else if len(conditionFiledArr)>0{
 					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
@@ -1567,7 +1033,6 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
 						fmt.Printf("result=",result)
 						fmt.Printf("errorMessage=",errorMessage)
-						errorMessage=errorMessage
 
 					}
 				}
@@ -1596,6 +1061,20 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				}
 
 			}
+		}
+		if "EMBED_SCRIPT"==operate_type {
+			if operateScipt!="" {
+				for _,itemField:=range conditionFiledArr{
+					operateScipt=strings.Replace(operateScipt,"$"+itemField,option.ExtendedMap[itemField].(string),-1)
+				}
+				fmt.Printf("operateScipt=", operateScipt)
+				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
+				fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+				if result!="" && conditionFieldKey!=""{
+					option.ExtendedMap[conditionFieldKey]=result
+				}
+			}
+
 		}
 // limit
 	}
