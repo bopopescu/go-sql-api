@@ -315,7 +315,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if "EMBED_SCRIPT"==operate_type {
 			if operateScipt!="" {
 				for _,itemField:=range conditionFiledArr{
-					operateScipt=strings.Replace(operateScipt,"$"+itemField,option.ExtendedMap[itemField].(string),-1)
+					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
 				}
 				fmt.Printf("operateScipt=", operateScipt)
 				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
@@ -738,7 +738,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		if "PRE_EMBED_SCRIPT"==operate_type {
 			if operateScipt!="" {
 				for _,itemField:=range conditionFiledArr{
-					operateScipt=strings.Replace(operateScipt,"$"+itemField,option.ExtendedMap[itemField].(string),-1)
+					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
 				}
 				fmt.Printf("operateScipt=", operateScipt)
 				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
@@ -789,10 +789,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var operateFunc string
 		var operateScipt string
 		var operateProcedure string
+		//var conditionComplex string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
-
+		//var fields []string
 		if(operate_condition!=""){
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 
@@ -846,6 +847,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			operateProcedure=operateCondContentJsonMap["operate_procedure"].(string)
 			fmt.Printf("operateProcedure=",operateProcedure)
 		}
+		//if operateCondJsonMap["conditionComplex"]!=nil{
+		//	conditionComplex=operateCondJsonMap["conditionComplex"].(string)
+		//}
 		var conditionFieldKeyValue string
 		if strings.Contains(conditionFieldKey,"="){
 			arr:=strings.Split(conditionFieldKey,"=")
@@ -1065,7 +1069,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		if "EMBED_SCRIPT"==operate_type {
 			if operateScipt!="" {
 				for _,itemField:=range conditionFiledArr{
-					operateScipt=strings.Replace(operateScipt,"$"+itemField,option.ExtendedMap[itemField].(string),-1)
+					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
 				}
 				fmt.Printf("operateScipt=", operateScipt)
 				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
