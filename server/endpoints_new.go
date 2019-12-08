@@ -1,13 +1,14 @@
 package server
 
 import (
+	"github.com/shiyongabc/go-sql-api/server/util"
 	"net/http"
 	"github.com/shiyongabc/go-sql-api/server/swagger"
 	"github.com/labstack/echo"
 	"github.com/shiyongabc/go-sql-api/server/static"
 	"github.com/shiyongabc/go-sql-api/adapter"
 	. "github.com/shiyongabc/go-sql-api/types"
-	. "github.com/shiyongabc/go-sql-api/server/util"
+
 	"math"
 	"encoding/json"
 	"strconv"
@@ -24,16 +25,7 @@ import (
 	"github.com/shiyongabc/go-sql-api/adapter/mysql"
 	"time"
 	"github.com/shiyongabc/jwt-go"
-//	"github.com/shiyongabc/go-mysql-api/async"
-//	"context"
-//	"errors"
 
-//	"context"
-	//"context"
-//	"github.com/mkideal/pkg/option"
-//	"context"
-
-//	"io"
 	"io"
 	"bytes"
 )
@@ -451,98 +443,12 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if err!=nil{
 			fmt.Printf("err",err)
 		}
-      if tableName=="account_voucher_detail_category_merge_view"{
-		  periodYear:=option.Wheres["account_voucher_detail_category_merge_view.account_period_year.gt"].Value
-		  month:=periodYear.(string)[5:7]//2017-01
-		  monthInt,_:=strconv.Atoi(month)
-      	//if option.Wheres["account_voucher_detail_category_merge_view.line_number.gte"].Value!=nil{
-      		// farm_id subject_key account_period_num account_period_year
-			var periodNumLateOption QueryOption
-			wheres:=make(map[string]WhereOperation)
-			wheres["farm_id"]=option.Wheres["account_voucher_detail_category_merge_view.farm_id"]
-			wheres["subject_key"]=option.Wheres["account_voucher_detail_category_merge_view.subject_key"]//option.Wheres["subject_key"]
-			//accountPeriodNumStr:=option.Wheres["account_voucher_detail_category_merge_view.line_number.gte"].Value.(string)
-			//accountPeriodNum:=strings.Replace(accountPeriodNumStr,"-","",-1)
-			wheres["account_period_year.gt"]=option.Wheres["account_voucher_detail_category_merge_view.account_period_year.gt"]
-			wheres["account_period_num"]=WhereOperation{
-				Operation:"gte",
-				Value:monthInt,
-			}
-			// subject_key_pre
-		  in_subject_key:=strings.Replace(option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string),"%","",-1)
-		  in_farm_id:=option.Wheres["account_voucher_detail_category_merge_view.farm_id"].Value.(string)
-		  obtianPreSubjectSql:="select obtainPreSubjectKey('"+in_subject_key+"','"+in_farm_id+"'"+") as pre_subject_key;"
-		  pre_subject_key,errorMessage:=api.ExecFuncForOne(obtianPreSubjectSql,"pre_subject_key")
 
-		  option.Wheres["subject_key_pre"]=WhereOperation{
-		    	Operation:"eq",
-		    	Value:strings.Replace(option.Wheres["account_voucher_detail_category_merge_view.subject_key"].Value.(string),"%","",-1),
-			}
-			if pre_subject_key!=in_subject_key{
-				option.Wheres["subject_key_pre"]=WhereOperation{
-					Operation:"like",
-					Value:pre_subject_key+"%",
-				}
-			}
-			periodNumLateOption.Wheres=wheres
-			order:=make(map[string]string)
-			order["account_period_num"]="asc"
-			periodNumLateOption.Orders=order
-			periodNumLateOption.Limit=1
-			periodNumLateOption.Table="account_voucher_detail_category_merge_view"
-			nextPeriodData,errorMessage:=api.Select(periodNumLateOption)
-			fmt.Printf("errorMessage=",errorMessage)
-			for _,item:= range nextPeriodData{
-				apn:=item["account_period_num"].(string)
-				apnInt,_:=strconv.Atoi(apn)
-				apnInt=0-apnInt
-				delete(option.Wheres, "account_voucher_detail_category_merge_view.line_number.gte")
-				option.Wheres["account_voucher_detail_category_merge_view.line_number"]=WhereOperation{
-					Operation:"gte",
-					Value:apnInt,
-				}
-			//}
-		}
-
-		  if len(nextPeriodData)<=0{
-			  monthInt=0-monthInt
-			  option.Wheres["account_voucher_detail_category_merge_view.line_number"]=WhereOperation{
-				  Operation:"gte",
-				  Value:monthInt,
-			  }
-		  }
-	  }
 		orderBytes,err:=json.Marshal(option.Orders)
 		if err!=nil{
 			fmt.Printf("err",err)
 		}
-		// 如果是查询虚拟子表的所有字段
-		var fields []string
-		if option.FieldsType=="1"{
-			wMapHeadContent := map[string]WhereOperation{}
-			wMapHeadContent["template_key"] = WhereOperation{
-				Operation: "eq",
-				Value:     strings.Replace(tableName,"_report_detail","_template",-1),
-			}
-			wMapHeadContent["is_slave_field"] = WhereOperation{
-				Operation: "eq",
-				Value:     "1",
-			}
-			optionHeadContent := QueryOption{Wheres: wMapHeadContent, Table: "export_template_detail"}
-			order:=make(map[string]string)
-			order["j"]="asc"
-			optionHeadContent.Orders=order
-			headContent, errorMessage := api.Select(optionHeadContent)
-			fmt.Printf("dataContent", headContent)
-			fmt.Printf("errorMessage", errorMessage)
 
-
-			for _,item:=range headContent{
-				fields=append(fields,item["column_name"].(string))
-			}
-			//option.Fields=fields
-
-		}
 		orderParam:=string(orderBytes[:])
 		params:=string(paramBytes[:])
 		params=params+orderParam
@@ -591,12 +497,12 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
        var isNeedCache int
 		var isNeedPostEvent int
        // 返回的字段是否需要计算公式计算
-
        for _,rsq:=range rsQuery{
 		   isNeedCacheStr:=rsq["is_need_cache"].(string)
 		   isNeedPostEventStr:=rsq["is_need_post_event"].(string)
 		   isNeedCache,err=strconv.Atoi(isNeedCacheStr)
 		   isNeedPostEvent,err=strconv.Atoi(isNeedPostEventStr)
+
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
@@ -1096,7 +1002,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									fmt.Printf("errorMessage=",errorMessage)
 									bCellKey="cell"+bRowStr+colStr
 									bf=lineValueMap[bCellKey]
-									calResult:=Calc(operate,af,bf)
+									calResult:=util.Calc(operate,af,bf)
 									resultStr:=strconv.FormatFloat(calResult, 'f', 2, 64)
 									//if itemValue==resultStr
 									caculateValue=	strings.Replace(caculateValue,itemValue,resultStr,-1)
@@ -1224,7 +1130,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		var quarter int
 		if option.Wheres[report_diy_table_cell_value+"."+"account_period_num"].Value!=nil{
 			peroidNum:=option.Wheres[report_diy_table_cell_value+"."+"account_period_num"].Value.(string)
-			quarter=ObtainQuarter(peroidNum)
+			quarter=util.ObtainQuarter(peroidNum)
 		}
 		existsMonitorWhere["account_quarter"]=WhereOperation{
 			Operation:"eq",
@@ -1326,7 +1232,7 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 					//fmt.Printf("err=",error)
 					caculateValue=strings.Replace(caculateValue,"+-","-",-1)
 					caculateValue=strings.Replace(caculateValue,"-+","-",-1)
-					calResult, error := Calculate(caculateValue)
+					calResult, error := util.Calculate(caculateValue)
 
 					if error != nil {
 						fmt.Printf("error=", error)
@@ -1938,11 +1844,21 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		for _, col := range primaryColumns {
 			if col.Key == "PRI" {
 				priKey=col.ColumnName
+				priDataType:=col.DataType
 				if payload[priKey]!=nil{
 					priId=payload[priKey]
 				}else{
-					uuid := uuid.NewV4()
-					payload[priKey]=uuid.String()
+					// 如果是int或bigint 创建分布式整型id
+					if priDataType=="bigint" || priDataType=="int"{
+						uuid := util.GetSnowflakeId()
+						priId=uuid
+						payload[priKey]=priId
+					}else{
+						uuid := uuid.NewV4()
+						priId=uuid
+						payload[priKey]=uuid.String()
+					}
+
 
 				}
 
@@ -2037,7 +1953,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				fmt.Printf("DEL-CACHE",val[i], err)
 			}
 		}
-
+      println("rowesAffected=",rowesAffected,"pri",priId)
        if rowesAffected>0 {
 		   return c.String(http.StatusOK, mysql.InterToStr(priId))
 	   }else{
@@ -2143,16 +2059,21 @@ func endpointRemote(api adapter.IDatabaseAPI,redisHost string) func(c echo.Conte
 func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// 测试
-		rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+	//	rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
+
+		rs,error:= api.ExecFunc("SELECT stu_no,project_name into stuNo,projectName from test.stu_score limit 1;")
+
 	   if error!=nil{
 		   return c.String(http.StatusOK, error.ErrorDescription)
 	   }
 	    fmt.Printf("error",error)
 	    fmt.Printf("rs",rs)
 	    var result string
+		var a []string
 	    for _,item:=range rs{
 	    	fmt.Printf("")
-			result=item["result"].(string)
+			result=strings.Join(a,item["stuNo"].(string))
+			result=strings.Join(a,item["projectName"].(string))
 		}
 		return c.String(http.StatusOK, result)
 	}
@@ -2364,7 +2285,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					continue
 				}
 				//某一行的第一列必须有值 否则当前行不添加
-				if row[0]==""{
+				if row[col_start-1]==""{
 					break
 				}
 				importBuffer.WriteString("(")
@@ -2449,7 +2370,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 					}
 					createTime:=time.Now().Format("2006-01-02 15:04:05")
 					tableMap["create_time"]=createTime
-					if rowIndex==len(rows) || rows[rowIndex][0]==""{
+					if rowIndex==len(rows) || rows[rowIndex][col_start-1]==""{
 						importBuffer.WriteString("'"+createTime+"');")
 					}else{
 						importBuffer.WriteString("'"+createTime+"'),")

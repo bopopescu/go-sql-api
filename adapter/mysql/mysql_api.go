@@ -744,6 +744,8 @@ func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(result string,errorMes
 		fmt.Printf("")
 		if item[key]!=nil{
 			result=item[key].(string)
+		}else{
+			result=""
 		}
 
 	}
@@ -1179,6 +1181,7 @@ func (api *MysqlAPI) Select(option QueryOption) (rs []map[string]interface{},err
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 		return
 	}
+
 	return api.query(sql)
 }
 

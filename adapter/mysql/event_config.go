@@ -2,16 +2,16 @@ package mysql
 
 import (
 	"bytes"
+	"container/list"
+	"encoding/json"
+	"fmt"
+	"github.com/shiyongabc/go-sql-api/adapter"
+	. "github.com/shiyongabc/go-sql-api/types"
+	"github.com/shiyongabc/jwt-go"
 	"io/ioutil"
 	"net/http"
-	"strings"
-	"fmt"
-	"encoding/json"
 	"strconv"
-	"container/list"
-	"github.com/shiyongabc/go-sql-api/adapter"
-	."github.com/shiyongabc/go-sql-api/types"
-	"github.com/shiyongabc/jwt-go"
+	"strings"
 )
 
 // 异步任务
@@ -57,6 +57,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		filter_content = operate["filter_content"].(string)
 
 		if(operate_condition!=""){
+			operate_condition=strings.Replace(operate_condition,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 			if operateCondJsonMap["conditionType"]!=nil{
 				conditionType=operateCondJsonMap["conditionType"].(string)
@@ -78,9 +79,11 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
 		}
 		if(operate_content!=""){
+			operate_content=strings.Replace(operate_content,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
 		}
 		if(filter_content!=""){
+			filter_content=strings.Replace(filter_content,"\r\n","",-1)
 			json.Unmarshal([]byte(filter_content), &operateFilterContentJsonMap)
 		}
 		if operateFilterContentJsonMap["filterFunc"]!=nil{
@@ -379,6 +382,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		operate_content = operate["operate_content"].(string)
 		filter_content=operate["filter_content"].(string)
 		if(operate_condition!=""){
+			operate_condition=strings.Replace(operate_condition,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 			if operateCondJsonMap["conditionType"]!=nil{
 				conditionType=operateCondJsonMap["conditionType"].(string)
@@ -400,6 +404,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
 		}
 		if(operate_content!=""){
+			operate_content=strings.Replace(operate_content,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
 		}
 		for _,item:= range conditionFiledArr{
@@ -455,6 +460,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 
 		if(filter_content!=""){
+			filter_content=strings.Replace(filter_content,"\r\n","",-1)
 			json.Unmarshal([]byte(filter_content), &filterCondContentJsonMap)
 		}
 		if filterCondContentJsonMap["filterFunc"]!=nil{
@@ -789,12 +795,14 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var operateFunc string
 		var operateScipt string
 		var operateProcedure string
+		var actionType string
 		//var conditionComplex string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
 		//var fields []string
 		if(operate_condition!=""){
+			operate_condition=strings.Replace(operate_condition,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 
 			if operateCondJsonMap["conditionFields"]!=nil{
@@ -812,9 +820,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
 		}
 		if(operate_content!=""){
+			operate_content=strings.Replace(operate_content,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
 		}
 		if(filter_content!=""){
+			filter_content=strings.Replace(filter_content,"\r\n","",-1)
 			json.Unmarshal([]byte(filter_content), &operateFilterContentJsonMap)
 		}
 		if operateFilterContentJsonMap["filterFunc"]!=nil{
@@ -837,6 +847,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		if operateCondContentJsonMap["operate_script"]!=nil{
 			operateScipt=operateCondContentJsonMap["operate_script"].(string)
 			fmt.Printf("operateScipt=",operateScipt)
+		}
+		// action_type
+		if operateCondContentJsonMap["action_type"]!=nil{
+			actionType=operateCondContentJsonMap["action_type"].(string)
+			fmt.Printf("actionType=",actionType)
 		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
@@ -1067,17 +1082,107 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 		}
 		if "EMBED_SCRIPT"==operate_type {
-			if operateScipt!="" {
-				for _,itemField:=range conditionFiledArr{
-					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
-				}
-				fmt.Printf("operateScipt=", operateScipt)
-				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
-				fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
-				if result!="" && conditionFieldKey!=""{
+			// actionType SINGLE_PROCESS   MUTIL_PROCESS   MUTIL_PROCESS_FOR
+			// SINGLE_PROCESS 单条sql处理
+			// MUTIL_PROCESS  多条sql处理 无变量依赖
+			// MUTIL_PROCESS_COMPLEX  多条sql处理  有变量依赖
+
+			if operateScipt==""  {
+				continue
+			}
+			if actionType=="SINGLE_PROCESS"{
+				result,errorMessage:=SingleExec(api,option,conditionFiledArr,operateScipt)
+				if result!="" && conditionFieldKey!="" && errorMessage.ErrorDescription!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
 			}
+			if actionType=="MUTIL_PROCESS"{
+				operateSciptArr:=strings.Split(operateScipt,";")
+				for _,itemScript:=range operateSciptArr{
+					result,errorMessage:=SingleExec(api,option,conditionFiledArr,itemScript)
+					fmt.Printf("result=",result,"errorMessage=",errorMessage)
+				}
+			}
+			if actionType=="MUTIL_PROCESS_COMPLEX"{
+				// 存放script的变量和计算出的值
+				varMap:=make(map[string]interface{})
+				operateSciptArr :=strings.Split(operateScipt,"!!")
+				for _,itemScript:=range operateSciptArr{
+					// 解析itemScript
+					// 解析模块类型 是赋值还还是返回值类型
+					// 判断类型 /*JUDGE*/  for循坏类型 /*FOR_HANDLE*/  while循坏类型 /*WHILE_HANDLE*/  复杂逻辑在一个function里处理(这个方法里没有包含分表的表操作)
+					// 赋值类型 /*ASS_VAR*/  同步类型/*SYNC_HANDLE*/  返回类型  /*RETURN_HANDLE*/
+					if strings.Contains(itemScript,"/*ASS_VAR*/"){
+						// 赋值类型： 一个变量赋值  多个变量赋值
+						assVarArr:=strings.Split(itemScript,"=")
+						if len(assVarArr)>1{
+							execSql:=assVarArr[1]
+							// 去掉第一个字符'('和倒数第二个字符')'
+							execSql=execSql[1:len(execSql)-2]
+							result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,execSql)
+							fmt.Printf("errorMessage=",errorMessage)
+							varParam:=strings.Replace(assVarArr[0],"SET","",-1)
+							varParam=strings.Replace(varParam," ","",-1)
+							varParam=strings.Replace(varParam,"/*ASS_VAR*/","",-1)
+							varMap[varParam]=result
+						}
+						assVarArr=strings.Split(itemScript,"INTO")
+						if len(assVarArr)>1 {
+							// INTO 方式赋值
+							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
+							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							intoStr:=assVarArr[1]
+							assVarStr:=strings.Replace(assVarArr[0],"SELECT","",-1)
+							//把into的内容替换成""
+							itemScript=strings.Replace(itemScript,intoStr,"",-1)
+							itemScript=strings.Replace(itemScript,"INTO","",-1)
+							intoArr:=strings.Split(intoStr,",")
+							fieldArr:=strings.Split(assVarStr,",")
+							for i,item:=range intoArr{
+								// 去掉前后空格
+								intoItemTrim:=strings.Trim(item," ")
+								varItemTrim:=strings.Trim(fieldArr[i]," ")
+								itemScript=strings.Replace(itemScript,varItemTrim,intoItemTrim,-1)
+							}
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,assVarArr[1])
+							fmt.Printf("errorMessage=",errorMessage)
+							if len(result)>0{
+								for _,item:=range intoArr{
+									value:=result[0][strings.Trim(item," ")]
+									if value==nil {
+										value=""
+									}
+									varMap[strings.Trim(item," ")]=value
+								}
+							}
+						}
+					}
+
+					//  同步类型/*SYNC_HANDLE*/
+					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
+						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
+						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
+						fmt.Printf("sync_handle-result=",result," errorMessage=",errorMessage)
+					}
+					//  返回类型  /*RETURN_HANDLE*/
+					if strings.Contains(itemScript,"/*RETURN_HANDLE*/"){
+						varParam:=strings.Replace(itemScript,"RETURN","",-1)
+						varParam=strings.Replace(varParam,"(","",-1)
+						varParam=strings.Replace(varParam,");","",-1)
+						if varMap[varParam]!=nil && varMap[varParam]!=""{
+							option.ExtendedMap[conditionFieldKey]=varMap[varParam]
+						}
+					}
+
+
+
+
+
+				}
+			}
+
+
 
 		}
 // limit
@@ -1227,6 +1332,8 @@ func InterToStr(fieldInter interface{})(string){
 	switch fieldInter.(type){
 	case string: result=fieldInter.(string)
 	case int:result=strconv.Itoa(fieldInter.(int))
+	// int64
+	case int64:result= strconv.FormatInt(fieldInter.(int64),10)
 	case float64: result=strconv.FormatFloat(fieldInter.(float64),'f',-1,64)
 	}
 	return result
@@ -1237,4 +1344,39 @@ func GetValidationKey(*jwt.Token) (interface{}, error) {
 	//"-----END PUBLIC KEY-----"), nil
 	//return []byte("MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCA3Koxt6FJV/kDEBU76/8rcWaCS/Ap4jRVzJIIOOX8tqDnkS47EFZQ8soG7+6OekrfiaiGvS6E+f9SFrA25cz3rPPXAoQVSoTwX1KvCD9Xaj5SCXxm4JDG1KkJVXBz5F+kvrRjnNZiWtg7YlOYIiF9n1wbg3MTSf9NXo8d5WyOm5wWIxxQP5XqccNLO5cI5WenVQi5p/xwvfLURcNqed1h4AF463bGDd6Vcs07lUYlMp+Gy1t+f9iyl0FJwDu0ZHm5Di6kcPikiDo7ELJOzbsO+cgBAx1D46cwlHTZ7iALV4PBPGzD/LZRyxkW2F8rvuW8AI/JIG6SIr4LSqMsF+P1AgMBAAECggEANrBwMuWCOAR0FE6xFFtWUnOwU8AyzzPHjlph58duJFDF/UFqY3rNh1FjWIpfrmxMdo6PzY9gvOL07zvd0Y657KukWS4iLH8R6IosJ0jSySC4Dk0kVO0dxKTgkKuILEdSKDMfj98yRU/U0W8rlzd1C0Gk77BcGGWhSo7FIqUJ64OVUvwW1BWkwkZ7aXFtYvgcyN1AmMjc8AoJzJdEoBKlAw41/WMESt6QSKWoWziUxdkrmRlUsvwQHfP9c2BZnkxIPhpGDSkIHAeBj47+JC3hsFuqZM5ahwdma9p9ONz/00PrnB5p399mqW2dknzBIg1TRg2xN9DcqNeo07U0AGJLSQKBgQDiUZIH0rzruLtjF33JQDRc963kfgJHGxM9inH3FJVE7NDJHaOyVjaIxRPG5/7RGEYrrJDZE69iP2ohzK6ew7nGbZN7KaKfKY5Vc4egVZcBMubR5+djwjIqHMTcuJgz/Qu17cvF42rUqpBnS2BbWDRj6+TE0zYEjqdsXri+UiXHgwKBgQCRwxTBEEqazkw8+EtV1XPyp5u3Er/sg3T6CVWU7vsGX8l2bpl3CEUXawkkZaffCi5ukR8xnyQnWcD7RHdO3ab6G1sl+49dNRpZyg1fCXfDPtt5Aut3CoCQsFNit1chdHsyUJiGDZo72EP/75Bak2dDENcxYyEsbFSqUH4pywhVJwKBgFp1hivwVKjXXrbdxd4x9nwOV4gTwa9QKCGZ+7Fpnbw997nbSfnXMdb7BsujIRvMWwfL4t2RW7GmbTJzUHyO+OtSEvfQjXqWrpiDI/u3GjNVeCMAUWFzVn+0ng8nDVcCVrLyCFfhbWrxfeR7oVkBaXdi6z6suVOa/Vp4hdk0lnsnAoGAcBPoaWr1coMd6+OfSaiPNw3ZlbM9D8cksv1qaNI5AnW0mvP/3J7nQVJz/SCNK9rQSQQdUDJlwjwpPwsuEd4s/jL6qwH7AlhKoq/SCDlndSFn8GxmUWop4Rczhrwiqv69m7qNDMZ4yXtJDgpOnNaql87jKH5oi5fgofSyjcAn8BECgYEAh5aOvUmVHqz+L9WcdU1DWzUo2JvNgOfkOzsCRFQkQq/NOCFofysccmoKjPieSgr7oOyrBCVsYRi2ZYrUfL6nvKkqSjYV94bjEyZthb53Uv3euQmZQjMpPKHFs4ae1rB7RUBjH6JiCTjyd7iTnKem7s9uR/DVeNjZe1lT6LWKlmY="),nil
 	return []byte("SHA256withRSA"),nil
+}
+func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,operateScipt string)(result string,errorMessage *ErrorMessage){
+	for _,itemField:=range conditionFiledArr{
+		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+	}
+
+	fmt.Printf("operateScipt=", operateScipt)
+	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
+	fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+	return
+}
+func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result string,errorMessage *ErrorMessage){
+	for _,itemField:=range conditionFiledArr{
+		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+	}
+	for k,v :=range varMap{
+		operateScipt=strings.Replace(operateScipt,"$"+k,InterToStr(v),-1)
+	}
+	fmt.Printf("operateScipt=", operateScipt)
+	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
+	fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+	return
+}
+
+func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result []map[string]interface{},errorMessage *ErrorMessage){
+	for _,itemField:=range conditionFiledArr{
+		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+	}
+	for k,v :=range varMap{
+		operateScipt=strings.Replace(operateScipt,"$"+k,InterToStr(v),-1)
+	}
+	fmt.Printf("operateScipt=", operateScipt)
+	result,errorMessage=api.ExecSql(operateScipt)
+	fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+	return
 }

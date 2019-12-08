@@ -1,11 +1,10 @@
 ﻿package main
 
 import (
-	"github.com/shiyongabc/go-sql-api/server"
 	"github.com/mkideal/cli"
 	"github.com/shiyongabc/go-sql-api/adapter/mysql"
-
-//	"fmt"
+	"github.com/shiyongabc/go-sql-api/server"
+	//	"fmt"
 	"github.com/robfig/cron"
 	"log"
 )
@@ -19,9 +18,10 @@ type cliArgs struct {
 }
 
 func main() {
-
-
+	//priId:=util.GetSnowflakeId()
+	//mysql.InterToStr(priId)
     // 定时任务	logPrintCron()
+
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)

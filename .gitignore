@@ -29,4 +29,3 @@
 
 *.darwin-amd64
 *.amd64.exe
-*.go-sql-api-darwin-amd64
