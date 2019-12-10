@@ -2325,11 +2325,13 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 								if isDate =="1" {
 									colCell=convertToFormatDay(colCell)
 								}
-								if colCell=="" && tableDataTypeMap[excelColName]!="varchar" && tableDataTypeMap[excelColName]!="text"&& tableDataTypeMap[excelColName]!="datetime"&& tableDataTypeMap[excelColName]!="timestamp" {
+								if colCell=="" && tableDataTypeMap[excelColName]!="varchar" && tableDataTypeMap[excelColName]!="text"&& tableDataTypeMap[excelColName]!="datetime"&& tableDataTypeMap[excelColName]!="timestamp" &&tableDataTypeMap[excelColName]!="date" {
 									tableMap[excelColName]="0"
 									// 从有效数据导入的第一行 拼接字段
 									importBuffer.WriteString("'0',")
-								}else{
+								}else if (colCell=="" &&tableDataTypeMap[excelColName]=="datetime")||(colCell=="" && tableDataTypeMap[excelColName]=="timestamp") ||(colCell=="" &&tableDataTypeMap[excelColName]=="date"){
+									importBuffer.WriteString("NULL,")
+								} else{
 
 
 									tableMap[excelColName]=colCell
@@ -2387,9 +2389,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 				}
 
 			}
-		print("import-sql=",importBuffer.String())
+		lib.Logger.Info("import-sql=",importBuffer.String())
 		importRs,errorMessage:=api.ExecSql(importBuffer.String())
-		print("importRs=",importRs)
+		lib.Logger.Info("importRs=",importRs)
 		// 同步任务
 		var optionEvent QueryOption
 		tableMap:=make(map[string]interface{})
@@ -2683,6 +2685,8 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			lib.Logger.Error("errorMessage=%s",errorMessage)
 			if len(slaveInfo)>0{
 				masterPrimaryKeyValue=slaveInfo[0][firstPrimaryKey].(string)
+			}else{
+				masterPrimaryKeyValue=option.Wheres[tableName+"."+firstPrimaryKey].Value.(string)
 			}
 
 			var option1 QueryOption

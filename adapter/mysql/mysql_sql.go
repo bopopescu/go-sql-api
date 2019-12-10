@@ -215,6 +215,7 @@ func (s *SQL) UpdateByTableAndFields(tableName string, where map[string]WhereOpe
 
 	}
 	sql, _, err = builder.ToUpdateSql(record)
+	sql=strings.Replace(sql,"'null'","NULL",-1)
 	return
 }
 
