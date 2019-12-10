@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/shiyongabc/go-sql-api/server/lib"
 	"github.com/shiyongabc/go-sql-api/server/util"
 	"net/http"
 	"github.com/shiyongabc/go-sql-api/server/swagger"
@@ -135,7 +136,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",err,error)
+		lib.Logger.Infof("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
@@ -182,7 +183,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 				if err != nil {
 					fmt.Println("redis delelte failed:", err)
 				}
-				fmt.Printf("DEL-CACHE",val[i], err)
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -221,7 +222,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 			isRetainMasterInfo="0"
 		}
 
-		fmt.Printf("masterTableInfo=",masterTableInfo)
+		lib.Logger.Infof("masterTableInfo=",masterTableInfo)
 		masterInfoMap:=make(map[string]interface{})
 		//slaveInfoMap:=make([]map[string]interface{})
 
@@ -256,15 +257,15 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		if masterInfoMap0!=nil{
 			masterInfoMap=masterInfoMap0[0]
 		}
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 
 		if isRetainMasterInfo=="0"||isRetainMasterInfo==""{
 			rs,errorMessage:=	api.Delete(masterTableName,masterId,nil)
 			count=1;
 			if errorMessage!=nil{
-				fmt.Printf("errorMessage",errorMessage)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
 			}
-			fmt.Printf("rs",rs)
+			lib.Logger.Infof("rs",rs)
 
 		}
 
@@ -277,8 +278,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		}
 		slaveOption := QueryOption{Wheres: slaveWhere, Table: slaveTableName}
 		slaveInfoMap, errorMessage := api.Select(slaveOption)
-		fmt.Printf("data", slaveInfoMap)
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Infof("data", slaveInfoMap)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
 
 		var primaryColumnsSlave []*ColumnMetadata
 		primaryColumnsSlave=slaveMeta.GetPrimaryColumns()
@@ -333,7 +334,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 				if err != nil {
 					fmt.Println("redis delelte failed:", err)
 				}
-				fmt.Printf("DEL-CACHE",val[i], err)
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -377,7 +378,7 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",err,error)
+		lib.Logger.Infof("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
@@ -430,7 +431,6 @@ func endpointGetMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context) e
 }
 
 func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
-	fmt.Printf("startTime=",time.Now())
 	return func(c echo.Context) error {
 		// cookie,err := c.Request().Cookie("Authorization")
 		// fmt.Print("Authorization",cookie.Value)
@@ -441,12 +441,12 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		// 如果没有传服务商id  则默认查 绿通公司的商品
 		paramBytes,err:=option.MarshalJSON()
 		if err!=nil{
-			fmt.Printf("err",err)
+			lib.Logger.Infof("err",err)
 		}
 
 		orderBytes,err:=json.Marshal(option.Orders)
 		if err!=nil{
-			fmt.Printf("err",err)
+			lib.Logger.Infof("err",err)
 		}
 
 		orderParam:=string(orderBytes[:])
@@ -476,7 +476,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 //params=option.Orders
 
 		params="/api/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"/"+params
-		fmt.Printf("params=",params)
+		lib.Logger.Infof("params=",params)
 		var cacheData string
 
 		// 先从配置中获取是否需要缓存
@@ -489,9 +489,9 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		viewQuerOption := QueryOption{Wheres: whereOption, Table: "view_config"}
 		rsQuery, errorMessage:= api.Select(viewQuerOption)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage", errorMessage)
+			lib.Logger.Error("errorMessage=%s", errorMessage)
 		}else{
-			fmt.Printf("rs", rsQuery)
+			lib.Logger.Infof("rs", rsQuery)
 		}
        // is_need_cache
        var isNeedCache int
@@ -513,7 +513,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			if err != nil {
 				fmt.Println("redis get failed:", err)
 			} else {
-				fmt.Printf("Get mykey: %v \n", cacheData)
+				lib.Logger.Infof("Get mykey: %v \n", cacheData)
 			}
 		}
 
@@ -557,14 +557,14 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 			}
 			//cacheTotalCount=cacheTotalCount.(string)
-			fmt.Printf("cacheTotalCount",cacheTotalCount)
-			fmt.Printf("err",err)
-			fmt.Printf("cacheData",cacheData)
+			lib.Logger.Infof("cacheTotalCount",cacheTotalCount)
+			lib.Logger.Infof("err",err)
+			lib.Logger.Infof("cacheData",cacheData)
 			if cacheTotalCount!="" &&cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"&&err==nil{
 				totalCount:=0
 				totalCount,err:=strconv.Atoi(cacheTotalCount)
 				if err!=nil{
-					fmt.Printf("err",err)
+					lib.Logger.Infof("err",err)
 				}
 				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost,isNeedCache,option)
 
@@ -634,7 +634,7 @@ func obtainSubVirtualData(api adapter.IDatabaseAPI,tableName string,accountPeroi
 				b := bytes.Buffer{}
 				var rs []map[string]interface{}
 				if errorMessage!=nil{
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 				}else if len(subData)>0{
 					var subSqlStr string
 					b.WriteString("select ")
@@ -666,16 +666,16 @@ return data
 }
 
 func asyncFunc(x,y int,c chan int){
-	fmt.Printf("async-test0",time.Now())
+	lib.Logger.Infof("async-test0",time.Now())
 	// 模拟异步处理耗费的时间
 	time.Sleep(5*time.Second)
-	fmt.Printf("async-test1",time.Now())
-	fmt.Printf("async-test-result=",(x+y))
+	lib.Logger.Infof("async-test1",time.Now())
+	lib.Logger.Infof("async-test-result=",(x+y))
 	// 向管道传值
 	c <- x + y
 }
 func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan int){
-	fmt.Printf("async-test0",time.Now())
+	lib.Logger.Infof("async-test0",time.Now())
 	// 模拟异步处理耗费的时间
 	//time.Sleep(5*time.Second)
 
@@ -700,7 +700,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		operate_content = operate["operate_content"].(string)
 		operate_condition = operate["operate_condition"].(string)
 	}
-	fmt.Printf("option=",option,",errorMessage=",errorMessage)
+	lib.Logger.Infof("option=",option,",errorMessage=",errorMessage)
 	if (operate_condition != "") {
 		json.Unmarshal([]byte(operate_condition), &operateConditionJsonMap)
 	}
@@ -709,7 +709,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 	}
 	if operateConditionJsonMap!=nil{
 		conditionFieldKey = operateConditionJsonMap["conditionFieldKey"].(string)
-		fmt.Printf("conditionFieldKey",conditionFieldKey)
+		lib.Logger.Infof("conditionFieldKey",conditionFieldKey)
 		// operate_report_type
 		conditionFileds:=operateConditionJsonMap["conditionFields"].(string)
 		json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
@@ -755,10 +755,10 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 			optionC.Orders=orders
 			var dataC []map[string]interface{}
 			dataC, errorMessage= api.Select(optionC)
-			fmt.Printf("dataC",dataC)
+			lib.Logger.Infof("dataC",dataC)
 			//  如果datac 没有值 查询上期 直到有值为止
 		//	period_num, err := strconv.Atoi(option.Wheres["account_period_num"].Value.(string))
-		//	fmt.Printf("err=",err)
+		//	lib.Logger.Infof("err=",err)
 			//if len(dataC)<=0{
 			//	wheres["account_period_num"] = WhereOperation{
 			//		Operation: "eq",
@@ -845,7 +845,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						optionExists.Wheres=isExistsWhere
 						optionExists.Table=report_diy_table_cell_value
 						rs, errorMessage:= api.Select(optionExists)
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 						if len(rs)<=0{
 							isExistsReport=1
 						}
@@ -867,7 +867,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 							caculateValue=arr[1]
 						}
 						calResult,errorMessage:=calculateByExpressStr(api,conditionFieldKey,wheresExp,caculateValue)
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 
@@ -887,7 +887,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						}
 
 					//	rs,errormessge:=api.Update(report_diy_table_cell,datac["id"],datac)
-					//	fmt.Printf("rs=",rs,"errormessge=",errormessge)
+					//	lib.Logger.Infof("rs=",rs,"errormessge=",errormessge)
 
 					}
 
@@ -946,7 +946,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 						if len(arr)>=2{
 							//lineNumber=arr[0]
 							caculateValue=arr[1]
-							//fmt.Printf("lineNumber=",lineNumber)
+							//lib.Logger.Infof("lineNumber=",lineNumber)
 						}
 
 						//numberR := regexp.MustCompile("(^[\\d]+)$")
@@ -958,7 +958,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 
 						totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
 						totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
-						//fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
+						//lib.Logger.Infof(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
 
 
 						if  totalExpressRb&&!totalExpressRb1{
@@ -971,7 +971,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									//= "+"
 									//= "9"
 									arr := totalExpressR.FindStringSubmatch(caculateValue)
-									fmt.Printf("arr=",arr)
+									lib.Logger.Infof("arr=",arr)
 									itemValue:=arr[0]
 									a:=arr[1]
 									operate:=arr[2]
@@ -983,13 +983,13 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									var bf float64
 									//根据 定义的line_number查询单元格坐标
 									aRowStr,errorMessage:=mysql.ObtainDefineLocal(api,reportType,a)
-									fmt.Printf("errorMessage=",errorMessage)
+									lib.Logger.Error("errorMessage=%s",errorMessage)
 									aCellKey="cell"+aRowStr+colStr
 									af=lineValueMap[aCellKey]
 									if !isFirst{
 										resultF,error:=strconv.ParseFloat(a, 64)
 										if error!=nil{
-											fmt.Printf("error=",error)
+											lib.Logger.Infof("error=",error)
 										}else{
 											af=resultF
 										}
@@ -999,7 +999,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 										bRowStr,errorMessage=mysql.ObtainDefineLocal(api,reportType,b)
 									}
 
-									fmt.Printf("errorMessage=",errorMessage)
+									lib.Logger.Error("errorMessage=%s",errorMessage)
 									bCellKey="cell"+bRowStr+colStr
 									bf=lineValueMap[bCellKey]
 									calResult:=util.Calc(operate,af,bf)
@@ -1040,7 +1040,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 									}
 									//  arr=%!(EXTRA []string=[601 601  ])
 									//go func() {
-									//	fmt.Printf("shiyongabc")
+									//	lib.Logger.Infof("shiyongabc")
 									//	time.Sleep(time.Second)
 									//}()
 
@@ -1076,14 +1076,14 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 				//	deleteMap["row"]=item["row"]
 				//	deleteMap["col"]=item["col"]
 				//	_,errorMessage=api.Delete(report_diy_table_cell_value,nil,deleteMap)
-				//	fmt.Printf("delete-errorMessage:",errorMessage)
+				//	lib.Logger.Infof("delete-errorMessage:",errorMessage)
 				//}
 
 
 				for _,item:=range dataTempArr{
 					item["id"]=uuid.NewV4().String()
 					_, errorMessage:=api.ReplaceCreate(report_diy_table_cell_value,item)
-					fmt.Printf("create-error-errorMessage:",errorMessage)
+					lib.Logger.Infof("create-error-errorMessage:",errorMessage)
 				}
 
 			}
@@ -1139,7 +1139,7 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		existsMonitorOption.Table="report_monitor"
 		existsMonitorOption.Wheres=existsMonitorWhere
 		data,errorMessage:= api.Select(existsMonitorOption)
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 		var timeOutDays string
 		for _,item:=range data{
 			id:=item["id"].(string)
@@ -1164,9 +1164,9 @@ func asyncCalculete(api adapter.IDatabaseAPI,where string,asyncKey string,c chan
 		}
 		monitorMap["is_use_account_platform"]="1"
 		_,errorMessage=api.Create("report_monitor",monitorMap)
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 	}
-	fmt.Printf("async-test1",time.Now())
+	lib.Logger.Infof("async-test1",time.Now())
 	// 向管道传值
 	c <- 1
 }
@@ -1178,7 +1178,7 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 	if len(arr)>=2{
 		lineNumber=arr[0]
 		caculateValue=arr[1]
-		fmt.Printf("lineNumber=",lineNumber)
+		lib.Logger.Infof("lineNumber=",lineNumber)
 	}
 	//caculateValue="11=account_subject_left_view.current_credit_funds.321.pre"
    //caculateValue="1=account_subject_left_view.end_debit_funds.101+account_subject_left_view.end_debit_funds.102"
@@ -1198,12 +1198,12 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 	caculateExpressRb:=caculateExpressR.MatchString(caculateValue)
 	//	totalExpressRb:=totalExpressR.MatchString(caculateValue)// 064c92ac-31a7-11e8-9d9b-0242ac110002 true
 	//totalExpressRb1:=totalExpressR1.MatchString(caculateValue)
-	//	fmt.Printf(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
+	//	lib.Logger.Infof(" caculateExpressRb=",caculateExpressRb," totalExpressRb=",totalExpressRb," totalExpressRb1=",totalExpressRb1)
 
 	if  caculateExpressRb {
 		// 计算表达式 account_subject_left_view.begin_debit_funds.101+account_subject_left_view.begin_debit_funds.102
 
-		fmt.Printf("caculateValue=", caculateValue)
+		lib.Logger.Infof("caculateValue=", caculateValue)
 		for {
 			if caculateExpressRb {
 				arr := caculateExpressR.FindStringSubmatch(caculateValue)
@@ -1213,13 +1213,13 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 				// "101"
 				caculateValueItem := arr[0]
 
-				fmt.Printf("caculateValueItem=", caculateValueItem)
+				lib.Logger.Infof("caculateValueItem=", caculateValueItem)
 				// 通过正则匹配查询
 
 				result, errorMessage := calculateForExpress(api, arr, conditionFiledKey, wheres)
-				fmt.Printf("errorMessage=", errorMessage)
+				lib.Logger.Error("errorMessage=%s", errorMessage)
 				caculateValue = strings.Replace(caculateValue, caculateValueItem, result, -1)
-				fmt.Printf("caculateValue=", caculateValue)
+				lib.Logger.Infof("caculateValue=", caculateValue)
 				caculateExpressRb = caculateExpressR.MatchString(caculateValue)
 				if !caculateExpressRb {
 					//caculateValue="123.3+2.4-2"
@@ -1229,15 +1229,15 @@ func calculateByExpressStr(api adapter.IDatabaseAPI,conditionFiledKey string,whe
 					//
 					//exp,error :=ExpConvert(expArr)
 					//Exp(exp)
-					//fmt.Printf("err=",error)
+					//lib.Logger.Infof("err=",error)
 					caculateValue=strings.Replace(caculateValue,"+-","-",-1)
 					caculateValue=strings.Replace(caculateValue,"-+","-",-1)
 					calResult, error := util.Calculate(caculateValue)
 
 					if error != nil {
-						fmt.Printf("error=", error)
+						lib.Logger.Infof("error=", error)
 					}
-					fmt.Printf("calResult=", calResult)
+					lib.Logger.Infof("calResult=", calResult)
 					return calResult,errorMessage
 				}
 			} else {
@@ -1285,7 +1285,7 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 			Value: yesYear+"%",
 		}
 	}
-	fmt.Printf("caculateValueItem",caculateValueItem)
+	lib.Logger.Infof("caculateValueItem",caculateValueItem)
 	var optionC QueryOption
 
 
@@ -1365,8 +1365,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				isDefineStructureData, errorMessage := api.Select(isDefineStructureOption)
 				colsFromStructureStr:=isDefineStructureData[len(isDefineStructureData)-1]["col"].(string)
 				colsFromStructure,_=strconv.Atoi(colsFromStructureStr)
-				fmt.Printf("colsFromStructure=",colsFromStructure)
-				fmt.Printf("errorMessage=",errorMessage)
+				lib.Logger.Infof("colsFromStructure=",colsFromStructure)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
 				if len(data1)==0{
 					data1=isDefineStructureData
 				}
@@ -1379,7 +1379,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				}
 				optionHead := QueryOption{Wheres: wMapHead, Table: "export_template"}
 				data, errorMessage := api.Select(optionHead)
-				fmt.Printf("errorMessage=",errorMessage)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
 				if len(data)<=0{
 					templateKey="DEFAULT_EXPORT_REPORT_TEMPLATE"
 				}
@@ -1399,8 +1399,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			enumOption := QueryOption{Wheres: enumWhere, Table: "system_enum"}
 
 			enumData, errorMessage := api.Select(enumOption)
-			fmt.Printf("enumData", enumData)
-			fmt.Printf("errorMessage", errorMessage)
+			lib.Logger.Infof("enumData", enumData)
+			lib.Logger.Error("errorMessage=%s", errorMessage)
 			for _,item:=range enumData{
 				if item["enum_field"]!=nil && item["enum_key"]!=nil{
 					systemEnumMap[item["enum_field"].(string)+item["enum_key"].(string)]=item["enum_value"]
@@ -1425,19 +1425,19 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			}
 			optionHead := QueryOption{Wheres: wMapHead, Table: "export_template"}
 			data, errorMessage := api.Select(optionHead)
-			fmt.Printf("data", data)
-			fmt.Printf("errorMessage", errorMessage)
+			lib.Logger.Infof("data", data)
+			lib.Logger.Error("errorMessage=%s", errorMessage)
 			for _,header:=range data {
 				headerRows= header["header_rows"].(string)
 				headColsStr:=header["header_cols"].(string)
 				headCols,_=strconv.Atoi(headColsStr)
 			}
-			fmt.Printf("headerRows",headerRows)
+			lib.Logger.Infof("headerRows",headerRows)
 			hRows,err:=strconv.Atoi(headerRows)
 			if err!=nil{
-				fmt.Printf("error",err)
+				lib.Logger.Infof("error",err)
 			}
-			//fmt.Printf("hRows",hRows)
+			//lib.Logger.Infof("hRows",hRows)
 			//  读取表头内容
 			wMapHeadContent := map[string]WhereOperation{}
 			wMapHeadContent["template_key"] = WhereOperation{
@@ -1449,11 +1449,11 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			order["j"]="asc"
 			optionHeadContent.Orders=order
 			headContent, errorMessage := api.Select(optionHeadContent)
-			fmt.Printf("dataContent", headContent)
-			fmt.Printf("errorMessage", errorMessage)
+			lib.Logger.Infof("dataContent", headContent)
+			lib.Logger.Error("errorMessage=%s", errorMessage)
 
 			if err!=nil{
-				fmt.Printf("error",err)
+				lib.Logger.Infof("error",err)
 			}
 
 			if  len(headContent)>0{
@@ -1470,16 +1470,16 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				for _,header:=range headContent {
 					i,err:=strconv.Atoi(header["i"].(string))
 					if err!=nil{
-						fmt.Printf("err",err)
+						lib.Logger.Infof("err",err)
 					}
 
 					j,err1:=strconv.Atoi(header["j"].(string))
 					if err1!=nil{
-						fmt.Printf("err",err)
+						lib.Logger.Infof("err",err)
 					}
 					value:=header["value"].(string)
 					//if err2!=nil{
-					//	fmt.Printf("err",err)
+					//	lib.Logger.Infof("err",err)
 					//}
 					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
 				}
@@ -1504,15 +1504,15 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				}
 				optionHdMerge := QueryOption{Wheres: hdMapHeadMerge, Table: "export_header_merge_detail"}
 				hdMerge, errorMessage = api.Select(optionHdMerge)
-				fmt.Printf("hdMerge", hdMerge)
-				fmt.Printf("errorMessage", errorMessage)
+				lib.Logger.Infof("hdMerge", hdMerge)
+				lib.Logger.Error("errorMessage=%s", errorMessage)
 				for _,headMergeDeatail:=range hdMerge {
 					//i:= headMergeDeatail["i"].(string)
 					i,err:=strconv.Atoi(headMergeDeatail["i"].(string))
-					fmt.Printf("err=",err)
+					lib.Logger.Infof("err=",err)
 					if headMergeDeatail["i"].(string)!="LASTE"{
 						j,err := strconv.Atoi(headMergeDeatail["j"].(string))
-						fmt.Printf("err=",err)
+						lib.Logger.Infof("err=",err)
 						value:=headMergeDeatail["value"].(string)
 						// 有占位符$替换为具体的值
 						if strings.Contains(value,"$"){
@@ -1543,7 +1543,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 							}
 							reportHeadOption := QueryOption{Wheres: reportHead, Table: "report_head"}
 							reportHeadRs, errorMessage= api.Select(reportHeadOption)
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 							for _,item:=range reportHeadRs{
 								reportHeadItem=item
 							}
@@ -1576,8 +1576,8 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			}
 			optionHeadMerge := QueryOption{Wheres: wMapHeadMerge, Table: "export_header_merge"}
 			headMerge, errorMessage := api.Select(optionHeadMerge)
-			fmt.Printf("headMerge", headMerge)
-			fmt.Printf("errorMessage", errorMessage)
+			lib.Logger.Infof("headMerge", headMerge)
+			lib.Logger.Error("errorMessage=%s", errorMessage)
 			for _,headMerge:=range headMerge {
 				startItem:= headMerge["start_item"].(string)
 				endItem := headMerge["end_item"].(string)
@@ -1635,20 +1635,20 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			for _,headMergeDeatail:=range hdMerge {
 				//i:= headMergeDeatail["i"].(string)
 			//	i,err:=strconv.Atoi(headMergeDeatail["i"].(string))
-				fmt.Printf("err=",err)
+				lib.Logger.Infof("err=",err)
 				data1LenStr:=strconv.Itoa(len(data1))
 				data1LenFloat, err:= strconv.ParseFloat(data1LenStr, 64)
 
 				//headColsStr:=strconv.Itoa(headCols)
 				headColsFloat, err:= strconv.ParseFloat(strconv.Itoa(colsFromStructure+1), 64)
-				fmt.Printf("err=",err)
+				lib.Logger.Infof("err=",err)
 				x:=(float64)(data1LenFloat)/(headColsFloat)
 
 				b:=math.Floor(x+0.5)
 				cRows:=int(b)
 				if headMergeDeatail["i"].(string)=="LASTE"{
 					j,err := strconv.Atoi(headMergeDeatail["j"].(string))
-					fmt.Printf("err=",err)
+					lib.Logger.Infof("err=",err)
 					value:=headMergeDeatail["value"].(string)
 					// 有占位符$替换为具体的值
 					if strings.Contains(value,"$"){
@@ -1702,9 +1702,9 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 			cacheData,err=redis.String(redisConn.Do("GET",cacheParams))
 			if err!=nil{
-				fmt.Printf("err",err)
+				lib.Logger.Infof("err",err)
 			}else{
-				fmt.Printf("cacheData",cacheData)
+				lib.Logger.Infof("cacheData",cacheData)
 			}
 		}
 
@@ -1725,7 +1725,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			data2:=data.(*Paginator)
 			dataByte,err:=json.Marshal(data2)
 			if err!=nil{
-				fmt.Printf("err",err)
+				lib.Logger.Infof("err",err)
 			}
 			cacheDataStr:=string(dataByte[:])
 
@@ -1734,7 +1734,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				redisConn.Do("SET",cacheParams,cacheDataStr)
-				fmt.Printf("cacheDataStr",cacheDataStr)
+				lib.Logger.Infof("cacheDataStr",cacheDataStr)
 			}
 			return c.JSON( http.StatusOK,data2)
 		}else if redisHost!=""&&ispaginator && len(data.(*Paginator).Data.([]map[string]interface{}))==0{
@@ -1745,17 +1745,17 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 			dataByte,err:=json.Marshal(data)
 			if err!=nil{
-				fmt.Printf("err",err)
+				lib.Logger.Infof("err",err)
 			}
 			cacheDataStr:=string(dataByte[:])
-			//fmt.Printf("cacheDataStr",cacheDataStr)
+			//lib.Logger.Infof("cacheDataStr",cacheDataStr)
 
 			if(isNeedCache==1&&redisHost!=""){
 				pool:=newPool(redisHost)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				redisConn.Do("SET",cacheParams,cacheDataStr)
-				fmt.Printf("cacheDataStr",cacheDataStr)
+				lib.Logger.Infof("cacheDataStr",cacheDataStr)
 			}
 
 			return c.JSON( http.StatusOK,data)
@@ -1770,7 +1770,7 @@ func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) 
 		cacheKey := c.Param("cacheKey")
 		cacheKey=cacheKey+"*"
 			cacheKeyPattern:=cacheKey
-			fmt.Printf("cacheKey=",cacheKey)
+			lib.Logger.Infof("cacheKey=",cacheKey)
 			if(redisHost!=""){
 				pool:=newPool(redisHost)
 				redisConn:=pool.Get()
@@ -1786,7 +1786,7 @@ func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) 
 					}else{
 						count=count+1
 					}
-					fmt.Printf("DEL-CACHE",val[i], err)
+					lib.Logger.Infof("DEL-CACHE",val[i], err)
 				}
 			}
 
@@ -1862,7 +1862,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 				}
 
-				fmt.Printf("priId",priId)
+				lib.Logger.Infof("priId",priId)
 				break;//取第一个主键
 			}
 		}
@@ -1883,14 +1883,14 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",error)
+		lib.Logger.Infof("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
 		//	var cc Claims
 		cl = token.Claims.(jwt.MapClaims)
 		userIdJwt:=cl["userId"]
-		fmt.Printf("userIdJwt=",userIdJwt)
+		lib.Logger.Infof("userIdJwt=",userIdJwt)
         if meta.HaveField("submit_person"){
 			payload["submit_person"]=userIdJwt
 			option.ExtendedMap["submit_person"]=userIdJwt
@@ -1950,7 +1950,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				if err != nil {
 					fmt.Println("redis delelte failed:", err)
 				}
-				fmt.Printf("DEL-CACHE",val[i], err)
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
 		}
       println("rowesAffected=",rowesAffected,"pri",priId)
@@ -1969,10 +1969,10 @@ func endpointTableColumnDelete(api adapter.IDatabaseAPI,redisHost string) func(c
 
 		payload, errorMessage := bodyMapOf(c)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			return c.String(http.StatusBadRequest, "error")
 		}
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 		tableName := payload["tableName"].(string)
 		column := payload["columnName"].(string)
 
@@ -1980,7 +1980,7 @@ func endpointTableColumnDelete(api adapter.IDatabaseAPI,redisHost string) func(c
 
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 		}
 		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, "ok")
@@ -1993,10 +1993,10 @@ func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c ec
 
 		payload, errorMessage := bodyMapOf(c)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			return c.String(http.StatusBadRequest, "error")
 		}
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 		tableName := payload["tableName"].(string)
 		column := payload["columnName"].(string)
 		columnType:=payload["columnType"].(string)
@@ -2009,7 +2009,7 @@ func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c ec
 		}
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			return c.String(http.StatusOK, "ok")
 		}
 		api.UpdateAPIMetadata()
@@ -2066,12 +2066,12 @@ func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context
 	   if error!=nil{
 		   return c.String(http.StatusOK, error.ErrorDescription)
 	   }
-	    fmt.Printf("error",error)
-	    fmt.Printf("rs",rs)
+	    lib.Logger.Infof("error",error)
+	    lib.Logger.Infof("rs",rs)
 	    var result string
 		var a []string
 	    for _,item:=range rs{
-	    	fmt.Printf("")
+	    	lib.Logger.Infof("")
 			result=strings.Join(a,item["stuNo"].(string))
 			result=strings.Join(a,item["projectName"].(string))
 		}
@@ -2082,23 +2082,23 @@ func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context
 func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		fileHeader,error:=c.FormFile("file")
-		fmt.Printf("error=",error)
+		lib.Logger.Infof("error=",error)
 		templateKey:=c.QueryParam(key.IMPORT_TEMPLATE_KEY)
 		where := c.QueryParam(key.KEY_QUERY_WHERE)
 		option ,errorMessage:= parseWhereParams(where)
-		fmt.Printf("templateKey=",templateKey)
+		lib.Logger.Infof("templateKey=",templateKey)
 		file,error:=fileHeader.Open()
 
 		//defer file.Close()
 		dst, err := os.Create("./upload/" + fileHeader.Filename)
-		fmt.Printf("err=",err)
+		lib.Logger.Infof("err=",err)
 		defer dst.Close()
 
 		cookie,err := c.Request().Cookie("Authorization")
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",error)
+		lib.Logger.Infof("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
@@ -2120,7 +2120,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		}
 		templateOption := QueryOption{Wheres: templateWhere, Table: "import_template"}
 		data, errorMessage := api.Select(templateOption)
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
   		var row_start int
   		var col_start int
 		var col_end int
@@ -2171,8 +2171,8 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		enumOption := QueryOption{Wheres: enumWhere, Table: "system_enum"}
 
 		enumData, errorMessage := api.Select(enumOption)
-		fmt.Printf("enumData", enumData)
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Infof("enumData", enumData)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
 		for _,item:=range enumData{
 			if item["enum_field"]!=nil && item["enum_key"]!=nil{
 				systemEnumMap[item["enum_field"].(string)+item["enum_key"].(string)]=item["enum_value"]
@@ -2202,7 +2202,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		//if dependency_table!=""{
 		//	option.Table=dependency_table
 		//	data,errorMessage:= api.Select(option)
-		//	fmt.Printf("errorMessage=",errorMessage)
+		//	lib.Logger.Error("errorMessage=%s",errorMessage)
 		//	for _,item:=range data{
 		//			existsDependId=item[dependTableKey].(string)
 		//			api.Delete(dependency_table,existsDependId,nil)
@@ -2224,8 +2224,8 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		orders["col_num"]="asc"
 		templateDetailOption.Orders =orders
 		dataDetail, errorMessage := api.Select(templateDetailOption)
-		fmt.Printf("dataDetail", dataDetail)
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Infof("dataDetail", dataDetail)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
 
 
 		for _, detail := range dataDetail {
@@ -2266,7 +2266,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		//xlsx,error := excelize.OpenFile("./upload/商品导入模板.xlsx")
 		xlsx,error := excelize.OpenFile("./upload/"+fileHeader.Filename)
 		if error!=nil{
-			fmt.Printf("error=",error)
+			lib.Logger.Infof("error=",error)
 			os.Remove("./upload/"+fileHeader.Filename)
 			//os.Exit(1)
 			return c.String(http.StatusInternalServerError, error.Error())
@@ -2379,7 +2379,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 					//
 					//_,errorMessage:=api.Create(tableName,tableMap)
-					//fmt.Printf("errorMessage=",errorMessage)
+					//lib.Logger.Error("errorMessage=%s",errorMessage)
 					//var optionEvent QueryOption
 					//optionEvent.ExtendedMap=tableMap
 
@@ -2466,10 +2466,10 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 
 		payload, errorMessage := bodyMapOf(c)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			return c.String(http.StatusBadRequest, "error")
 		}
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 		tableName := payload["tableName"].(string)
 		column := payload["columnName"].(string)
 		afterColumnName := payload["afterColumnName"].(string)
@@ -2491,7 +2491,7 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		}
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 		}
 		api.UpdateAPIMetadata()
 		return c.String(http.StatusOK, "ok")
@@ -2503,10 +2503,10 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 
 		payload, errorMessage := bodyMapOf(c)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			return c.String(http.StatusBadRequest, "error")
 		}
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 		tableName := payload["tableName"].(string)
 		tableNameDesc := payload["tableNameDesc"].(string)
 		tableFields:=payload["tableFields"].(string)
@@ -2546,8 +2546,8 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 		if isReport=="1"{
 			// 如果是报表 插入报表配置  且创建报表模板表和报表详情表
 			_,errorMessage=api.Create("report_template_config",reportConfig)
-			fmt.Printf("tableFields=",tableFields)
-			fmt.Printf("detailSql=",detailSql)
+			lib.Logger.Infof("tableFields=",tableFields)
+			lib.Logger.Infof("detailSql=",detailSql)
 			errorMessage=api.CreateTableStructure(detailSql)
 			if errorMessage!=nil{
 				api.Delete("report_template_config",tableName,nil)
@@ -2559,7 +2559,7 @@ func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func
 
 		errorMessage=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			api.Delete("report_template_config",tableName,nil)
 			api.CreateTableStructure("drop table if exists "+tableName+";")
 			return c.String(http.StatusInternalServerError, errorMessage.Error())
@@ -2578,7 +2578,7 @@ func endpointDeleteMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context
         sql:="drop table if exists "+tableName+";"
 		errorMessage:=api.CreateTableStructure(sql)
 		if errorMessage!=nil{
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			return c.String(http.StatusBadRequest, errorMessage.Error())
 		}else{
 			var deleteMap=make(map[string]interface{})
@@ -2595,10 +2595,10 @@ func endpointDeleteMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context
 func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		asyncKey := c.QueryParam(key.ASYNC_KEY)
-		fmt.Printf("asyncKey=",asyncKey)
+		lib.Logger.Infof("asyncKey=",asyncKey)
 		where := c.QueryParam(key.KEY_QUERY_WHERE)
 		option ,errorMessage:= parseWhereParams(where)
-		fmt.Printf("option=",option)
+		lib.Logger.Infof("option=",option)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
@@ -2628,10 +2628,10 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 
-		//fmt.Printf("option=",option)
+		//lib.Logger.Infof("option=",option)
 		where := c.QueryParam("where")
 		option ,errorMessage:= parseWhereParams(where)
-		fmt.Printf("option=",option)
+		lib.Logger.Infof("option=",option)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
@@ -2640,14 +2640,14 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",error)
+		lib.Logger.Infof("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
 		//	var cc Claims
 		cl = token.Claims.(jwt.MapClaims)
 		userIdJwt:=cl["userId"]
-		fmt.Printf("userIdJwt=",userIdJwt)
+		lib.Logger.Infof("userIdJwt=",userIdJwt)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
@@ -2680,7 +2680,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			option0.Wheres=option.Wheres
 			option0.Table=tableName
 			slaveInfo,errorMessage:=api.Select(option0)
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			if len(slaveInfo)>0{
 				masterPrimaryKeyValue=slaveInfo[0][firstPrimaryKey].(string)
 			}
@@ -2732,7 +2732,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 					if err != nil {
 						fmt.Println("redis delelte failed:", err)
 					}
-					fmt.Printf("DEL-CACHE",val[i], err)
+					lib.Logger.Infof("DEL-CACHE",val[i], err)
 				}
 			}
 
@@ -2772,7 +2772,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			for _, col := range primaryColumns {
 				if col.Key == "PRI" {
 					firstPrimaryKey=col.ColumnName
-					fmt.Printf("priId",firstPrimaryKey)
+					lib.Logger.Infof("priId",firstPrimaryKey)
 					break;//取第一个主键
 				}
 			}
@@ -2786,7 +2786,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		beforeUpdateption.Wheres=beforeWhere
 		beforeUpdateption.Table=tableName
 		beforeUpdateObj,errorMessage:=api.Select(beforeUpdateption)
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 		if len(beforeUpdateObj)>0{
 			beforeUpdateMap=beforeUpdateObj[0]
 		}
@@ -2806,14 +2806,14 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",error)
+		lib.Logger.Infof("jwtToken=",error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
 		//	var cc Claims
 		cl = token.Claims.(jwt.MapClaims)
 		userIdJwt:=cl["userId"]
-		fmt.Printf("userIdJwt=",userIdJwt)
+		lib.Logger.Infof("userIdJwt=",userIdJwt)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwt
 		}
@@ -2848,7 +2848,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			option0.Wheres=where0
 			option0.Table=tableName
 			slaveInfo,errorMessage:=api.Select(option0)
-			fmt.Printf("errorMessage=",errorMessage)
+			lib.Logger.Error("errorMessage=%s",errorMessage)
 			if len(slaveInfo)>0{
 				masterPrimaryKeyValue=slaveInfo[0][firstPrimaryKey].(string)
 			}
@@ -2901,7 +2901,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 					if err != nil {
 						fmt.Println("redis delelte failed:", err)
 					}
-					fmt.Printf("DEL-CACHE",val[i], err)
+					lib.Logger.Infof("DEL-CACHE",val[i], err)
 				}
 			}
 
@@ -2946,7 +2946,7 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				if err != nil {
 					fmt.Println("redis delelte failed:", err)
 				}
-				fmt.Printf("DEL-CACHE",val[i], err)
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
 		}
 
@@ -2975,7 +2975,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		for _, col := range primaryColumns {
 			if col.Key == "PRI" {
 				priKey=col.ColumnName
-				fmt.Printf("priId",priId)
+				lib.Logger.Infof("priId",priId)
 				break;//取第一个主键
 			}
 		}
@@ -2990,7 +2990,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		querOption0 := QueryOption{Wheres: whereOptionExtend, Table: tableName}
 		rsQuery0, errorMessage:= api.Select(querOption0)
 		for _,item:=range rsQuery0{
-			fmt.Printf("item=",item)
+			lib.Logger.Infof("item=",item)
 			option.ExtendedMap=item
 			break
 		}
@@ -3039,7 +3039,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 						fmt.Println("redis delelte failed:", err)
 					}
 
-					fmt.Printf("DEL-CACHE",val[i], err)
+					lib.Logger.Infof("DEL-CACHE",val[i], err)
 				}
 
 			}
@@ -3067,7 +3067,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			if col.Key == "PRI" {
 				priKey=col.ColumnName
 
-				fmt.Printf("priId",priId)
+				lib.Logger.Infof("priId",priId)
 				break;//取第一个主键
 			}
 		}
@@ -3078,12 +3078,12 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		var cl jwt.MapClaims
 		r_msg:=[]string{}
 		cookie,err := c.Request().Cookie("Authorization")
-		fmt.Printf("err=",err)
+		lib.Logger.Infof("err=",err)
 		if cookie!=nil {
 			jwtToken:=  cookie.Value;
 			jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 			token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-			fmt.Printf("jwtToken=",err,error)
+			lib.Logger.Infof("jwtToken=",err,error)
 			//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 			//  a,error:=  jwt.DecodeSegment(jwtToken)
 
@@ -3199,7 +3199,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if err != nil {
 					fmt.Println("redis delelte failed:", err)
 				}
-				fmt.Printf("DEL-CACHE",val[i], err)
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
 		}
 		if len(r_msg)>0{
@@ -3227,7 +3227,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			if col.Key == "PRI" {
 				priKey=col.ColumnName
 
-				fmt.Printf("priId",priId)
+				lib.Logger.Infof("priId",priId)
 				break;//取第一个主键
 			}
 		}
@@ -3235,7 +3235,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		jwtToken:=  cookie.Value;
 		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
 		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		fmt.Printf("jwtToken=",err,error)
+		lib.Logger.Infof("jwtToken=",err,error)
 		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 		//  a,error:=  jwt.DecodeSegment(jwtToken)
 		var cl jwt.MapClaims
@@ -3323,7 +3323,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				if err != nil {
 					fmt.Println("redis delelte failed:", err)
 				}
-				fmt.Printf("DEL-CACHE",val[i], err)
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
 		}
 		if len(r_msg)>0{
@@ -3366,7 +3366,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	groupFunc :=c.QueryParam(key.GROUP_FUNC)
     fieldsType:=c.QueryParam(key.KEY_QUERY_FIELDS_TYPE)
     option.FieldsType=fieldsType
-	//fmt.Printf("groupFunc",groupFunc)
+	//lib.Logger.Infof("groupFunc",groupFunc)
 	option.GroupFunc=groupFunc
 	//option.Index, option.Limit, option.Offset, option.Fields, option.Wheres, option.Links, err = parseQueryParams(c)
 	option.Limit, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGESIZE))  // _limit

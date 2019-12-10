@@ -1,6 +1,7 @@
 package util
 import (
 	"fmt"
+	"github.com/shiyongabc/go-sql-api/server/lib"
 	"github.com/xcltapestry/xclpkg/algorithm"
 	"strconv"
 	"errors"
@@ -43,7 +44,7 @@ func Calculate(str string)(float64,error){
     	if len(expArr)>0{
 		  exp,error:=	ExpConvert(expArr)
 		  if error!=nil{
-		  	fmt.Printf("error=",error)
+		  	lib.Logger.Infof("error=",error)
 		  }else{
 			 result= Exp(exp)
 			 resultStr:=strconv.FormatFloat(result, 'f', -1, 64)
@@ -53,7 +54,7 @@ func Calculate(str string)(float64,error){
 		}else{
 			resultF,error:=strconv.ParseFloat(str, 64)
 			if error!=nil{
-				fmt.Printf("error=",error)
+				lib.Logger.Infof("error=",error)
 			}else{
 				result=resultF
 			}
@@ -68,7 +69,7 @@ func ExpConvert(strArr []string)(string,error){
 	var result string
 	stack := algorithm.NewStack()
 	for index,s := range strArr {
-		fmt.Printf("s=",s)
+		lib.Logger.Infof("s=",s)
 		if (index+1)==len(strArr){
 			break
 		}
@@ -166,9 +167,9 @@ func Exp(str string)(float64){
 			resultVstr=strings.Replace(resultVstr,")","",-1)
 			resultF,error:=strconv.ParseFloat(resultVstr, 64)
 			result=resultF
-			fmt.Printf("resultF=",resultF)
+			lib.Logger.Infof("resultF=",resultF)
 			if error!=nil{
-				fmt.Printf("error=",error)
+				lib.Logger.Infof("error=",error)
 			}
 		}
 		stack.Pop()

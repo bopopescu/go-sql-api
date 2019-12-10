@@ -1,12 +1,10 @@
 package server
 
 import (
-	"github.com/shiyongabc/go-sql-api/server/lib"
 	"github.com/labstack/echo"
-	"github.com/shiyongabc/go-sql-api/adapter"
 	"github.com/robfig/cron"
-
-	"fmt"
+	"github.com/shiyongabc/go-sql-api/adapter"
+	"github.com/shiyongabc/go-sql-api/server/lib"
 )
 
 // MysqlAPIServer is a http server could access mysql api
@@ -27,7 +25,7 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	server.Static("/api/"+databaseName+"/docs", "docs")
 	server.api = api
 //	databaseName:=api.GetDatabaseMetadata().DatabaseName
-  fmt.Printf("redisHost",redisHost)
+  lib.Logger.Infof("redisHost=%s",redisHost)
 	//c, err := redis.Dial("tcp", redisHost)
 	//if err != nil {
 	//	fmt.Println("Connect to redis error", err)

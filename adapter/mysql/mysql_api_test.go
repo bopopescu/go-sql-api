@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/shiyongabc/go-sql-api/server/lib"
 	"log"
 	"os"
 	"testing"
@@ -49,6 +49,6 @@ func TestRowScan(t *testing.T) {
 	}
 	for _, row := range rs {
 		jsonStr, _ := json.Marshal(row) // use gojson avoid base64 encode of []byte
-		fmt.Printf("%s\n", jsonStr)
+		lib.Logger.Infof("%s\n", jsonStr)
 	}
 }

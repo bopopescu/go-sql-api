@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"github.com/shiyongabc/go-sql-api/server/lib"
 	"strings"
 	"fmt"
 	"encoding/json"
@@ -33,13 +34,13 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 	//conditionFiledArr1 := list.New()
 	var funcParamFields []string
 	var operate_func string
-	fmt.Printf("async-task-begin=",time.Now().Format("2006-01-02 15:04:05"))
+	lib.Logger.Infof("async-task-begin=",time.Now().Format("2006-01-02 15:04:05"))
 	for _,repeatItem:=range repeatCalculateData{
 
 
 		id:=repeatItem["id"]
 		//	accountYear:=repeatItem["account_period_year"]
-		fmt.Printf("id=",id)
+		lib.Logger.Infof("id=",id)
 
 		//  删掉 本期合计 本年累计  重新计算
 		// order_num为空说明是累计数
@@ -90,14 +91,14 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 			if repeatItem["order_num"]!=nil{
 				repeatOrderNum, err := strconv.Atoi(repeatItem["order_num"].(string))
 				if err!=nil{
-					fmt.Printf("err=",err,"repeatOrderNum=",repeatOrderNum)
+					lib.Logger.Infof("err=",err,"repeatOrderNum=",repeatOrderNum)
 				}
 			}
 			// repeatAccountPeriodNum
 			if repeatItem["account_period_num"]!=nil{
 				repeatAccountPeriodNum=repeatItem["account_period_num"].(string)
 
-				fmt.Printf("repeatAccountPeriodNum=",repeatAccountPeriodNum)
+				lib.Logger.Infof("repeatAccountPeriodNum=",repeatAccountPeriodNum)
 
 			}
 			if repeatItem["account_period_year"]!=nil{
@@ -109,9 +110,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
-				fmt.Printf("operate_table",operate_table)
-				fmt.Printf("calculate_field",calculate_field)
-				fmt.Printf("calculate_func",calculate_func)
+				lib.Logger.Infof("operate_table",operate_table)
+				lib.Logger.Infof("calculate_field",calculate_field)
+				lib.Logger.Infof("calculate_func",calculate_func)
 				var paramStr string
 				paramsMap:=make(map[string]interface{})
 				// funcParamFields
@@ -144,7 +145,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				optionQueryExists.Table=operate_table
 
 				rs,errorMessage:=api.Select(optionQueryExists)
-				fmt.Printf("errorMessage=",errorMessage)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 				in_subject_key:=paramsMap["subject_key"].(string)
@@ -157,15 +158,15 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				if len(rs)>0{
 					r,errorMessage:= api.Update(operate_table,asyncObjectMap["id"],asyncObjectMap)
 					if errorMessage!=nil{
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 					}
-					fmt.Printf("rs=",r)
+					lib.Logger.Infof("rs=",r)
 				}else{
 					r,errorMessage:= api.Create(operate_table,asyncObjectMap)
 					if errorMessage!=nil{
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 					}
-					fmt.Printf("rs=",r)
+					lib.Logger.Infof("rs=",r)
 				}
 
 				asyncObjectMap["subject_key_pre"]=repeatItem["subject_key"]
@@ -178,9 +179,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
-				fmt.Printf("operate_table",operate_table)
-				fmt.Printf("calculate_field",calculate_field)
-				fmt.Printf("calculate_func",calculate_func)
+				lib.Logger.Infof("operate_table",operate_table)
+				lib.Logger.Infof("calculate_field",calculate_field)
+				lib.Logger.Infof("calculate_func",calculate_func)
 				var paramStr string
 				paramsMap:=make(map[string]interface{})
 				periodNum,_:=strconv.Atoi(account_period_num.(string))
@@ -244,7 +245,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						if idSub!=""{
 							asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid"
 							r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-							fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							lib.Logger.Infof("r=",r,"errorMessage=",errorMessage)
 						}
 
 
@@ -252,9 +253,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						asyncObjectMap["id"]=id0
 						r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
-						fmt.Printf("rs=",r)
+						lib.Logger.Infof("rs=",r)
 
 					}
 
@@ -276,16 +277,16 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId!=""{
 						r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsId,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
-						fmt.Printf("rs=",r)
+						lib.Logger.Infof("rs=",r)
 					}else if result1!=beginYearResult && judgeNeedUpdateLatestKnotsId==""{
 						asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid-knots"
 						r,errorMessage:= api.Create(operate_table,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
-						fmt.Printf("rs=",r)
+						lib.Logger.Infof("rs=",r)
 					}
 
 					// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
@@ -303,14 +304,14 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					if result1!=beginYearResult && judgeNeedUpdateLatestKnotsIdCurrent!=""{
 						r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsIdCurrent,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
-						fmt.Printf("rs=",r)
+						lib.Logger.Infof("rs=",r)
 					}else if result1!=beginYearResult && judgeNeedUpdateLatestKnotsIdCurrent==""{
 						asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid-knots-period"
 						r,errorMessage:= api.Create(operate_table,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage,"r=",r)
+							lib.Logger.Error("errorMessage=%s",errorMessage,"r=",r)
 						}
 					}
 					// 如果当期不是1 且第一期没有凭证 更新上年结转 本期合计  本年累计 judgeNeedUpdateLatestKnots
@@ -329,14 +330,14 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					if result1!=beginYearResult && judgeNeedUpdateLatestKnotsIdYear!=""{
 						r,errorMessage:= api.Update(operate_table,judgeNeedUpdateLatestKnotsIdYear,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
-						fmt.Printf("rs=",r)
+						lib.Logger.Infof("rs=",r)
 					}else if result1!=beginYearResult && judgeNeedUpdateLatestKnotsIdYear==""{
 						asyncObjectMap["id"]=uuid.NewV4().String()+"-beginperoid-knots-year"
 						r,errorMessage:= api.Create(operate_table,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage,"r=",r)
+							lib.Logger.Error("errorMessage=%s",errorMessage,"r=",r)
 						}
 					}
 
@@ -354,9 +355,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
-				fmt.Printf("operate_table",operate_table)
-				fmt.Printf("calculate_field",calculate_field)
-				fmt.Printf("calculate_func",calculate_func)
+				lib.Logger.Infof("operate_table",operate_table)
+				lib.Logger.Infof("calculate_field",calculate_field)
+				lib.Logger.Infof("calculate_func",calculate_func)
 				var paramStr string
 				paramsMap:=make(map[string]interface{})
 				// funcParamFields
@@ -415,14 +416,14 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						if idSub!=""{
 							asyncObjectMap["id"]=uuid.NewV4().String()+"-peroid"
 							r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-							fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							lib.Logger.Infof("r=",r,"errorMessage=",errorMessage)
 						}
 
 					}else { //id不为空 则更新
 						asyncObjectMap["id"] = id0
 						_, errorMessage := api.Update(operate_table, id0, asyncObjectMap)
 						if errorMessage != nil {
-							fmt.Printf("errorMessage=", errorMessage)
+							lib.Logger.Error("errorMessage=%s", errorMessage)
 						}
 					}
 
@@ -440,9 +441,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
-				fmt.Printf("operate_table",operate_table)
-				fmt.Printf("calculate_field",calculate_field)
-				fmt.Printf("calculate_func",calculate_func)
+				lib.Logger.Infof("operate_table",operate_table)
+				lib.Logger.Infof("calculate_field",calculate_field)
+				lib.Logger.Infof("calculate_func",calculate_func)
 				var paramStr string
 				paramsMap:=make(map[string]interface{})
 				// funcParamFields
@@ -495,16 +496,16 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						if idSub!=""{
 							asyncObjectMap["id"]=uuid.NewV4().String()+"-year"
 							r,errorMessage:=api.Create(operate_table,asyncObjectMap)
-							fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							lib.Logger.Infof("r=",r,"errorMessage=",errorMessage)
 						}
 
 					}else{//id不为空 则更新
 						asyncObjectMap["id"]=id0
 						r,errorMessage:= api.Update(operate_table,id0,asyncObjectMap)
 						if errorMessage!=nil{
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
-						fmt.Printf("rs=",r)
+						lib.Logger.Infof("rs=",r)
 
 					}
 
@@ -531,11 +532,11 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 						if judgeNeedUpdateNextKnotsId!=""{
 							nextYearKnots["id"]=judgeNeedUpdateNextKnotsId
 							r,errorMessage:=api.Update(operate_table,judgeNeedUpdateNextKnotsId,nextYearKnots)
-							fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							lib.Logger.Infof("r=",r,"errorMessage=",errorMessage)
 						}else{
 							nextYearKnots["id"]=uuid.NewV4().String()
 							r,errorMessage:=api.Create(operate_table,nextYearKnots)
-							fmt.Printf("r=",r,"errorMessage=",errorMessage)
+							lib.Logger.Infof("r=",r,"errorMessage=",errorMessage)
 						}
 					}
 
@@ -555,9 +556,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
-				fmt.Printf("operate_table",operate_table)
-				fmt.Printf("calculate_field",calculate_field)
-				fmt.Printf("calculate_func",calculate_func)
+				lib.Logger.Infof("operate_table",operate_table)
+				lib.Logger.Infof("calculate_field",calculate_field)
+				lib.Logger.Infof("calculate_func",calculate_func)
 
 				var paramStr string
 				paramsMap:=make(map[string]interface{})
@@ -575,7 +576,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					// 直接执行func 所有逻辑在func处理
 					operate_func_sql := "select " + operate_func + "(" + paramStr + ") as result;"
 					result,errorMessage := api.ExecFuncForOne(operate_func_sql, "result")
-					fmt.Printf("operate_func_sql-result-error", result,errorMessage)
+					lib.Logger.Infof("operate_func_sql-result-error", result,errorMessage)
                     if errorMessage!=nil{
                     	tx.Rollback()
 					}
@@ -588,9 +589,9 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr,repeatItem,asyncObjectMap)
 				asyncObjectMap=BuildMapFromBody(conditionFiledArr1,repeatItem,asyncObjectMap)
 
-				fmt.Printf("operate_table",operate_table)
-				fmt.Printf("calculate_field",calculate_field)
-				fmt.Printf("calculate_func",calculate_func)
+				lib.Logger.Infof("operate_table",operate_table)
+				lib.Logger.Infof("calculate_field",calculate_field)
+				lib.Logger.Infof("calculate_func",calculate_func)
 
 				var paramStr string
 				paramsMap:=make(map[string]interface{})
@@ -609,7 +610,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					// 直接执行func 所有逻辑在func处理
 					operate_func_sql:="select "+operate_func+"("+paramStr+") as result;"
 					result,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
-					fmt.Printf("operate_func_sql-result",result,errorMessage)
+					lib.Logger.Infof("operate_func_sql-result",result,errorMessage)
 
 
 
@@ -674,7 +675,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					preOption := QueryOption{Wheres: subjectKeyPreWhereOption, Table: "account_voucher_detail_category_merge"}
 					preOption.Orders=orders
 					repeatCalculatePreData0,errorMessage= api.Select(preOption)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 					subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
@@ -689,7 +690,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: "account_voucher_detail_category_merge"}
 					preOption.Orders=orders
 					repeatCalculatePreData1, errorMessage= api.Select(preOption)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 					subjectKeyPreWhereOption["account_period_num"] = WhereOperation{
@@ -704,7 +705,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: "account_voucher_detail_category_merge"}
 					preOption.Orders=orders
 					repeatCalculatePreData2, errorMessage= api.Select(preOption)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 					subjectKeyPreWhereOption["account_period_year"] = WhereOperation{
@@ -729,7 +730,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 					preOption = QueryOption{Wheres: subjectKeyPreWhereOption, Table: "account_voucher_detail_category_merge"}
 					preOption.Orders=orders
 					repeatCalculatePreData3, errorMessage= api.Select(preOption)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 
@@ -761,7 +762,7 @@ func AsyncFunc(api adapter.IDatabaseAPI,repeatCalculateData,operates []map[strin
 
 		}
 	}
-	fmt.Printf("async-task-end=",time.Now().Format("2006-01-02 15:04:05"))
+	lib.Logger.Infof("async-task-end=",time.Now().Format("2006-01-02 15:04:05"))
 	// 向管道传值
 	c <- index
 }

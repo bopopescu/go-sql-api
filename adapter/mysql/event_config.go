@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shiyongabc/go-sql-api/adapter"
+	"github.com/shiyongabc/go-sql-api/server/lib"
 	. "github.com/shiyongabc/go-sql-api/types"
 	"github.com/shiyongabc/jwt-go"
 	"io/ioutil"
@@ -23,7 +24,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		return
 	}
 
-	fmt.Printf("errorMessage=",errorMessage)
+	lib.Logger.Error("errorMessage=%s",errorMessage)
 	var operate_condition string
 	var operate_content string
 	var filter_content string
@@ -105,16 +106,16 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		// operateScipt
 		if operateCondContentJsonMap["operate_script"]!=nil{
 			operateScipt=operateCondContentJsonMap["operate_script"].(string)
-			fmt.Printf("operateScipt=",operateScipt)
+			lib.Logger.Infof("operateScipt=",operateScipt)
 		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
-			fmt.Printf("operateFunc=",operateFunc)
+			lib.Logger.Infof("operateFunc=",operateFunc)
 		}
 		// operateProcedure
 		if operateCondContentJsonMap["operate_procedure"]!=nil{
 			operateProcedure=operateCondContentJsonMap["operate_procedure"].(string)
-			fmt.Printf("operateProcedure=",operateProcedure)
+			lib.Logger.Infof("operateProcedure=",operateProcedure)
 		}
 		var conditionFieldKeyValue string
 		if strings.Contains(conditionFieldKey,"="){
@@ -163,7 +164,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			rsQuery0, errorMessage:= api.Select(querOption0)
 			var farm_type string
 			for _,item:=range rsQuery0{
-				fmt.Printf("item=",item)
+				lib.Logger.Infof("item=",item)
 				farm_type_o:=item["farm_type"]
 
 				if farm_type_o==nil {
@@ -195,9 +196,9 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
 			rsQuery, errorMessage:= api.Select(querOption)
 			if errorMessage!=nil{
-				fmt.Printf("errorMessage", errorMessage)
+				lib.Logger.Error("errorMessage=%s", errorMessage)
 			}else{
-				fmt.Printf("rs", rsQuery)
+				lib.Logger.Infof("rs", rsQuery)
 			}
 			for _,item:=range rsQuery{
 				// 先拦截器校验
@@ -230,13 +231,13 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 					querOptionPatch := QueryOption{Wheres: whereOptionPatch, Table: tableName}
 					rsQueryPatch, errorMessage:= api.Select(querOptionPatch)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					// 先删掉 已经计算出来的得分记录  然后重新计算
 					deleteWhere:=make(map[string]interface{})
 					deleteWhere[conditionFieldKey]=conditionFieldKeyValue
 					deleteWhere["credit_level_model_id"]=item["credit_level_model_id"]
 					_,errorMessage=api.Delete("credit_level_customer",nil,deleteWhere)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					for _,rsQueryPatchItem:=range rsQueryPatch{
 						CallLevel(api,item,extraOperateMap,rsQueryPatchItem,conditionFieldKeyValue)
 					}
@@ -257,8 +258,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				if conditionFieldKeyValue!=""{
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
 					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					fmt.Printf("result=",result)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Infof("result=",result)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					if errorMessage!=nil{
 						//tx.Rollback()
 					}
@@ -270,8 +271,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				if conditionFieldKeyValue!=""{
 					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
 					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-					fmt.Printf("result=",result)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Infof("result=",result)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					if errorMessage!=nil {
 						//tx.Rollback()
 					}
@@ -280,8 +281,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 					if paramsPro!=""{
 						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
 						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-						fmt.Printf("result=",result)
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Infof("result=",result)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 						if errorMessage!=nil{
 							//tx.Rollback()
 						}
@@ -307,7 +308,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
 					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					fmt.Printf("result=",result)
+					lib.Logger.Infof("result=",result)
 				    if errorMessage!=nil{
 				    	//tx.Rollback()
 					}
@@ -320,9 +321,9 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				for _,itemField:=range conditionFiledArr{
 					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
 				}
-				fmt.Printf("operateScipt=", operateScipt)
+				lib.Logger.Infof("operateScipt=", operateScipt)
 				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
-				fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+				lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 				if result!="" && conditionFieldKey!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
@@ -343,7 +344,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	//tx,err:=api.Connection().Begin()
 	//fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
-	fmt.Printf("errorMessage=",errorMessage)
+	lib.Logger.Error("errorMessage=%s",errorMessage)
 	var operate_condition string
 	var operate_content string
 	var conditionType string
@@ -386,7 +387,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
 			if operateCondJsonMap["conditionType"]!=nil{
 				conditionType=operateCondJsonMap["conditionType"].(string)
-				fmt.Printf("conditionType=",conditionType)
+				lib.Logger.Infof("conditionType=",conditionType)
 			}
 
 			if operateCondJsonMap["conditionFields"]!=nil{
@@ -426,7 +427,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		// operateScipt
 		if operateCondContentJsonMap["operate_script"]!=nil{
 			operateScipt=operateCondContentJsonMap["operate_script"].(string)
-			fmt.Printf("operateScipt=",operateScipt)
+			lib.Logger.Infof("operateScipt=",operateScipt)
 		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
@@ -447,16 +448,16 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			arr:=strings.Split(conditionFieldKey,"=")
 			conditionFieldKey=arr[0]
 			conditionFieldKeyValue=arr[1]
-			fmt.Printf("conditionFieldKeyValue=",conditionFieldKeyValue)
+			lib.Logger.Infof("conditionFieldKeyValue=",conditionFieldKeyValue)
 		}
 
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
 		operate_type=operateCondContentJsonMap["operate_type"].(string)
 		operate_table=operateCondContentJsonMap["operate_table"].(string)
-		fmt.Printf("operate_type=",operate_type)
-		fmt.Printf("operate_table=",operate_table)
-		fmt.Printf("operate_type=",conditionTable)
+		lib.Logger.Infof("operate_type=",operate_type)
+		lib.Logger.Infof("operate_table=",operate_table)
+		lib.Logger.Infof("operate_type=",conditionTable)
 
 
 		if(filter_content!=""){
@@ -509,7 +510,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				for _,item:=range ids{
 					operateFuncSql:="select "+operateFunc+"('"+item+"');"
 					_,errorMessage:=api.ExecFunc(operateFuncSql)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 				}
 
 
@@ -533,9 +534,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			querOption := QueryOption{Wheres: whereOption, Table: tableName}
 			rsQuery, errorMessage:= api.Select(querOption)
 			if errorMessage!=nil{
-				fmt.Printf("errorMessage", errorMessage)
+				lib.Logger.Error("errorMessage=%s", errorMessage)
 			}else{
-				fmt.Printf("rs", rsQuery)
+				lib.Logger.Infof("rs", rsQuery)
 			}
 			operate_type:=operateCondContentJsonMap["operate_type"].(string)
 			pri_key:=operateCondContentJsonMap["pri_key"].(string)
@@ -545,7 +546,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 
 			action_field_value1:=option.ExtendedMap[action_field].(float64)
-			fmt.Printf("action_field_value1",action_field_value1)
+			lib.Logger.Infof("action_field_value1",action_field_value1)
 			action_field_value1_int:=int(action_field_value1)
 
 
@@ -559,7 +560,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 						action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
 
 						if err0!=nil{
-							fmt.Printf("err0",err0)
+							lib.Logger.Infof("err0",err0)
 						}
 						action_field_value=action_field_value0_int+action_field_value1_int
 						break
@@ -574,9 +575,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					}
 
 					rowesAffected,error:=rsU.RowsAffected()
-					fmt.Printf("rowesAffected=",rowesAffected)
+					lib.Logger.Infof("rowesAffected=",rowesAffected)
 					if error!=nil{
-						fmt.Printf("err=",error)
+						lib.Logger.Infof("err=",error)
 					}
 
 				}
@@ -630,7 +631,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 			}
@@ -699,7 +700,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				fields=append(fields, "id")
 				relatedOption.Fields=fields
 				relatedData, errorMessage:= api.Select(relatedOption)
-				fmt.Printf("errorMessage=",errorMessage)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
 				extendMapArr:=option.ExtendedArr
 				for _,item:=range relatedData{
 					for _,slaveItem:=range extendMapArr{
@@ -731,7 +732,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					if errorMessage!=nil{
 						//tx.Rollback()
 					}
@@ -746,9 +747,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				for _,itemField:=range conditionFiledArr{
 					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
 				}
-				fmt.Printf("operateScipt=", operateScipt)
+				lib.Logger.Infof("operateScipt=", operateScipt)
 				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
-				fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+				lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 				if result!="" && conditionFieldKey!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
@@ -770,7 +771,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
     //tx,err:=api.Connection().Begin()
     //fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
-	fmt.Printf("errorMessage=",errorMessage)
+	lib.Logger.Error("errorMessage=%s",errorMessage)
 	var operate_condition string
 	var operate_content string
 	var filter_content string
@@ -846,21 +847,21 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		// operateScipt
 		if operateCondContentJsonMap["operate_script"]!=nil{
 			operateScipt=operateCondContentJsonMap["operate_script"].(string)
-			fmt.Printf("operateScipt=",operateScipt)
+			lib.Logger.Infof("operateScipt=",operateScipt)
 		}
 		// action_type
 		if operateCondContentJsonMap["action_type"]!=nil{
 			actionType=operateCondContentJsonMap["action_type"].(string)
-			fmt.Printf("actionType=",actionType)
+			lib.Logger.Infof("actionType=",actionType)
 		}
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
-			fmt.Printf("operateFunc=",operateFunc)
+			lib.Logger.Infof("operateFunc=",operateFunc)
 		}
 // operateProcedure
 		if operateCondContentJsonMap["operate_procedure"]!=nil{
 			operateProcedure=operateCondContentJsonMap["operate_procedure"].(string)
-			fmt.Printf("operateProcedure=",operateProcedure)
+			lib.Logger.Infof("operateProcedure=",operateProcedure)
 		}
 		//if operateCondJsonMap["conditionComplex"]!=nil{
 		//	conditionComplex=operateCondJsonMap["conditionComplex"].(string)
@@ -917,7 +918,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			rsQuery0, errorMessage:= api.Select(querOption0)
 			var farm_type string
 			for _,item:=range rsQuery0{
-				fmt.Printf("item=",item)
+				lib.Logger.Infof("item=",item)
 				farm_type_o:=item["farm_type"]
 
 				if farm_type_o==nil {
@@ -949,9 +950,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			querOption := QueryOption{Wheres: whereOption, Table: conditionTable}
 			rsQuery, errorMessage:= api.Select(querOption)
 			if errorMessage!=nil{
-				fmt.Printf("errorMessage", errorMessage)
+				lib.Logger.Error("errorMessage=%s", errorMessage)
 			}else{
-				fmt.Printf("rs", rsQuery)
+				lib.Logger.Infof("rs", rsQuery)
 			}
 			for _,item:=range rsQuery{
 				// 先拦截器校验
@@ -986,13 +987,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 					querOptionPatch := QueryOption{Wheres: whereOptionPatch, Table: tableName}
 					rsQueryPatch, errorMessage:= api.Select(querOptionPatch)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					// 先删掉 已经计算出来的得分记录  然后重新计算
 					deleteWhere:=make(map[string]interface{})
 					deleteWhere[conditionFieldKey]=conditionFieldKeyValue
 					deleteWhere["credit_level_model_id"]=item["credit_level_model_id"]
 					_,errorMessage=api.Delete("credit_level_customer",nil,deleteWhere)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 					for _,rsQueryPatchItem:=range rsQueryPatch{
 						CallLevel(api,item,extraOperateMap,rsQueryPatchItem,conditionFieldKeyValue)
 					}
@@ -1014,8 +1015,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
 					var result string
 					result,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
-					fmt.Printf("result=",result)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Infof("result=",result)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
@@ -1028,8 +1029,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					if paramsFunc!=""{
 						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
 						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-						fmt.Printf("result=",result)
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Infof("result=",result)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 						errorMessage=errorMessage
 
 					}
@@ -1041,8 +1042,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				if conditionFieldKeyValue!=""{
 					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
 					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-					fmt.Printf("result=",result)
-					fmt.Printf("errorMessage=",errorMessage)
+					lib.Logger.Infof("result=",result)
+					lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 				}else if len(conditionFiledArr)>0{
@@ -1050,8 +1051,8 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					if paramsPro!=""{
 						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
 						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-						fmt.Printf("result=",result)
-						fmt.Printf("errorMessage=",errorMessage)
+						lib.Logger.Infof("result=",result)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 
 					}
 				}
@@ -1075,7 +1076,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
 					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					fmt.Printf("result,errorMessage",result,errorMessage)
+					lib.Logger.Infof("result,errorMessage",result,errorMessage)
 
 				}
 
@@ -1100,7 +1101,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 				operateSciptArr:=strings.Split(operateScipt,";")
 				for _,itemScript:=range operateSciptArr{
 					result,errorMessage:=SingleExec(api,option,conditionFiledArr,itemScript)
-					fmt.Printf("result=",result,"errorMessage=",errorMessage)
+					lib.Logger.Infof("result=",result,"errorMessage=",errorMessage)
 				}
 			}
 			if actionType=="MUTIL_PROCESS_COMPLEX"{
@@ -1120,7 +1121,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 							// 去掉第一个字符'('和倒数第二个字符')'
 							execSql=execSql[1:len(execSql)-2]
 							result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,execSql)
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 							varParam:=strings.Replace(assVarArr[0],"SET","",-1)
 							varParam=strings.Replace(varParam," ","",-1)
 							varParam=strings.Replace(varParam,"/*ASS_VAR*/","",-1)
@@ -1146,7 +1147,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 							}
 							//
 							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,assVarArr[1])
-							fmt.Printf("errorMessage=",errorMessage)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 							if len(result)>0{
 								for _,item:=range intoArr{
 									value:=result[0][strings.Trim(item," ")]
@@ -1163,7 +1164,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
 						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
 						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
-						fmt.Printf("sync_handle-result=",result," errorMessage=",errorMessage)
+						lib.Logger.Infof("sync_handle-result=",result," errorMessage=",errorMessage)
 					}
 					//  返回类型  /*RETURN_HANDLE*/
 					if strings.Contains(itemScript,"/*RETURN_HANDLE*/"){
@@ -1197,7 +1198,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperateMap map[string]interface{},extendMap map[string]interface{},conditionFieldKeyValue string){
 	//tx,err:=api.Connection().Begin()
 	//fmt.Print("//tx-error",err)
-	fmt.Printf("item=",item)
+	lib.Logger.Infof("item=",item)
 	credit_level_model_id:=item["credit_level_model_id"].(string)
 	var pre_operate_func string
 
@@ -1234,7 +1235,7 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 		}
 	}else if len(second_level_norm_arr)>1{
 		// 如果二级指标有多个字段参与计算
-		//fmt.Printf("judge_type=",judge_type," judge_content=",judge_content)
+		//lib.Logger.Infof("judge_type=",judge_type," judge_content=",judge_content)
 		var paramStr string
 		for index,item:=range second_level_norm_arr{
 			if index==(len(second_level_norm_arr)-1){
@@ -1253,11 +1254,11 @@ func CallLevel(api adapter.IDatabaseAPI,item map[string]interface{},extraOperate
 
 	}
 
-	//fmt.Printf("errorMessage=",errorMessage)
+	//lib.Logger.Error("errorMessage=%s",errorMessage)
 	operate_func_sql:="select "+operate_func+"('"+result+"','"+conditionFieldKeyValue+"','"+credit_level_model_id+"') as result;"
 	result1,errorMessage:=api.ExecFuncForOne(operate_func_sql,"result")
 
-	fmt.Printf("result1,errorMesssage",result1,errorMessage)
+	lib.Logger.Infof("result1,errorMesssage",result1,errorMessage)
 
 }
 func CallFunc(api adapter.IDatabaseAPI,calculate_field string,calculate_func string,paramStr string,asyncObjectMap map[string]interface{})(map[string]interface{}){
@@ -1286,9 +1287,9 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 	//	asyncObjectMap=BuildMapFromBody(conditionFiledArr,masterInfoMap,asyncObjectMap)
 	//asyncObjectMap=BuildMapFromBody(conditionFiledArr1,slave,asyncObjectMap)
 	//slave["subject_key_pre"]=slave["subject_key"]
-	////fmt.Printf("operate_table",operate_table)
-	//fmt.Printf("calculate_field",calculate_field)
-	//fmt.Printf("calculate_func",calculate_func)
+	////lib.Logger.Infof("operate_table",operate_table)
+	//lib.Logger.Infof("calculate_field",calculate_field)
+	//lib.Logger.Infof("calculate_func",calculate_func)
 
 	paramsMap:=make(map[string]interface{})
 	// funcParamFields
@@ -1318,7 +1319,7 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 			if errorMessage!=nil{
 				//tx.Rollback()
 			}
-			fmt.Printf("operate_func_sql-result",result)
+			lib.Logger.Infof("operate_func_sql-result",result)
 		}
 
 
@@ -1350,9 +1351,9 @@ func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []
 		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
 	}
 
-	fmt.Printf("operateScipt=", operateScipt)
+	lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
-	fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+	lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 	return
 }
 func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result string,errorMessage *ErrorMessage){
@@ -1362,9 +1363,9 @@ func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr [
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"$"+k,InterToStr(v),-1)
 	}
-	fmt.Printf("operateScipt=", operateScipt)
+	lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
-	fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+	lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 	return
 }
 
@@ -1375,8 +1376,8 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"$"+k,InterToStr(v),-1)
 	}
-	fmt.Printf("operateScipt=", operateScipt)
+	lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecSql(operateScipt)
-	fmt.Printf("result=,", result,"errorMessage=",errorMessage,)
+	lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 	return
 }

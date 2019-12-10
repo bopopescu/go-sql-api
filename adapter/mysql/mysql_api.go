@@ -90,8 +90,10 @@ func (api *MysqlAPI) GetDatabaseMetadataWithView() *DataBaseMetadata {
 			//api := mysql.NewMysqlAPI(main.connectionStr, main.useInformationSchema)
 			option := QueryOption{Wheres: wMap, Table: "view_config"}
 			data, errorMessage := api.Select(option)
-			fmt.Printf("data", data)
-			fmt.Printf("errorMessage", errorMessage)
+			if errorMessage!=nil{
+				lib.Logger.Error("errorMessage=%s", errorMessage)
+			}
+
 			for _,view:=range data {
 				t.Comment = view["view_des"].(string)
 			}
@@ -132,8 +134,8 @@ func (api *MysqlAPI) GetDatabaseTableMetadata(tableName string) *TableMetadata {
 				option := QueryOption{Wheres: wMap, Table: "view_detail_config"}
 				if item.Comment==""{
 					dataDetail, errorMessage := api.Select(option)
-					fmt.Printf("dataDetail", dataDetail)
-					fmt.Printf("errorMessage", errorMessage)
+					lib.Logger.Infof("dataDetail", dataDetail)
+					lib.Logger.Error("errorMessage=%s", errorMessage)
 					var viewColumnComment string
 					for _,view:=range dataDetail {
 						viewColumnComment = view["column_comment"].(string)
@@ -323,7 +325,7 @@ func (api *MysqlAPI) query(sql string, args ...interface{}) (rs []map[string]int
 	//sql="SELECT `user_id`, `SUM(account_log`.`account_funds) as totalFunds` FROM `account_log`"
 //	stmt,error:=api.connection.Prepare(sql)
   //  rows0,error:=stmt.Query(sql)
-//	fmt.Printf("rows1",rows0,error)
+//	lib.Logger.Infof("rows1",rows0,error)
 	rows, err := api.connection.Query(sql, args...)
 	if err != nil {
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
@@ -430,7 +432,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	masterTableInfo:=obj["masterTableInfo"]
 
 	slaveTableInfo:=obj["slaveTableInfo"].(string)
-	fmt.Printf("masterTableInfo=",masterTableInfo)
+	lib.Logger.Infof("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
 	slaveMetaData:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
@@ -444,7 +446,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 	if errorMessage!=nil{
-		fmt.Printf("err=",errorMessage)
+		lib.Logger.Infof("err=",errorMessage)
 	}
 	//
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
@@ -479,7 +481,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 					if slave[slavePriKey] != nil {
 						slavePriId = slave[slavePriKey].(string)
 					}
-					fmt.Printf("slavePriId-key==", slavePriKey)
+					lib.Logger.Infof("slavePriId-key==", slavePriKey)
 					break; //取第一个主键
 				}
 			}
@@ -492,7 +494,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 		if slavePriId == "" {
 			slavePriId = uuid.String()
 		}
-		fmt.Printf("slavePriId====", slavePriId)
+		lib.Logger.Infof("slavePriId====", slavePriId)
 		masterInfoMap[slavePriKey] = slavePriId
 	}
 		
@@ -515,10 +517,10 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	masterInfoMap[masterPriKey]=masterId
 
 	if errorMessage!=nil{
-		fmt.Printf("err=",errorMessage)
+		lib.Logger.Infof("err=",errorMessage)
 	}
-	fmt.Printf("slaveTableName",slaveTableName)
-	fmt.Printf("slaveInfoMap",slaveInfoMap)
+	lib.Logger.Infof("slaveTableName",slaveTableName)
+	lib.Logger.Infof("slaveInfoMap",slaveInfoMap)
 	var sql string
 	var err error
     if obj["isCreated"]==nil{
@@ -535,7 +537,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 			return 0,masterPriKey,masterId,errorMessage
 		}
-		fmt.Printf("err=",err)
+		lib.Logger.Infof("err=",err)
 	}
 
 
@@ -543,7 +545,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 
-	fmt.Printf("batch-master-err=",errorMessage)
+	lib.Logger.Infof("batch-master-err=",errorMessage)
 	if errorMessage != nil  {
 		// 回滚已经插入的数据
 		api.Delete(masterTableName,masterId,nil)
@@ -556,7 +558,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 	if err != nil {
-		fmt.Printf("batch-master-getrows-err",err)
+		lib.Logger.Infof("batch-master-getrows-err",err)
 		// 回滚已经插入的数据
 		api.Delete(masterTableName,masterId,nil)
 		for e := slaveIds.Front(); e != nil; e = e.Next() {
@@ -581,7 +583,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 				if slave[slavePriKey]!=nil{
 					slavePriId=slave[slavePriKey].(string)
 				}
-				fmt.Printf("slave", slave)
+				lib.Logger.Infof("slave", slave)
 				break; //取第一个主键
 			}
 		}
@@ -600,8 +602,8 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
-		fmt.Printf("get-sql-err=",err)
-		fmt.Printf("slavePriId",slavePriId)
+		lib.Logger.Infof("get-sql-err=",err)
+		lib.Logger.Infof("slavePriId",slavePriId)
 		slaveIds.PushBack(slavePriId)
 
 		if err!=nil{
@@ -616,7 +618,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 			rs,errorMessage=api.exec(sql)
 
 			if errorMessage != nil {
-				fmt.Printf("batch-slave-err",errorMessage)
+				lib.Logger.Infof("batch-slave-err",errorMessage)
 				// 回滚已经插入的数据
 				api.Delete(masterTableName,masterId,nil)
 				for e := slaveIds.Front(); e != nil; e = e.Next() {
@@ -658,9 +660,9 @@ func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string,
 	querOption.Orders=orders
 	rs, errorMessage= api.Select(querOption)
 	if errorMessage!=nil{
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
 	}else{
-		fmt.Printf("rs", rs)
+		lib.Logger.Infof("rs", rs)
 	}
 
 	return rs,errorMessage
@@ -680,7 +682,7 @@ func ObtainDefineLocal(api adapter.IDatabaseAPI,defineId string,value string) (r
 	querOptionLocal := QueryOption{Wheres: whereOptionLocal, Table: "report_diy_cells"}
 
 	rsLocal, errorMessage:= api.Select(querOptionLocal)
-	fmt.Printf("errorMessage=",errorMessage)
+	lib.Logger.Error("errorMessage=%s",errorMessage)
 	for _,item:=range rsLocal{
 		switch item["row"].(type) {
 		case string:
@@ -705,9 +707,9 @@ func SelectOperaInfoByAsyncKey(api adapter.IDatabaseAPI,asyncKey string) (rs []m
 	querOption := QueryOption{Wheres: whereOption, Table: "operate_config"}
 	rs, errorMessage= api.Select(querOption)
 	if errorMessage!=nil{
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
 	}else{
-		fmt.Printf("rs", rs)
+		lib.Logger.Infof("rs", rs)
 	}
 
 	return rs,errorMessage
@@ -727,9 +729,9 @@ func SelectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (r
 	querOption.Orders=orders
 	rs, errorMessage= api.Select(querOption)
 	if errorMessage!=nil{
-		fmt.Printf("errorMessage", errorMessage)
+		lib.Logger.Error("errorMessage=%s", errorMessage)
 	}else{
-		fmt.Printf("rs", rs)
+		lib.Logger.Infof("rs", rs)
 	}
 
 	return rs,errorMessage
@@ -738,10 +740,10 @@ func SelectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (r
 func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(result string,errorMessage *ErrorMessage){
 	rs,errorMessage:= api.ExecFunc(sql)
 	//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-	fmt.Printf("error",errorMessage)
-	fmt.Printf("rs1",rs)
+	lib.Logger.Infof("error",errorMessage)
+	lib.Logger.Infof("rs1",rs)
 	for _,item:=range rs{
-		fmt.Printf("")
+		lib.Logger.Infof("")
 		if item[key]!=nil{
 			result=item[key].(string)
 		}else{
@@ -879,7 +881,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	slaveTableName:=obj["slaveTableName"].(string)
 	masterTableInfo:=obj["masterTableInfo"].(string)
 	slaveTableInfo:=obj["slaveTableInfo"].(string)
-	fmt.Printf("masterTableInfo=",masterTableInfo)
+	lib.Logger.Infof("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
 
@@ -895,16 +897,16 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	}
 	masterInfoMap,errorMessage=Json2map(masterTableInfo)
 	if errorMessage!=nil{
-		fmt.Printf("err=",errorMessage)
+		lib.Logger.Infof("err=",errorMessage)
 	}
 	masterId=masterInfoMap[masterKeyColName].(string)
 	//
 	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
 	if errorMessage!=nil{
-		fmt.Printf("err=",errorMessage)
+		lib.Logger.Infof("err=",errorMessage)
 	}
-	fmt.Printf("slaveTableName",slaveTableName)
-	fmt.Printf("slaveInfoMap",slaveInfoMap)
+	lib.Logger.Infof("slaveTableName",slaveTableName)
+	lib.Logger.Infof("slaveInfoMap",slaveInfoMap)
 	if masterMeta.HaveField("submit_person"){
 		masterInfoMap["submit_person"]=updatePerson
 	}
@@ -916,7 +918,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	}
 
 	rs,errorMessage=api.exec(sql)
-	fmt.Printf("err=",errorMessage)
+	lib.Logger.Infof("err=",errorMessage)
 	if errorMessage != nil  {
 		// 回滚已经插入的数据
 		api.Delete(masterTableName,masterId,nil)
@@ -974,7 +976,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		deleteEdOption.Ids=ids
 		PreEvent(api,slaveTableName,"DELETE",nil,deleteEdOption,"")
 		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
-		fmt.Printf("errorMessage=",errorMessage)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
 	}
 
 	for i, slave := range slaveInfoMap {
@@ -993,7 +995,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			if slave["id"].(string)!=""{
 				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
 				rs,errorMessage=api.exec(updateSql)
-				fmt.Printf("err=",err)
+				lib.Logger.Infof("err=",err)
 			}else{
 				slave["id"]=uuid.NewV4().String()
 				//rs,errorMessage=api.Create(slaveTableName,slave)
@@ -1003,11 +1005,11 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 				var createSlaveMap []map[string]interface{}
 				createSlaveMap=append(createSlaveMap,slave)
 				byte,error:=json.Marshal(createSlaveMap)
-				fmt.Printf("error=",error)
+				lib.Logger.Infof("error=",error)
 				objCreate["slaveTableInfo"]=string(byte[:])
 				objCreate["isCreated"]="1"
 				api.RelatedCreate(operates,objCreate,updatePerson)
-				fmt.Printf("rsCreate=",rs)
+				lib.Logger.Infof("rsCreate=",rs)
 
 			}
 
@@ -1020,15 +1022,15 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			var createSlaveMap []map[string]interface{}
 			createSlaveMap=append(createSlaveMap,slave)
 			byte,error:=json.Marshal(createSlaveMap)
-			fmt.Printf("error=",error)
+			lib.Logger.Infof("error=",error)
 			objCreate["slaveTableInfo"]=string(byte[:])
 			objCreate["isCreated"]="1"
 			api.RelatedCreate(operates,objCreate,updatePerson)
-			fmt.Printf("rsCreate=",rs)
+			lib.Logger.Infof("rsCreate=",rs)
 
 		}
 
-		fmt.Printf("i=",i)
+		lib.Logger.Infof("i=",i)
 		slaveIds.PushBack(slave["id"].(string))
 
 		if err!=nil{
@@ -1055,7 +1057,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 func (api *MysqlAPI) CreateTableStructure(execSql string) (errorMessage *ErrorMessage) {
 	r,error:=api.connection.Exec(execSql)
-	fmt.Printf("result=",r)
+	lib.Logger.Infof("result=",r)
 	if error != nil {
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 			return
