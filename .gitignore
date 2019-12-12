@@ -27,5 +27,4 @@
 *.iml
 /*.docx
 
-*.darwin-amd64
-*.amd64.exe
+*darwin*

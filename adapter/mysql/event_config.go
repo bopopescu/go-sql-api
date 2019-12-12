@@ -621,6 +621,11 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			if operateFunc!=""{
 				var operateFuncSql string
 				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+				paramArr:=strings.Split(params,",")
+				if len(conditionFiledArr)!=len(paramArr){
+					lib.Logger.Error("errorMessage=%s","function "+operateFunc+" params count is not match input")
+					continue
+				}
 				if params!="''"{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
 				}else{
@@ -640,6 +645,11 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			if operateFunc!=""{
 				var operateFuncSql string
 				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+				paramArr:=strings.Split(params,",")
+				if len(conditionFiledArr)!=len(paramArr){
+					lib.Logger.Error("errorMessage=%s","function "+operateFunc+" params count is not match input")
+					continue
+				}
 				if params!="''"{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
 					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
@@ -722,6 +732,11 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 						}
 					}
 					params:=ConcatObjectProperties(conditionFiledArr,item)
+					paramArr:=strings.Split(params,",")
+					if len(conditionFiledArr)!=len(paramArr){
+						lib.Logger.Error("errorMessage=%s","function "+operateFunc+" params count is not match input")
+						continue
+					}
 					if params!="''"{
 						operateFuncSql="select "+operateFunc+"("+params+") as result;"
 					}else{
@@ -1026,6 +1041,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 				}else if len(conditionFiledArr)>0{
 					paramsFunc:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+					paramArr:=strings.Split(paramsFunc,",")
+					if len(conditionFiledArr)!=len(paramArr){
+						lib.Logger.Error("errorMessage=%s","function "+operateFunc+" params count is not match input")
+						continue
+					}
 					if paramsFunc!=""{
 						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
 						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
