@@ -25,23 +25,6 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 	}
 
 	lib.Logger.Error("errorMessage=%s",errorMessage)
-	var operate_condition string
-	var operate_content string
-	var filter_content string
-	var conditionType string
-	var conditionTable string
-	var conditionFileds string
-	var resultFileds string
-	var operate_type string
-
-
-	var filterFunc string
-	var filterFieldKey string
-	//	var actionType string
-
-
-
-	fieldList:=list.New()
 
 	for _,operate:=range operates {
 		var operateCondContentJsonMap map[string]interface{}
@@ -53,6 +36,24 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var resultFieldsArr []string
 		var conditionFiledArr []string
 		var operateScipt string
+		var operate_condition string
+		var operate_content string
+		var filter_content string
+		var conditionType string
+		var conditionTable string
+		var conditionFileds string
+		var resultFileds string
+		var operate_type string
+
+
+		var filterFunc string
+		var filterFieldKey string
+		//	var actionType string
+
+
+
+		fieldList:=list.New()
+
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
@@ -345,30 +346,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	//fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
 	lib.Logger.Error("errorMessage=%s",errorMessage)
-	var operate_condition string
-	var operate_content string
-	var conditionType string
-	var conditionTable string
-	var conditionFileds string
-	var resultFileds string
-	var operate_type string
-	var operate_table string
-	var operateFunc string
-	var priKey string
-	var actionType string
 
-	var actionFiledArrStr string
-
-	var filter_content string
-
-	var filterFiledArrStr string
-	var filterKey string
-	var filterFunc string
-	//	var actionType string
-
-	//var actionFieldsArr [5]string
-
-	fieldList:=list.New()
 	var fields []string
 	for _,operate:=range operates {
 		var conditionFiledArr []string
@@ -379,6 +357,30 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		var operateCondContentJsonMap map[string]interface{}
 		var filterCondContentJsonMap map[string]interface{}
 		var operateScipt string
+		var operate_condition string
+		var operate_content string
+		var conditionType string
+		var conditionTable string
+		var conditionFileds string
+		var resultFileds string
+		var operate_type string
+		var operate_table string
+		var operateFunc string
+		var priKey string
+		var actionType string
+
+		var actionFiledArrStr string
+
+		var filter_content string
+
+		var filterFiledArrStr string
+		var filterKey string
+		var filterFunc string
+		//	var actionType string
+
+		//var actionFieldsArr [5]string
+
+		fieldList:=list.New()
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content=operate["filter_content"].(string)
@@ -787,24 +789,22 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
     //fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
 	lib.Logger.Error("errorMessage=%s",errorMessage)
-	var operate_condition string
-	var operate_content string
-	var filter_content string
-	var conditionTable string
-	var conditionFileds string
-	var resultFileds string
-	var operate_type string
-	var operate_table string
 
-	var filterFunc string
-	var filterFieldKey string
 	//	var actionType string
-	var conditionFiledArr []string
-	var resultFieldsArr []string
 
-	fieldList:=list.New()
 
 	for _,operate:=range operates {
+		var operate_condition string
+		var operate_content string
+		var filter_content string
+		var conditionTable string
+		var conditionFileds string
+		var resultFileds string
+		var operate_type string
+		var operate_table string
+
+		var filterFunc string
+		var filterFieldKey string
 		var operateCondContentJsonMap map[string]interface{}
 		var operateCondJsonMap map[string]interface{}
 		var operateFilterContentJsonMap map[string]interface{}
@@ -812,6 +812,11 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var operateScipt string
 		var operateProcedure string
 		var actionType string
+		var conditionFiledArr []string
+		var resultFieldsArr []string
+
+		fieldList:=list.New()
+
 		//var conditionComplex string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
