@@ -40,18 +40,22 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 
 // Start server
 func (server *MysqlAPIServer) Start(address string) *MysqlAPIServer {
-	server.StartMetadataRefreshCron()
+	server.StartMetadata()
 	server.Logger.Infof("server start at %s", address)
 	server.Logger.Fatal(server.Echo.Start(address))
 	return server
 }
+func (m *MysqlAPIServer) StartMetadata() {
+	m.api.UpdateAPIMetadata()
+	m.Logger.Infof("metadata updated !")
 
+}
 // StartMetadataRefreshCron task
 func (m *MysqlAPIServer) StartMetadataRefreshCron() {
-	c := cron.New()
-	c.AddFunc("@every 5m", func() {
-		m.api.UpdateAPIMetadata()
-		m.Logger.Infof("metadata updated !")
-	})
-	c.Start()
+		c := cron.New()
+		c.AddFunc("@every 5m", func() {
+			m.api.UpdateAPIMetadata()
+			m.Logger.Infof("metadata updated !")
+		})
+		c.Start()
 }
