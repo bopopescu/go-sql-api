@@ -15,8 +15,8 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	metadataPath := spec.PathItem{}
 	patchAsyncPath := spec.PathItem{}
 	patchAsyncBatchPath := spec.PathItem{}
-	patchCreateTablePath := spec.PathItem{}
-	patchCreateTableColumnPath := spec.PathItem{}
+	flushTableBatchPath:=spec.PathItem{}
+
 	patchImportPath := spec.PathItem{}
 	patchFuncPath := spec.PathItem{}
 
@@ -76,98 +76,6 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 	)
 	paths["/api/"+databaseName+"/import/"]=patchImportPath
 
-	patchCreateTableColumnPath.Post=NewOperation(
-		"create table structure",
-		fmt.Sprintf("添加列"),
-		fmt.Sprintf("添加列"),
-
-		[]spec.Parameter{GetParametersFromCreateTableColumn()},
-
-
-		fmt.Sprintf("添加列"),
-		&spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: spec.StringOrArray{"object"},
-			},
-		},
-	)
-	patchCreateTableColumnPath.Put=NewOperation(
-		"create table structure",
-		fmt.Sprintf("修改列"),
-		fmt.Sprintf("修改列"),
-		[]spec.Parameter{GetParametersFromCreateTableColumn()},
-
-
-		fmt.Sprintf("修改列"),
-		&spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: spec.StringOrArray{"object"},
-			},
-		},
-	)
-	patchCreateTableColumnPath.Delete=NewOperation(
-		"create table structure",
-		fmt.Sprintf("删除列"),
-		fmt.Sprintf("删除列"),
-
-		[]spec.Parameter{GetParametersFromCreateTableColumn()},
-
-
-		fmt.Sprintf("删除列"),
-		&spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: spec.StringOrArray{"object"},
-			},
-		},
-	)
-	paths["/api/"+databaseName+"/table/column/"]=patchCreateTableColumnPath
-
-
-	patchCreateTablePath.Post=NewOperation(
-		"create table structure",
-		fmt.Sprintf("创建表结构"),
-		fmt.Sprintf("创建表结构"),
-
-		[]spec.Parameter{GetParametersFromCreateTableStructure()},
-
-
-		fmt.Sprintf("关联表同时插入数据"),
-		&spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: spec.StringOrArray{"object"},
-			},
-		},
-	)
-	// NewQueryParametersForQueryTableStructure(),
-	patchCreateTablePath.Get=NewOperation(
-		"create table structure",
-		fmt.Sprintf("查询表结构"),
-		fmt.Sprintf("查询表结构"),
-
-		NewQueryParametersForQueryTableStructure(),
-
-		fmt.Sprintf("关联表同时插入数据"),
-		&spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: spec.StringOrArray{"object"},
-			},
-		},
-	)
-	patchCreateTablePath.Delete=NewOperation(
-		"create table structure",
-		fmt.Sprintf("删除表结构"),
-		fmt.Sprintf("删除表结构"),
-
-		NewQueryParametersForQueryTableStructure(),
-
-		fmt.Sprintf("删除表结构"),
-		&spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: spec.StringOrArray{"object"},
-			},
-		},
-	)
-	paths["/api/"+databaseName+"/table/"]=patchCreateTablePath
 
 
 	patchAsyncPath.Get=NewOperation(
@@ -200,6 +108,24 @@ func SwaggerPathsFromDatabaseMetadata(meta *DataBaseMetadata) (paths map[string]
 		},
 	)
 	paths["/api/"+databaseName+"/async/batch"]=patchAsyncBatchPath
+
+
+	flushTableBatchPath.Get=NewOperation(
+		"exec flush table structure",
+		fmt.Sprintf("刷新表结构"),
+		fmt.Sprintf("刷新表结构"),
+
+		append([]spec.Parameter{}),
+		fmt.Sprintf("刷新表结构"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"string"},
+			},
+		},
+	)
+	paths["/api/"+databaseName+"/table/flush"]=flushTableBatchPath
+
+
 	clearCachePath.Get=NewOperation(
 		"clear-cache",
 		fmt.Sprintf("清除指定key的缓存"),

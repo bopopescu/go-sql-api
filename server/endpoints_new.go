@@ -67,21 +67,23 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	//手动执行异步任务1
 	s.GET("/api/"+databaseName+"/async/batch", endpointTableAsyncBatch(api,redisHost)).Name = "exec batch async task"
 
+	//手动刷新表结构
+	s.GET("/api/"+databaseName+"/table/flush", endpointTableFlush(api,redisHost)).Name = "exec table flush"
 
-	//创建表
-	s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost)).Name = "create table structure"
-	//查询
-	s.GET("/api/"+databaseName+"/table/", endpointGetMetadataByTable(api)).Name = "query table structure"
-	//查询
-	s.DELETE("/api/"+databaseName+"/table/", endpointDeleteMetadataByTable(api)).Name = "delete table structure"
-
-
-	//添加列
-	s.POST("/api/"+databaseName+"/table/column/", endpointTableColumnCreate(api,redisHost)).Name = "add table column"
-	//修改列
-	s.PUT("/api/"+databaseName+"/table/column/", endpointTableColumnPut(api,redisHost)).Name = "put table column"
-	//删除列
-	s.DELETE("/api/"+databaseName+"/table/column/", endpointTableColumnDelete(api,redisHost)).Name = "delete table column"
+	////创建表
+	//s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost)).Name = "create table structure"
+	////查询
+	//s.GET("/api/"+databaseName+"/table/", endpointGetMetadataByTable(api)).Name = "query table structure"
+	////查询
+	//s.DELETE("/api/"+databaseName+"/table/", endpointDeleteMetadataByTable(api)).Name = "delete table structure"
+	//
+	//
+	////添加列
+	//s.POST("/api/"+databaseName+"/table/column/", endpointTableColumnCreate(api,redisHost)).Name = "add table column"
+	////修改列
+	//s.PUT("/api/"+databaseName+"/table/column/", endpointTableColumnPut(api,redisHost)).Name = "put table column"
+	////删除列
+	//s.DELETE("/api/"+databaseName+"/table/column/", endpointTableColumnDelete(api,redisHost)).Name = "delete table column"
 
 	//导入
 	s.POST("/api/"+databaseName+"/import/", endpointImportData(api,redisHost)).Name = "import data to template"
@@ -2743,6 +2745,15 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		}
        //tx.Commit()
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
+	}
+}
+
+func endpointTableFlush(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		//tx,error:=api.Connection().Begin()
+        api.UpdateAPIMetadata()
+		//tx.Commit()
+		return c.String(http.StatusOK, "flush table structure ok")
 	}
 }
 
