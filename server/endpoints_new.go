@@ -25,7 +25,6 @@ import (
 
 	"github.com/shiyongabc/go-sql-api/adapter/mysql"
 	"time"
-	"github.com/shiyongabc/jwt-go"
 
 	"io"
 	"bytes"
@@ -135,20 +134,14 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		}
 		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST","0")
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",err,error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
-		var userIdJwtStr=""
-		if userIdJwt!=nil{
-			userIdJwtStr=userIdJwt.(string)
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
 		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
 		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreate(operates,payload,userIdJwtStr)
 		// 后置条件处理
 		if errorMessage != nil {
@@ -377,25 +370,21 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			slaveTableName=payload["slaveTableName"].(string)
 		}
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",err,error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
+		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
+
 		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH","0")
 		var option QueryOption
 		option.ExtendedArr=slaveInfoMap
 		option.ExtendedMap=masterTableInfoMap
 		mysql.PreEvent(api,slaveTableName,"PATCH",nil,option,"")
-		var userIdJwtStr=""
-		if userIdJwt!=nil{
-			userIdJwtStr=userIdJwt.(string)
-		}
+
 		rowesAffected, errorMessage := api.RelatedUpdate(operates, payload,userIdJwtStr)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -1882,20 +1871,19 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
 
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
-		lib.Logger.Infof("userIdJwt=",userIdJwt)
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
+		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
+
+		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
         if meta.HaveField("submit_person"){
-			payload["submit_person"]=userIdJwt
-			option.ExtendedMap["submit_person"]=userIdJwt
+			payload["submit_person"]=userIdJwtStr
+			option.ExtendedMap["submit_person"]=userIdJwtStr
 		}
 		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
 		if len(data)>0{
@@ -2097,16 +2085,15 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		defer dst.Close()
 
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		submitPerson:=cl["userId"]
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
+		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		submitPerson:=userIdJwtStr
 
 
 		//copy the uploaded file to the destination file
@@ -2367,8 +2354,8 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 					if tableMeta.HaveField("submit_person"){
 						tableMap["submit_person"]=submitPerson
-						if submitPerson!=nil{
-							importBuffer.WriteString("'"+submitPerson.(string)+"',")
+						if submitPerson!=""{
+							importBuffer.WriteString("'"+submitPerson+"',")
 						}
 
 					}
@@ -2641,19 +2628,18 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		}
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
-		lib.Logger.Infof("userIdJwt=",userIdJwt)
+		lib.Logger.Infof("err=",err)
+
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
+		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
 		if meta.HaveField("update_person"){
-			payload["update_person"]=userIdJwt
+			payload["update_person"]=userIdJwtStr
 		}
 		rs,errorMessage:=api.UpdateBatch(tableName, option.Wheres, payload)
 		//fmt.Print("sql",sql)
@@ -2818,19 +2804,18 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
-		lib.Logger.Infof("userIdJwt=",userIdJwt)
+		lib.Logger.Infof("err=",err)
+
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
+		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
 		if meta.HaveField("update_person"){
-			payload["update_person"]=userIdJwt
+			payload["update_person"]=userIdJwtStr
 		}
 		//修改时不能修改主键值
 		delete(payload, firstPrimaryKey)
@@ -3089,24 +3074,20 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 
 		var totalRowesAffected int64=0
-		var userIdJwt interface{}
-		var cl jwt.MapClaims
+
 		r_msg:=[]string{}
 		cookie,err := c.Request().Cookie("Authorization")
 		lib.Logger.Infof("err=",err)
-		if cookie!=nil {
-			jwtToken:=  cookie.Value;
-			jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-			token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-			lib.Logger.Infof("jwtToken=",err,error)
-			//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-			//  a,error:=  jwt.DecodeSegment(jwtToken)
 
-			//	var cc Claims
-			cl = token.Claims.(jwt.MapClaims)
-			userIdJwt=cl["userId"]
-
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
 		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
+
 
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
@@ -3124,9 +3105,9 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if meta.HaveField("create_time"){
 					recordItem["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 				}
-				userIdJwt:=cl["userId"]
+
 				if meta.HaveField("submit_person"){
-					recordItem["submit_person"]=userIdJwt
+					recordItem["submit_person"]=userIdJwtStr
 				}
 				rs,errorMessage:=api.Create(tableName, recordItem)
 				//fmt.Print("sql",sql)
@@ -3161,7 +3142,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 					recordItem=data[0]
 				}
 				if meta.HaveField("update_person"){
-					recordItem["update_person"]=userIdJwt
+					recordItem["update_person"]=userIdJwtStr
 				}
 				rs, errorMessage := api.Update(tableName,priId, recordItem)
 				// 如果插入失败回滚
@@ -3247,16 +3228,16 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			}
 		}
 		cookie,err := c.Request().Cookie("Authorization")
-		jwtToken:=  cookie.Value;
-		jwtToken= strings.Replace(jwtToken,"bearer%20","",-1)
-		token,error:=  jwt.Parse(jwtToken,mysql.GetValidationKey)
-		lib.Logger.Infof("jwtToken=",err,error)
-		//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
-		//  a,error:=  jwt.DecodeSegment(jwtToken)
-		var cl jwt.MapClaims
-		//	var cc Claims
-		cl = token.Claims.(jwt.MapClaims)
-		userIdJwt:=cl["userId"]
+		lib.Logger.Infof("err=",err)
+
+		if err!=nil{
+			lib.Logger.Infof("err=",err.Error())
+		}
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserId(jwtToken)
 
 
 		var totalRowesAffected int64=0
@@ -3275,7 +3256,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				recordItem["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 			}
 			if meta.HaveField("submit_person"){
-				recordItem["submit_person"]=userIdJwt
+				recordItem["submit_person"]=userIdJwtStr
 			}
 
 			var option QueryOption
@@ -3288,7 +3269,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			_,errorMessage:=api.Create(tableName, recordItem)
 			//fmt.Print("sql",sql)
            //_,error:=tx.Exec(sql)
-           fmt.Print("error",error,errorMessage)
+           fmt.Print("error",errorMessage)
 			//tx.Commit()
 			//_, err := api.Create(tableName, recordItem)
 			savedIds=append(savedIds,recordItem[priKey].(string))
