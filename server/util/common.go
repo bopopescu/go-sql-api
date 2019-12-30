@@ -2,6 +2,7 @@ package util
 
 import (
 	"github.com/shiyongabc/go-sql-api/server/lib"
+	"strconv"
 	"strings"
 	"time"
 	"fmt"
@@ -71,7 +72,7 @@ func GetSnowflakeId() int64 {
 func TypeOf(v interface{}) string {
 	return fmt.Sprintf("%T", v)
 }
-func ObtainUserId(authorization string) string{
+func ObtainUserByToken(authorization string,key string) string{
 	if authorization==""{
 		return ""
 	}
@@ -84,12 +85,19 @@ func ObtainUserId(authorization string) string{
 	var cl jwt.MapClaims
 	//	var cc Claims
 	cl = token.Claims.(jwt.MapClaims)
-	userIdJwt:=cl["userId"]
-	var userIdJwtStr string
-	if userIdJwt!=nil{
-		userIdJwtStr=userIdJwt.(string)
+	userJwt:=cl[key]
+	var userJwtStr string
+	switch userJwt.(type){
+	case string:
+		if userJwt!=nil{
+			userJwtStr=userJwt.(string)
+		}
+	case float64:
+		if userJwt!=nil{
+			userJwtStr=strconv.FormatFloat(userJwt.(float64), 'f', -1, 64)
+		}
 	}
-	return userIdJwtStr
+	return userJwtStr
 }
 func GetValidationKey(*jwt.Token) (interface{}, error) {
 	//return []byte("-----BEGIN PUBLIC KEY-----\n"+

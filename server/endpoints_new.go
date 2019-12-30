@@ -141,7 +141,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreate(operates,payload,userIdJwtStr)
 		// 后置条件处理
 		if errorMessage != nil {
@@ -377,7 +377,7 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
 		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH","0")
 		var option QueryOption
@@ -1878,7 +1878,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
 		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
         if meta.HaveField("submit_person"){
@@ -2092,7 +2092,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 		submitPerson:=userIdJwtStr
 
 
@@ -2637,7 +2637,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwtStr
 		}
@@ -2813,7 +2813,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwtStr
 		}
@@ -3086,7 +3086,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
 
 		for _, record := range payload {
@@ -3237,7 +3237,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if cookie!=nil{
 			jwtToken=  cookie.Value
 		}
-		userIdJwtStr:=util.ObtainUserId(jwtToken)
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
 
 		var totalRowesAffected int64=0

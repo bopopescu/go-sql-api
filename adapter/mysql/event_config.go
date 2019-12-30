@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // 异步任务
@@ -31,9 +32,11 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 		var operateFilterContentJsonMap map[string]interface{}
 		var operateFunc string
+		var operateFunc1 string
 		var operateProcedure string
 		var resultFieldsArr []string
 		var conditionFiledArr []string
+		var conditionFiledArr1 []string
 		var operateScipt string
 		var operate_condition string
 		var operate_content string
@@ -41,9 +44,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var conditionType string
 		var conditionTable string
 		var conditionFileds string
+		var conditionFileds1 string
 		var resultFileds string
 		var operate_type string
-
+		var operate_table string
 
 		var filterFunc string
 		var filterFieldKey string
@@ -68,7 +72,9 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if operateCondJsonMap["conditionFields"]!=nil{
 				conditionFileds=operateCondJsonMap["conditionFields"].(string)
 			}
-
+			if operateCondJsonMap["conditionFields1"]!=nil{
+				conditionFileds1=operateCondJsonMap["conditionFields1"].(string)
+			}
 			if operateCondJsonMap["resultFields"]!=nil{
 				resultFileds=operateCondJsonMap["resultFields"].(string)
 			}
@@ -77,6 +83,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}
 
 			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+			json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
 			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
 		}
 		if(operate_content!=""){
@@ -111,6 +118,15 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 			lib.Logger.Infof("operateFunc=",operateFunc)
+		}
+		if operateCondContentJsonMap["operate_func1"]!=nil{
+			operateFunc1=operateCondContentJsonMap["operate_func1"].(string)
+			lib.Logger.Infof("operate_func1=",operateFunc1)
+		}
+		// operate_table
+		if operateCondContentJsonMap["operate_table"]!=nil{
+			operate_table=operateCondContentJsonMap["operate_table"].(string)
+			lib.Logger.Infof("operate_table=",operate_table)
 		}
 		// operateProcedure
 		if operateCondContentJsonMap["operate_procedure"]!=nil{
@@ -327,6 +343,76 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				if result!="" && conditionFieldKey!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
+			}
+
+		}
+		if "PUSH_MES"==operate_type{
+			client := &http.Client{}
+			var title string
+			var content string
+			var userIds string
+			var msgType int
+			if operateCondContentJsonMap["msg_type"]!=nil{
+				msgType=operateCondContentJsonMap["msg_type"].(int)
+				lib.Logger.Infof("msgType=",msgType)
+			}
+			if operateCondContentJsonMap["title"]!=nil{
+				title=operateCondContentJsonMap["title"].(string)
+				lib.Logger.Infof("title=",title)
+			}
+			// 构造请求参数
+			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+			contentParam:=ConcatObjectProperties(conditionFiledArr1,option.ExtendedMap)
+			if operateFunc!=""&&userIdsParam!=""{
+				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+");"
+				userIds,errorMessage=api.ExecFuncForOne(userIdsFuncSql,"result")
+				lib.Logger.Infof("userIds=",userIds)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
+				errorMessage=errorMessage
+
+			}
+			if operateFunc1!=""&&contentParam!=""{
+				conctentFuncSql:="select "+operateFunc1+"("+contentParam+");"
+				content,errorMessage=api.ExecFuncForOne(conctentFuncSql,"result")
+				lib.Logger.Infof("content=",content)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
+				errorMessage=errorMessage
+
+			}
+			pushParamMap:=make(map[string]interface{})
+			pushParamMap["senderId"]=1
+			pushParamMap["senderName"]="SYSTEM"
+			pushParamMap["userIds"]=userIds
+			pushParamMap["msgType"]=msgType
+			pushParamMap["title"]=title
+			pushParamMap["content"]=content
+			pushParamMap["timestamp"]=time.Now().Format("2006-01-02 15:04:05")
+			pushParamMapBytes,err:=json.Marshal(pushParamMap)
+			fmt.Print("err",err)
+			reqest, err := http.NewRequest("POST", operate_table, bytes.NewBuffer(pushParamMapBytes))
+			if option.Authorization==""{
+				fmt.Println("authorization is null")
+				continue
+			}
+			//增加header选项
+			reqest.Header.Set("Cookie", option.Authorization)
+			reqest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+			reqest.Header.Set("Accept", "application/json, text/plain, */*")
+			reqest.Header.Set("Content-type", "application/json")
+			if err != nil {
+				panic(err)
+			}
+			//处理返回结果
+			response, _ := client.Do(reqest)
+			fmt.Print("response", response)
+			var resultMap map[string]interface{}
+			if response.StatusCode == 200 {
+				body, _ := ioutil.ReadAll(response.Body)
+				json.Unmarshal(body, &resultMap)
+				fmt.Println("responseBody",string(body))
+
+			}else{
+				// errorMessage.ErrorDescription="api remote error"
 			}
 
 		}
@@ -798,6 +884,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var filter_content string
 		var conditionTable string
 		var conditionFileds string
+		var conditionFileds1 string
 		var resultFileds string
 		var operate_type string
 		var operate_table string
@@ -808,10 +895,12 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		var operateCondJsonMap map[string]interface{}
 		var operateFilterContentJsonMap map[string]interface{}
 		var operateFunc string
+		var operateFunc1 string
 		var operateScipt string
 		var operateProcedure string
 		var actionType string
 		var conditionFiledArr []string
+		var conditionFiledArr1 []string
 		var resultFieldsArr []string
 
 		fieldList:=list.New()
@@ -828,7 +917,9 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			if operateCondJsonMap["conditionFields"]!=nil{
 				conditionFileds=operateCondJsonMap["conditionFields"].(string)
 			}
-
+			if operateCondJsonMap["conditionFields1"]!=nil{
+				conditionFileds1=operateCondJsonMap["conditionFields1"].(string)
+			}
 			if operateCondJsonMap["resultFields"]!=nil{
 				resultFileds=operateCondJsonMap["resultFields"].(string)
 			}
@@ -837,6 +928,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 
 			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
+			json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
 			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
 		}
 		if(operate_content!=""){
@@ -876,6 +968,10 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 		if operateCondContentJsonMap["operate_func"]!=nil{
 			operateFunc=operateCondContentJsonMap["operate_func"].(string)
 			lib.Logger.Infof("operateFunc=",operateFunc)
+		}
+		if operateCondContentJsonMap["operate_func1"]!=nil{
+			operateFunc1=operateCondContentJsonMap["operate_func1"].(string)
+			lib.Logger.Infof("operateFunc1=",operateFunc1)
 		}
 // operateProcedure
 		if operateCondContentJsonMap["operate_procedure"]!=nil{
@@ -1208,6 +1304,76 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			}
 
 
+
+		}
+		if "PUSH_MES"==operate_type{
+			client := &http.Client{}
+			var title string
+			var content string
+			var userIds string
+			var msgType int
+			if operateCondContentJsonMap["msg_type"]!=nil{
+				msgType=operateCondContentJsonMap["msg_type"].(int)
+				lib.Logger.Infof("msgType=",msgType)
+			}
+			if operateCondContentJsonMap["title"]!=nil{
+				title=operateCondContentJsonMap["title"].(string)
+				lib.Logger.Infof("title=",title)
+			}
+			// 构造请求参数
+			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+			contentParam:=ConcatObjectProperties(conditionFiledArr1,option.ExtendedMap)
+			if operateFunc!=""&&userIdsParam!=""{
+				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+");"
+				userIds,errorMessage=api.ExecFuncForOne(userIdsFuncSql,"result")
+				lib.Logger.Infof("userIds=",userIds)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
+				errorMessage=errorMessage
+
+			}
+			if operateFunc1!=""&&contentParam!=""{
+				conctentFuncSql:="select "+operateFunc1+"("+contentParam+");"
+				content,errorMessage=api.ExecFuncForOne(conctentFuncSql,"result")
+				lib.Logger.Infof("content=",content)
+				lib.Logger.Error("errorMessage=%s",errorMessage)
+				errorMessage=errorMessage
+
+			}
+			pushParamMap:=make(map[string]interface{})
+			pushParamMap["senderId"]=1
+			pushParamMap["senderName"]="SYSTEM"
+			pushParamMap["userIds"]=userIds
+			pushParamMap["msgType"]=msgType
+			pushParamMap["title"]=title
+			pushParamMap["content"]=content
+			pushParamMap["timestamp"]=time.Now().Format("2006-01-02 15:04:05")
+			pushParamMapBytes,err:=json.Marshal(pushParamMap)
+			fmt.Print("err",err)
+			reqest, err := http.NewRequest("POST", operate_table, bytes.NewBuffer(pushParamMapBytes))
+			if option.Authorization==""{
+				fmt.Println("authorization is null")
+				continue
+			}
+			//增加header选项
+			reqest.Header.Set("Cookie", option.Authorization)
+			reqest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+			reqest.Header.Set("Accept", "application/json, text/plain, */*")
+			reqest.Header.Set("Content-type", "application/json")
+			if err != nil {
+				panic(err)
+			}
+			//处理返回结果
+			response, _ := client.Do(reqest)
+			fmt.Print("response", response)
+			var resultMap map[string]interface{}
+			if response.StatusCode == 200 {
+				body, _ := ioutil.ReadAll(response.Body)
+				json.Unmarshal(body, &resultMap)
+				fmt.Println("responseBody",string(body))
+
+			}else{
+				// errorMessage.ErrorDescription="api remote error"
+			}
 
 		}
 // limit
