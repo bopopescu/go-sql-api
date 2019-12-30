@@ -352,9 +352,13 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			var content string
 			var userIds string
 			var msgType int
+			var err error
 			if operateCondContentJsonMap["msg_type"]!=nil{
-				msgType=operateCondContentJsonMap["msg_type"].(int)
+				msgType, err = strconv.Atoi(operateCondContentJsonMap["msg_type"].(string))
 				lib.Logger.Infof("msgType=",msgType)
+				if err!=nil{
+					lib.Logger.Infof("err=",err.Error())
+				}
 			}
 			if operateCondContentJsonMap["title"]!=nil{
 				title=operateCondContentJsonMap["title"].(string)
@@ -1312,9 +1316,13 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			var content string
 			var userIds string
 			var msgType int
+			var err error
 			if operateCondContentJsonMap["msg_type"]!=nil{
-				msgType=operateCondContentJsonMap["msg_type"].(int)
+				msgType, err = strconv.Atoi(operateCondContentJsonMap["msg_type"].(string))
 				lib.Logger.Infof("msgType=",msgType)
+				if err!=nil{
+					lib.Logger.Infof("err=",err.Error())
+				}
 			}
 			if operateCondContentJsonMap["title"]!=nil{
 				title=operateCondContentJsonMap["title"].(string)
