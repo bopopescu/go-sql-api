@@ -368,7 +368,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 			contentParam:=ConcatObjectProperties(conditionFiledArr1,option.ExtendedMap)
 			if operateFunc!=""&&userIdsParam!=""{
-				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+");"
+				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+") as result;"
 				userIds,errorMessage=api.ExecFuncForOne(userIdsFuncSql,"result")
 				lib.Logger.Infof("userIds=",userIds)
 				lib.Logger.Error("errorMessage=%s",errorMessage)
@@ -376,7 +376,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 			}
 			if operateFunc1!=""&&contentParam!=""{
-				conctentFuncSql:="select "+operateFunc1+"("+contentParam+");"
+				conctentFuncSql:="select "+operateFunc1+"("+contentParam+") as result;"
 				content,errorMessage=api.ExecFuncForOne(conctentFuncSql,"result")
 				lib.Logger.Infof("content=",content)
 				lib.Logger.Error("errorMessage=%s",errorMessage)
@@ -1332,7 +1332,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 			contentParam:=ConcatObjectProperties(conditionFiledArr1,option.ExtendedMap)
 			if operateFunc!=""&&userIdsParam!=""{
-				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+");"
+				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+") as result;"
 				userIds,errorMessage=api.ExecFuncForOne(userIdsFuncSql,"result")
 				lib.Logger.Infof("userIds=",userIds)
 				lib.Logger.Error("errorMessage=%s",errorMessage)
@@ -1340,7 +1340,7 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 
 			}
 			if operateFunc1!=""&&contentParam!=""{
-				conctentFuncSql:="select "+operateFunc1+"("+contentParam+");"
+				conctentFuncSql:="select "+operateFunc1+"("+contentParam+") as result;"
 				content,errorMessage=api.ExecFuncForOne(conctentFuncSql,"result")
 				lib.Logger.Infof("content=",content)
 				lib.Logger.Error("errorMessage=%s",errorMessage)
