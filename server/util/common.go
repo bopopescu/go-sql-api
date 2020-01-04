@@ -99,6 +99,22 @@ func ObtainUserByToken(authorization string,key string) string{
 	}
 	return userJwtStr
 }
+func GetBetweenStr(str, start, end string) string {
+	n := strings.Index(str, start)
+	if n == -1 {
+		n = 0
+	}
+	str = string([]byte(str)[n:])
+	m := strings.Index(str, end)
+	if m == -1 {
+		m = len(str)
+	}
+	str = string([]byte(str)[:m])
+	if strings.Contains(str,start){
+		return strings.Replace(str,start,"",-1)
+	}
+	return str
+}
 func GetValidationKey(*jwt.Token) (interface{}, error) {
 	//return []byte("-----BEGIN PUBLIC KEY-----\n"+
 	//"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgNyqMbehSVf5AxAVO+v/K3FmgkvwKeI0VcySCDjl/Lag55EuOxBWUPLKBu/ujnpK34mohr0uhPn/UhawNuXM96zz1wKEFUqE8F9Srwg/V2o+Ugl8ZuCQxtSpCVVwc+RfpL60Y5zWYlrYO2JTmCIhfZ9cG4NzE0n/TV6PHeVsjpucFiMcUD+V6nHDSzuXCOVnp1UIuaf8cL3y1EXDanndYeABeOt2xg3elXLNO5VGJTKfhstbfn/YspdBScA7tGR5uQ4upHD4pIg6OxCyTs27DvnIAQMdQ+OnMJR02e4gC1eDw//txsw/y2UcsZFthfK77lvACPySBukiK+C0qjLBfj9QIDAQAB\n"+
@@ -109,4 +125,5 @@ func GetValidationKey(*jwt.Token) (interface{}, error) {
 //func main() {
 //	id:=GetSnowflakeId()
 //	fmt.Println(id)
+
 //}

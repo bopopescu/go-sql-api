@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/shiyongabc/go-sql-api/adapter"
 	"github.com/shiyongabc/go-sql-api/server/lib"
+	"github.com/shiyongabc/go-sql-api/server/util"
 	. "github.com/shiyongabc/go-sql-api/types"
 	"io/ioutil"
 	"net/http"
@@ -52,7 +53,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var filterFunc string
 		var filterFieldKey string
 		//	var actionType string
-
+		var actionType string
 
 
 		fieldList:=list.New()
@@ -109,6 +110,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var conditionFieldKey string
 		if operateCondJsonMap["conditionFieldKey"]!=nil{
 			conditionFieldKey=operateCondJsonMap["conditionFieldKey"].(string)
+		}
+		// actionType
+		if operateCondContentJsonMap["action_type"]!=nil{
+			actionType=operateCondContentJsonMap["action_type"].(string)
 		}
 		// operateScipt
 		if operateCondContentJsonMap["operate_script"]!=nil{
@@ -333,17 +338,149 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}
 		}
 		if "EMBED_SCRIPT"==operate_type {
-			if operateScipt!="" {
-				for _,itemField:=range conditionFiledArr{
-					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
-				}
-				lib.Logger.Infof("operateScipt=", operateScipt)
-				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
-				lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
-				if result!="" && conditionFieldKey!=""{
+			// actionType SINGLE_PROCESS   MUTIL_PROCESS   MUTIL_PROCESS_FOR
+			// SINGLE_PROCESS 单条sql处理
+			// MUTIL_PROCESS  多条sql处理 无变量依赖
+			// MUTIL_PROCESS_COMPLEX  多条sql处理  有变量依赖
+
+			if operateScipt==""  {
+				continue
+			}
+			if actionType=="SINGLE_PROCESS"{
+				result,errorMessage:=SingleExec(api,option,conditionFiledArr,operateScipt)
+				if result!="" && conditionFieldKey!="" && errorMessage.ErrorDescription!=""{
 					option.ExtendedMap[conditionFieldKey]=result
 				}
 			}
+			if actionType=="MUTIL_PROCESS"{
+				operateSciptArr:=strings.Split(operateScipt,";")
+				for _,itemScript:=range operateSciptArr{
+					result,errorMessage:=SingleExec(api,option,conditionFiledArr,itemScript)
+					lib.Logger.Infof("result=",result,"errorMessage=",errorMessage)
+				}
+			}
+			if actionType=="MUTIL_PROCESS_COMPLEX"{
+				// 存放script的变量和计算出的值
+				varMap:=make(map[string]interface{})
+				operateSciptArr :=strings.Split(operateScipt,"!!")
+				for _,itemScript:=range operateSciptArr{
+					// 解析itemScript
+					// 解析模块类型 是赋值还还是返回值类型
+					// 判断类型 /*JUDGE*/  for循坏类型 /*FOR_HANDLE*/  while循坏类型 /*WHILE_HANDLE*/  复杂逻辑在一个function里处理(这个方法里没有包含分表的表操作)
+					// 如果有判断类型(判断的同时会有赋值类型和同步类型和返回类型)  这里默认判断nil  单个判断/*JUDGE_SINGLE*/  多个判断且/*JUDGE_AND*/  多个判断或/*JUDGE_OR*/
+					if strings.Contains(itemScript,"/*JUDGE_SINGLE*/"){
+						// /*ASS_VAR*//*JUDE_SINGLE*/$Stest$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);
+						varParam:=util.GetBetweenStr(itemScript,"$S","$E")
+						if varMap[varParam]!=nil && varMap[varParam]!=""{
+							itemScript=strings.Replace(itemScript,"/*JUDGE_SINGLE*/$S"+varParam+"$E","",-1)
+						}else{
+							continue
+						}
+					}
+					if strings.Contains(itemScript,"/*JUDGE_AND*/"){
+						// /*ASS_VAR*//*JUDGE_AND*/$Stest-tt$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);
+						varParamStr:=util.GetBetweenStr(itemScript,"$S","$E")
+						paramArr:=strings.Split(varParamStr,"-")
+						var param0 string
+						var param1 string
+						if len(paramArr)>0{
+							param0=paramArr[0]
+							param1=paramArr[1]
+						}
+						if varMap[param0]!=nil && varMap[param0]!="" && varMap[param1]!=nil && varMap[param1]!=""{
+							itemScript=strings.Replace(itemScript,"/*JUDGE_AND*/$S"+varParamStr+"$E","",-1)
+						}else{
+							continue
+						}
+					}
+					if strings.Contains(itemScript,"/*JUDGE_OR*/"){
+						// /*ASS_VAR*//*JUDGE_OR*/$Stest-tt$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);
+						varParamStr:=util.GetBetweenStr(itemScript,"$S","$E")
+						paramArr:=strings.Split(varParamStr,"-")
+						var param0 string
+						var param1 string
+						if len(paramArr)>0{
+							param0=paramArr[0]
+							param1=paramArr[1]
+						}
+						if (varMap[param0]!=nil && varMap[param0]!="") || (varMap[param1]!=nil && varMap[param1]!=""){
+							itemScript=strings.Replace(itemScript,"/*JUDGE_OR*/$S"+varParamStr+"$E","",-1)
+						}else{
+							continue
+						}
+					}
+
+					if strings.Contains(itemScript,"/*ASS_VAR*/"){
+						// 赋值类型： 一个变量赋值  多个变量赋值
+						assVarArr:=strings.Split(itemScript,"=")
+						if len(assVarArr)>1{
+							execSql:=assVarArr[1]
+							// 去掉第一个字符'('和倒数第二个字符')'
+							execSql=execSql[1:len(execSql)-2]
+							result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,execSql)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							varParam:=strings.Replace(assVarArr[0],"SET","",-1)
+							varParam=strings.Replace(varParam," ","",-1)
+							varParam=strings.Replace(varParam,"/*ASS_VAR*/","",-1)
+							varMap[varParam]=result
+						}
+						assVarArr=strings.Split(itemScript,"INTO")
+						if len(assVarArr)>1 {
+							// INTO 方式赋值
+							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
+							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							intoStr:=assVarArr[1]
+							assVarStr:=strings.Replace(assVarArr[0],"SELECT","",-1)
+							//把into的内容替换成""
+							itemScript=strings.Replace(itemScript,intoStr,"",-1)
+							itemScript=strings.Replace(itemScript,"INTO","",-1)
+							intoArr:=strings.Split(intoStr,",")
+							fieldArr:=strings.Split(assVarStr,",")
+							for i,item:=range intoArr{
+								// 去掉前后空格
+								intoItemTrim:=strings.Trim(item," ")
+								varItemTrim:=strings.Trim(fieldArr[i]," ")
+								itemScript=strings.Replace(itemScript,varItemTrim,intoItemTrim,-1)
+							}
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,assVarArr[1])
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							if len(result)>0{
+								for _,item:=range intoArr{
+									value:=result[0][strings.Trim(item," ")]
+									if value==nil {
+										value=""
+									}
+									varMap[strings.Trim(item," ")]=value
+								}
+							}
+						}
+					}
+
+					//  同步类型/*SYNC_HANDLE*/
+					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
+						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
+						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
+						lib.Logger.Infof("sync_handle-result=",result," errorMessage=",errorMessage)
+					}
+					//  返回类型  /*RETURN_HANDLE*/
+					if strings.Contains(itemScript,"/*RETURN_HANDLE*/"){
+						varParam:=strings.Replace(itemScript,"RETURN","",-1)
+						varParam=strings.Replace(varParam,"(","",-1)
+						varParam=strings.Replace(varParam,");","",-1)
+						if varMap[varParam]!=nil && varMap[varParam]!=""{
+							option.ExtendedMap[conditionFieldKey]=varMap[varParam]
+						}
+					}
+
+
+
+
+
+				}
+			}
+
+
 
 		}
 		if "PUSH_MES"==operate_type{
@@ -1237,7 +1374,51 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					// 解析模块类型 是赋值还还是返回值类型
 					// 判断类型 /*JUDGE*/  for循坏类型 /*FOR_HANDLE*/  while循坏类型 /*WHILE_HANDLE*/  复杂逻辑在一个function里处理(这个方法里没有包含分表的表操作)
 					// 赋值类型 /*ASS_VAR*/  同步类型/*SYNC_HANDLE*/  返回类型  /*RETURN_HANDLE*/
+					// 如果有判断类型(判断的同时会有赋值类型和同步类型和返回类型)  这里默认判断nil  单个判断/*JUDGE_SINGLE*/  多个判断且/*JUDGE_AND*/  多个判断或/*JUDGE_OR*/
+					if strings.Contains(itemScript,"/*JUDGE_SINGLE*/"){
+						// /*ASS_VAR*//*JUDE_SINGLE*/$Stest$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);
+						varParam:=util.GetBetweenStr(itemScript,"$S","$E")
+						if varMap[varParam]!=nil && varMap[varParam]!=""{
+							itemScript=strings.Replace(itemScript,"/*JUDGE_SINGLE*/$S"+varParam+"$E","",-1)
+						}else{
+							continue
+						}
+					}
+					if strings.Contains(itemScript,"/*JUDGE_AND*/"){
+						// /*ASS_VAR*//*JUDGE_AND*/$Stest-tt$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);
+						varParamStr:=util.GetBetweenStr(itemScript,"$S","$E")
+						paramArr:=strings.Split(varParamStr,"-")
+						var param0 string
+						var param1 string
+						if len(paramArr)>0{
+							param0=paramArr[0]
+							param1=paramArr[1]
+						}
+						if varMap[param0]!=nil && varMap[param0]!="" && varMap[param1]!=nil && varMap[param1]!=""{
+							itemScript=strings.Replace(itemScript,"/*JUDGE_AND*/$S"+varParamStr+"$E","",-1)
+						}else{
+							continue
+						}
+					}
+					if strings.Contains(itemScript,"/*JUDGE_OR*/"){
+						// /*ASS_VAR*//*JUDGE_OR*/$Stest-tt$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);
+						varParamStr:=util.GetBetweenStr(itemScript,"$S","$E")
+						paramArr:=strings.Split(varParamStr,"-")
+						var param0 string
+						var param1 string
+						if len(paramArr)>0{
+							param0=paramArr[0]
+							param1=paramArr[1]
+						}
+						if (varMap[param0]!=nil && varMap[param0]!="") || (varMap[param1]!=nil && varMap[param1]!=""){
+							itemScript=strings.Replace(itemScript,"/*JUDGE_OR*/$S"+varParamStr+"$E","",-1)
+						}else{
+							continue
+						}
+					}
+
 					if strings.Contains(itemScript,"/*ASS_VAR*/"){
+
 						// 赋值类型： 一个变量赋值  多个变量赋值
 						assVarArr:=strings.Split(itemScript,"=")
 						if len(assVarArr)>1{
