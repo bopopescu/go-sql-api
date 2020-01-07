@@ -1,23 +1,17 @@
 package util
 
 import (
-	"context"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"github.com/shiyongabc/go-sql-api/server/lib"
-	"golang.org/x/sys/windows"
-	"net"
-	"sort"
+
+	"fmt"
+	"github.com/shiyongabc/jwt-go"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
-	"github.com/shiyongabc/jwt-go"
-	"unsafe"
-	"github.com/StackExchange/wmi"
 )
 
 var (
@@ -34,7 +28,7 @@ func init() {
 
 func SetMachineId(mid int64) {
 	// 把机器 id 左移 12 位,让出 12 位空间给序列号使用
-	mid, _ = strconv.ParseInt(GetPhysicalID(), 10, 64)
+	mid=1111111111
 	machineID = mid << 12
 }
 
@@ -133,141 +127,6 @@ func GetValidationKey(*jwt.Token) (interface{}, error) {
 	//"-----END PUBLIC KEY-----"), nil
 	//return []byte("MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCA3Koxt6FJV/kDEBU76/8rcWaCS/Ap4jRVzJIIOOX8tqDnkS47EFZQ8soG7+6OekrfiaiGvS6E+f9SFrA25cz3rPPXAoQVSoTwX1KvCD9Xaj5SCXxm4JDG1KkJVXBz5F+kvrRjnNZiWtg7YlOYIiF9n1wbg3MTSf9NXo8d5WyOm5wWIxxQP5XqccNLO5cI5WenVQi5p/xwvfLURcNqed1h4AF463bGDd6Vcs07lUYlMp+Gy1t+f9iyl0FJwDu0ZHm5Di6kcPikiDo7ELJOzbsO+cgBAx1D46cwlHTZ7iALV4PBPGzD/LZRyxkW2F8rvuW8AI/JIG6SIr4LSqMsF+P1AgMBAAECggEANrBwMuWCOAR0FE6xFFtWUnOwU8AyzzPHjlph58duJFDF/UFqY3rNh1FjWIpfrmxMdo6PzY9gvOL07zvd0Y657KukWS4iLH8R6IosJ0jSySC4Dk0kVO0dxKTgkKuILEdSKDMfj98yRU/U0W8rlzd1C0Gk77BcGGWhSo7FIqUJ64OVUvwW1BWkwkZ7aXFtYvgcyN1AmMjc8AoJzJdEoBKlAw41/WMESt6QSKWoWziUxdkrmRlUsvwQHfP9c2BZnkxIPhpGDSkIHAeBj47+JC3hsFuqZM5ahwdma9p9ONz/00PrnB5p399mqW2dknzBIg1TRg2xN9DcqNeo07U0AGJLSQKBgQDiUZIH0rzruLtjF33JQDRc963kfgJHGxM9inH3FJVE7NDJHaOyVjaIxRPG5/7RGEYrrJDZE69iP2ohzK6ew7nGbZN7KaKfKY5Vc4egVZcBMubR5+djwjIqHMTcuJgz/Qu17cvF42rUqpBnS2BbWDRj6+TE0zYEjqdsXri+UiXHgwKBgQCRwxTBEEqazkw8+EtV1XPyp5u3Er/sg3T6CVWU7vsGX8l2bpl3CEUXawkkZaffCi5ukR8xnyQnWcD7RHdO3ab6G1sl+49dNRpZyg1fCXfDPtt5Aut3CoCQsFNit1chdHsyUJiGDZo72EP/75Bak2dDENcxYyEsbFSqUH4pywhVJwKBgFp1hivwVKjXXrbdxd4x9nwOV4gTwa9QKCGZ+7Fpnbw997nbSfnXMdb7BsujIRvMWwfL4t2RW7GmbTJzUHyO+OtSEvfQjXqWrpiDI/u3GjNVeCMAUWFzVn+0ng8nDVcCVrLyCFfhbWrxfeR7oVkBaXdi6z6suVOa/Vp4hdk0lnsnAoGAcBPoaWr1coMd6+OfSaiPNw3ZlbM9D8cksv1qaNI5AnW0mvP/3J7nQVJz/SCNK9rQSQQdUDJlwjwpPwsuEd4s/jL6qwH7AlhKoq/SCDlndSFn8GxmUWop4Rczhrwiqv69m7qNDMZ4yXtJDgpOnNaql87jKH5oi5fgofSyjcAn8BECgYEAh5aOvUmVHqz+L9WcdU1DWzUo2JvNgOfkOzsCRFQkQq/NOCFofysccmoKjPieSgr7oOyrBCVsYRi2ZYrUfL6nvKkqSjYV94bjEyZthb53Uv3euQmZQjMpPKHFs4ae1rB7RUBjH6JiCTjyd7iTnKem7s9uR/DVeNjZe1lT6LWKlmY="),nil
 	return []byte("SHA256withRSA"),nil
-}
-func GetPhysicalID() string{
-	var ids []string
-	if guid,err := getMachineGuid(); err != nil{
-		panic(err.Error())
-	}else{
-		ids = append(ids, guid)
-	}
-	if cpuinfo,err := getCPUInfo();err != nil && len(cpuinfo) > 0 {
-		panic(err.Error())
-	}else{
-		ids = append(ids, cpuinfo[0].VendorID+cpuinfo[0].PhysicalID)
-	}
-	if mac,err := getMACAddress();err!=nil{
-		panic(err.Error())
-	}else{
-		ids = append(ids, mac)
-	}
-	sort.Strings(ids)
-	idsstr := strings.Join(ids, "|/|")
-	return GetMd5String(idsstr,true,true)
-}
-
-func getMACAddress() (string, error){
-	netInterfaces, err := net.Interfaces()
-	if err != nil {
-		panic(err.Error())
-	}
-	mac,macerr := "",errors.New("无法获取到正确的MAC地址")
-	for i := 0; i < len(netInterfaces); i++ {
-		//fmt.Println(netInterfaces[i])
-		if (netInterfaces[i].Flags & net.FlagUp) != 0 && (netInterfaces[i].Flags & net.FlagLoopback) == 0{
-			addrs, _ := netInterfaces[i].Addrs()
-			for _, address := range addrs {
-				ipnet, ok := address.(*net.IPNet)
-				//fmt.Println(ipnet.IP)
-				if  ok && ipnet.IP.IsGlobalUnicast() {
-					// 如果IP是全局单拨地址，则返回MAC地址
-					mac = netInterfaces[i].HardwareAddr.String()
-					return mac,nil
-				}
-			}
-		}
-	}
-	return mac,macerr
-}
-
-type cpuInfo struct {
-	CPU        int32    `json:"cpu"`
-	VendorID   string   `json:"vendorId"`
-	PhysicalID string   `json:"physicalId"`
-}
-
-type win32_Processor struct {
-	Manufacturer              string
-	ProcessorID               *string
-}
-
-func getCPUInfo() ([]cpuInfo, error) {
-	var ret []cpuInfo
-	var dst []win32_Processor
-	q := wmi.CreateQuery(&dst, "")
-	fmt.Println(q)
-	if err := wmiQuery(q, &dst); err != nil {
-		return ret, err
-	}
-
-	var procID string
-	for i, l := range dst {
-		procID = ""
-		if l.ProcessorID != nil {
-			procID = *l.ProcessorID
-		}
-
-		cpu := cpuInfo{
-			CPU:        int32(i),
-			VendorID:   l.Manufacturer,
-			PhysicalID: procID,
-		}
-		ret = append(ret, cpu)
-	}
-
-	return ret, nil
-}
-
-// WMIQueryWithContext - wraps wmi.Query with a timed-out context to avoid hanging
-func wmiQuery(query string, dst interface{}, connectServerArgs ...interface{}) error {
-	ctx := context.Background()
-	if _, ok := ctx.Deadline(); !ok {
-		ctxTimeout, cancel := context.WithTimeout(ctx, 3000000000)//超时时间3s
-		defer cancel()
-		ctx = ctxTimeout
-	}
-
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- wmi.Query(query, dst, connectServerArgs...)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-errChan:
-		return err
-	}
-}
-
-func getMachineGuid() (string, error) {
-	// there has been reports of issues on 32bit using golang.org/x/sys/windows/registry, see https://github.com/shirou/gopsutil/pull/312#issuecomment-277422612
-	// for rationale of using windows.RegOpenKeyEx/RegQueryValueEx instead of registry.OpenKey/GetStringValue
-	var h windows.Handle
-	err := windows.RegOpenKeyEx(windows.HKEY_LOCAL_MACHINE, windows.StringToUTF16Ptr(`SOFTWARE\Microsoft\Cryptography`), 0, windows.KEY_READ|windows.KEY_WOW64_64KEY, &h)
-	if err != nil {
-		return "", err
-	}
-	defer windows.RegCloseKey(h)
-
-	const windowsRegBufLen = 74 // len(`{`) + len(`abcdefgh-1234-456789012-123345456671` * 2) + len(`}`) // 2 == bytes/UTF16
-	const uuidLen = 36
-
-	var regBuf [windowsRegBufLen]uint16
-	bufLen := uint32(windowsRegBufLen)
-	var valType uint32
-	err = windows.RegQueryValueEx(h, windows.StringToUTF16Ptr(`MachineGuid`), nil, &valType, (*byte)(unsafe.Pointer(&regBuf[0])), &bufLen)
-	if err != nil {
-		return "", err
-	}
-
-	hostID := windows.UTF16ToString(regBuf[:])
-	hostIDLen := len(hostID)
-	if hostIDLen != uuidLen {
-		return "", fmt.Errorf("HostID incorrect: %q\n", hostID)
-	}
-
-	return hostID, nil
 }
 
 //生成32位md5字串
