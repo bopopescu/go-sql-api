@@ -18,8 +18,12 @@ type cliArgs struct {
 }
 
 func main() {
+	//midStr:=util.GetPhysicalID()
+	//mid, _ := strconv.ParseInt(midStr, 10, 64)
+	//lib.Logger.Infof("mid=",mid)
+	//util.SetMachineId(mid)
 	//priId:=util.GetSnowflakeId()
-	//mysql.InterToStr(priId)
+	//lib.Logger.Infof("priId=",priId)// 6620249942380277761  6620250015394721793  6620250111490420736  6620249522821922816  6620249621635530752  6620249679374319616
     // 定时任务	logPrintCron()
 	//str:=util.GetBetweenStr("/*ASS_VAR*//*JUDE_SINGLE*/$Stest$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);","$S","$E")
 	//println("str",str)

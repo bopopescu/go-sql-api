@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/shiyongabc/go-sql-api/adapter"
 	"github.com/shiyongabc/go-sql-api/server/lib"
+	"github.com/shiyongabc/go-sql-api/server/util"
 	. "github.com/shiyongabc/go-sql-api/types"
 	"gopkg.in/doug-martin/goqu.v4"
 	_ "gopkg.in/doug-martin/goqu.v4/adapters/mysql"
@@ -45,6 +46,10 @@ func NewMysqlAPI(dbURI string, useInformationSchema bool) (api *MysqlAPI) {
 		api.UpdateAPIMetadata()
 		lib.Logger.Infof("retrived metadata from mysql database: %s", api.databaseMetadata.DatabaseName)
 		api.sql = &SQL{goqu.New("mysql", api.connection), api.databaseMetadata}
+
+
+		priId:=util.GetSnowflakeId()
+		lib.Logger.Infof("priId=",priId)
 		return
 	}
 }
