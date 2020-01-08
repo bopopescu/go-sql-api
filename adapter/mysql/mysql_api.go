@@ -881,6 +881,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	var	rs sql.Result
 	var masterId string
 	var masterKeyColName string
+	var slaveKeyColName string
 	slaveIds := list.New()
 	masterTableName:=obj["masterTableName"].(string)
 	slaveTableName:=obj["slaveTableName"].(string)
@@ -894,9 +895,19 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	var primaryColumns []*ColumnMetadata
 	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
 	primaryColumns=masterMeta.GetPrimaryColumns()
+
+	var primaryColumns1 []*ColumnMetadata
+	masterMeta1:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
+	primaryColumns1=masterMeta1.GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			masterKeyColName=col.ColumnName
+			break;//取第一个主键
+		}
+	}
+	for _, col := range primaryColumns1 {
+		if col.Key == "PRI" {
+			slaveKeyColName=col.ColumnName
 			break;//取第一个主键
 		}
 	}
@@ -948,8 +959,8 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	// 查询 被删除id
 	b := bytes.Buffer{}
 	for _, slave := range slaveInfoMap {
-		if slave["id"]!=nil{
-			b.WriteString(slave["id"].(string)+",")
+		if slave[slaveKeyColName]!=nil{
+			b.WriteString(slave[slaveKeyColName].(string)+",")
 		}
 
 	}
@@ -977,10 +988,10 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 	for _,item:=range rr{
 		var ids []string
 		var deleteEdOption QueryOption
-		ids=append(ids,item["id"].(string))
+		ids=append(ids,item[slaveKeyColName].(string))
 		deleteEdOption.Ids=ids
 		PreEvent(api,slaveTableName,"DELETE",nil,deleteEdOption,"")
-		_,errorMessage:=api.Delete(slaveTableName,item["id"],nil)
+		_,errorMessage:=api.Delete(slaveTableName,item[slaveKeyColName],nil)
 		lib.Logger.Error("errorMessage=%s",errorMessage)
 	}
 
@@ -996,13 +1007,13 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 		var updateSql string
 
-		if slave["id"]!=nil{
-			if slave["id"].(string)!=""{
-				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave["id"].(string), slave)
+		if slave[slaveKeyColName]!=nil{
+			if slave[slaveKeyColName].(string)!=""{
+				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave[slaveKeyColName].(string), slave)
 				rs,errorMessage=api.exec(updateSql)
 				lib.Logger.Infof("err=",err)
 			}else{
-				slave["id"]=uuid.NewV4().String()
+				slave[slaveKeyColName]=uuid.NewV4().String()
 				//rs,errorMessage=api.Create(slaveTableName,slave)
 
 				objCreate:=make(map[string]interface{})
@@ -1019,7 +1030,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 			}
 
 		}else{
-			slave["id"]=uuid.NewV4().String()
+			slave[slaveKeyColName]=uuid.NewV4().String()
 			//rs,errorMessage=api.Create(slaveTableName,slave)
 
 			objCreate:=make(map[string]interface{})
