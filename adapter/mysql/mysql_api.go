@@ -1047,7 +1047,7 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 		}
 
 		lib.Logger.Infof("i=",i)
-		slaveIds.PushBack(slave["id"].(string))
+		slaveIds.PushBack(slave[slaveKeyColName].(string))
 
 		if err!=nil{
 			// 回滚已经插入的数据
