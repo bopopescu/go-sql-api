@@ -2,7 +2,7 @@ package util
 
 import (
 	"crypto/md5"
-	"crypto/rand"
+	"math/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"github.com/shiyongabc/go-sql-api/server/lib"
@@ -28,7 +28,7 @@ func init() {
 
 func SetMachineId(mid int64) {
 	// 把机器 id 左移 12 位,让出 12 位空间给序列号使用
-	mid=1111111111
+	mid=rand.Int63n(10)
 	machineID = mid << 12
 }
 
@@ -65,7 +65,7 @@ func GetSnowflakeId() int64 {
 		// 机器 id 占用10位空间,序列号占用12位空间,所以左移 22 位; 经过上面的并操作,左移后的第 1 位,必然是 0
 		rightBinValue <<= 22
 		id := rightBinValue | machineID | sn
-		return id
+		return id+rand.Int63n(10)
 	}
 
 

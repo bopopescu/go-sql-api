@@ -411,49 +411,114 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 					}
 
 					if strings.Contains(itemScript,"/*ASS_VAR*/"){
+						itemScript=strings.Replace(itemScript,"/*ASS_VAR*/","",-1)
 						// 赋值类型： 一个变量赋值  多个变量赋值
-						assVarArr:=strings.Split(itemScript,"=")
-						if len(assVarArr)>1{
-							execSql:=assVarArr[1]
-							// 去掉第一个字符'('和倒数第二个字符')'
-							execSql=execSql[1:len(execSql)-2]
-							result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,execSql)
-							lib.Logger.Error("errorMessage=%s",errorMessage)
-							varParam:=strings.Replace(assVarArr[0],"SET","",-1)
-							varParam=strings.Replace(varParam," ","",-1)
-							varParam=strings.Replace(varParam,"/*ASS_VAR*/","",-1)
-							varMap[varParam]=result
-						}
-						assVarArr=strings.Split(itemScript,"INTO")
+
+
+						assVarArr:=strings.Split(itemScript,"INTO")
 						if len(assVarArr)>1 {
 							// INTO 方式赋值
 							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
 							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							var execSql  strings.Builder
+							execSql.WriteString("SELECT ")
 							intoStr:=assVarArr[1]
 							assVarStr:=strings.Replace(assVarArr[0],"SELECT","",-1)
-							//把into的内容替换成""
-							itemScript=strings.Replace(itemScript,intoStr,"",-1)
-							itemScript=strings.Replace(itemScript,"INTO","",-1)
-							intoArr:=strings.Split(intoStr,",")
+							assVarStr=strings.Trim(assVarStr," ")
 							fieldArr:=strings.Split(assVarStr,",")
+							//取into字段
+
+							fromIndex:=strings.Index(intoStr,"FROM")
+							var endStr string
+							if fromIndex>0{
+								endStr=intoStr[fromIndex:]
+								intoStr=intoStr[:fromIndex]
+							}
+
+							intoArr:=strings.Split(intoStr,",")
+
 							for i,item:=range intoArr{
 								// 去掉前后空格
-								intoItemTrim:=strings.Trim(item," ")
 								varItemTrim:=strings.Trim(fieldArr[i]," ")
-								itemScript=strings.Replace(itemScript,varItemTrim,intoItemTrim,-1)
-							}
-							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,assVarArr[1])
-							lib.Logger.Error("errorMessage=%s",errorMessage)
-							if len(result)>0{
-								for _,item:=range intoArr{
-									value:=result[0][strings.Trim(item," ")]
-									if value==nil {
-										value=""
-									}
-									varMap[strings.Trim(item," ")]=value
+								intoItemTrim:=strings.Trim(item," ")
+								execSql.WriteString(varItemTrim)
+								execSql.WriteString(" as ")
+								execSql.WriteString(intoItemTrim)
+								if i<(len(intoArr)-1){
+									execSql.WriteString(",")
 								}
+
 							}
+							execSql.WriteString(" "+endStr)
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							for _,item:=range intoArr{
+								key:=strings.Trim(item," ")
+								var value string
+								if len(result)>0{
+									value=InterToStr(result[0][key])
+								}else{
+									value=""
+								}
+
+								varMap[key]=value
+							}
+						}
+						if len(assVarArr)==1 {
+							// INTO 方式赋值
+							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
+							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							var execSql  strings.Builder
+							assVarStr:=strings.Replace(assVarArr[0],"SELECT","",-1)
+							fromIndex:=strings.Index(assVarStr,"FROM")
+							assVarStr=assVarStr[0:fromIndex]
+							assVarStr=strings.Trim(assVarStr," ")
+							fieldArr:=strings.Split(assVarStr,",")
+							//取into字段
+
+							execSql.WriteString(itemScript)
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							for _,item:=range fieldArr{
+								key:=strings.Trim(item," ")
+								var value string
+								if len(result)>0{
+									value=InterToStr(result[0][key])
+								}else{
+									value=""
+								}
+
+								varMap[key]=value
+							}
+						}
+					}
+					if strings.Contains(itemScript,"/*ASS_VAR_FROM_FUNCS*/"){
+						itemScript=strings.Replace(itemScript,"/*ASS_VAR_FROM_FUNCS*/","",-1)
+						// 赋值类型： 一个变量赋值  多个变量赋值
+
+						assVarArr:=strings.Split(itemScript,"INTO")
+						if len(assVarArr)>1 {
+							// INTO 方式赋值
+							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
+							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							var execSql  strings.Builder
+							execSql.WriteString(strings.Replace(itemScript,"INTO","AS",-1))
+							intoStr:=assVarArr[1]
+							intoStr=strings.Replace(intoStr,";","",-1)
+							intoStr=strings.Trim(intoStr," ")
+
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							var value string
+							if len(result)>0{
+								value=InterToStr(result[0][intoStr])
+							}else{
+								value=""
+							}
+							varMap[intoStr]=value
 						}
 					}
 
@@ -1418,58 +1483,129 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					}
 
 					if strings.Contains(itemScript,"/*ASS_VAR*/"){
-
+						itemScript=strings.Replace(itemScript,"/*ASS_VAR*/","",-1)
 						// 赋值类型： 一个变量赋值  多个变量赋值
-						assVarArr:=strings.Split(itemScript,"=")
-						if len(assVarArr)>1{
-							execSql:=assVarArr[1]
-							// 去掉第一个字符'('和倒数第二个字符')'
-							execSql=execSql[1:len(execSql)-2]
-							result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,execSql)
-							lib.Logger.Error("errorMessage=%s",errorMessage)
-							varParam:=strings.Replace(assVarArr[0],"SET","",-1)
-							varParam=strings.Replace(varParam," ","",-1)
-							varParam=strings.Replace(varParam,"/*ASS_VAR*/","",-1)
-							varMap[varParam]=result
-						}
-						assVarArr=strings.Split(itemScript,"INTO")
+
+
+						assVarArr:=strings.Split(itemScript,"INTO")
 						if len(assVarArr)>1 {
 							// INTO 方式赋值
 							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
 							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							var execSql  strings.Builder
+							execSql.WriteString("SELECT ")
 							intoStr:=assVarArr[1]
 							assVarStr:=strings.Replace(assVarArr[0],"SELECT","",-1)
-							//把into的内容替换成""
-							itemScript=strings.Replace(itemScript,intoStr,"",-1)
-							itemScript=strings.Replace(itemScript,"INTO","",-1)
-							intoArr:=strings.Split(intoStr,",")
+							assVarStr=strings.Trim(assVarStr," ")
 							fieldArr:=strings.Split(assVarStr,",")
+							//取into字段
+
+							fromIndex:=strings.Index(intoStr,"FROM")
+							var endStr string
+							if fromIndex>0{
+								endStr=intoStr[fromIndex:]
+								intoStr=intoStr[:fromIndex]
+							}
+
+							intoArr:=strings.Split(intoStr,",")
+
 							for i,item:=range intoArr{
 								// 去掉前后空格
-								intoItemTrim:=strings.Trim(item," ")
 								varItemTrim:=strings.Trim(fieldArr[i]," ")
-								itemScript=strings.Replace(itemScript,varItemTrim,intoItemTrim,-1)
+								intoItemTrim:=strings.Trim(item," ")
+								execSql.WriteString(varItemTrim)
+								execSql.WriteString(" as ")
+								execSql.WriteString(intoItemTrim)
+							    if i<(len(intoArr)-1){
+									execSql.WriteString(",")
+								}
+
 							}
+							execSql.WriteString(" "+endStr)
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,assVarArr[1])
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
 							lib.Logger.Error("errorMessage=%s",errorMessage)
-							if len(result)>0{
-								for _,item:=range intoArr{
-									value:=result[0][strings.Trim(item," ")]
-									if value==nil {
+							for _,item:=range intoArr{
+									key:=strings.Trim(item," ")
+									var value string
+									if len(result)>0{
+										value=InterToStr(result[0][key])
+									}else{
 										value=""
 									}
-									varMap[strings.Trim(item," ")]=value
+
+									varMap[key]=value
 								}
 							}
+						if len(assVarArr)==1 {
+							// INTO 方式赋值
+							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
+							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							var execSql  strings.Builder
+							assVarStr:=strings.Replace(assVarArr[0],"SELECT","",-1)
+							fromIndex:=strings.Index(assVarStr,"FROM")
+							assVarStr=assVarStr[0:fromIndex]
+							assVarStr=strings.Trim(assVarStr," ")
+							fieldArr:=strings.Split(assVarStr,",")
+							//取into字段
+
+							execSql.WriteString(itemScript)
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							for _,item:=range fieldArr{
+								key:=strings.Trim(item," ")
+								if strings.Contains(key,"."){
+									key=key[strings.Index(key,"."):]
+								}
+								var value string
+								if len(result)>0{
+									value=InterToStr(result[0][key])
+								}else{
+									value=""
+								}
+
+								varMap[key]=value
+							}
+						}
+						}
+					if strings.Contains(itemScript,"/*ASS_VAR_FROM_FUNCS*/"){
+						itemScript=strings.Replace(itemScript,"/*ASS_VAR_FROM_FUNCS*/","",-1)
+						// 赋值类型： 一个变量赋值  多个变量赋值
+
+						assVarArr:=strings.Split(itemScript,"INTO")
+						if len(assVarArr)>1 {
+							// INTO 方式赋值
+							// SELECT stu_no,project_name into stuNo,projectName from test.stu_score  替换为
+							// SELECT stu_no as stuNo, project_name as projectName from test.stu_score
+							var execSql  strings.Builder
+							execSql.WriteString(strings.Replace(itemScript,"INTO","AS",-1))
+							intoStr:=assVarArr[1]
+							intoStr=strings.Replace(intoStr,";","",-1)
+							intoStr=strings.Trim(intoStr," ")
+
+							//
+							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							lib.Logger.Error("errorMessage=%s",errorMessage)
+							var value string
+							if len(result)>0{
+								value=InterToStr(result[0][intoStr])
+							}else{
+								value=""
+							}
+							varMap[intoStr]=value
 						}
 					}
+
 
 					//  同步类型/*SYNC_HANDLE*/
 					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
 						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
 						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
-						lib.Logger.Infof("sync_handle-result=",result," errorMessage=",errorMessage)
+						if errorMessage!=nil{
+							lib.Logger.Infof("result=",result," errorMessage=",errorMessage)
+						}
+
 					}
 					//  返回类型  /*RETURN_HANDLE*/
 					if strings.Contains(itemScript,"/*RETURN_HANDLE*/"){
@@ -1721,36 +1857,42 @@ func InterToStr(fieldInter interface{})(string){
 
 func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,operateScipt string)(result string,errorMessage *ErrorMessage){
 	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 	}
 
-	lib.Logger.Infof("operateScipt=", operateScipt)
+	//lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
-	lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
+	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 	return
 }
 func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result string,errorMessage *ErrorMessage){
 	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 	}
 	for k,v :=range varMap{
-		operateScipt=strings.Replace(operateScipt,"$"+k,InterToStr(v),-1)
+		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
-	lib.Logger.Infof("operateScipt=", operateScipt)
+	//lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
-	lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
+	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
+	if errorMessage!=nil{
+		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",errorMessage,)
+	}
 	return
 }
 
 func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result []map[string]interface{},errorMessage *ErrorMessage){
 	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 	}
 	for k,v :=range varMap{
-		operateScipt=strings.Replace(operateScipt,"$"+k,InterToStr(v),-1)
+		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
-	lib.Logger.Infof("operateScipt=", operateScipt)
+
 	result,errorMessage=api.ExecSql(operateScipt)
-	lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
+	if errorMessage!=nil{
+		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",errorMessage,)
+	}
+
 	return
 }
