@@ -948,6 +948,7 @@ func SelectOperaInfoByOperateKey(api adapter.IDatabaseAPI,operate_key string) (r
 }
 
 func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(result string,errorMessage *ErrorMessage){
+	lib.Logger.Infof("execSql=",sql)
 	rs,errorMessage:= api.ExecFunc(sql)
 	//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
 	lib.Logger.Infof("error",errorMessage)

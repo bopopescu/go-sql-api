@@ -286,6 +286,21 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 					if errorMessage!=nil{
 						//tx.Rollback()
 					}
+				}else if len(conditionFiledArr)>0{
+					paramsFunc:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+					paramArr:=strings.Split(paramsFunc,",")
+					if len(conditionFiledArr)!=len(paramArr){
+						lib.Logger.Error("errorMessage=%s","function "+operateFunc+" params count is not match input")
+						continue
+					}
+					if paramsFunc!=""{
+						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
+						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
+						lib.Logger.Infof("result=",result)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
+						errorMessage=errorMessage
+
+					}
 				}
 
 
@@ -1362,10 +1377,12 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 					}
 					if paramsFunc!=""{
 						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
-						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-						lib.Logger.Infof("result=",result)
-						lib.Logger.Error("errorMessage=%s",errorMessage)
-						errorMessage=errorMessage
+						result,error:=api.ExecSqlWithTx(operateFuncSql,tx)
+						if error!=nil{
+							lib.Logger.Error("result=%s,error=%s",result,error.Error())
+							errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
+							tx.Rollback()
+						}
 
 					}
 				}
