@@ -2414,7 +2414,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		tx.Commit()
         //  异步任务
 		c1 := make (chan int);
-		go asyncImportBatch(api,templateKey,importBatchNo,c1)
+		go asyncImportBatch(api,templateKey,master_table,importBatchNo,c1)
 		// 清除上传的文件
 		os.Remove("./upload/"+fileHeader.Filename)
 		if errorMessage!=nil{
@@ -2447,8 +2447,8 @@ func convertToFormatDay(excelDaysString string)string {
 	println("resultTime",resultTime)
 	return resultTime
 }
-func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,importBatchNo string,c chan int){
-	tableName:=strings.Replace(templateKey,"_template","",-1)
+func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,tableName string,importBatchNo string,c chan int){
+	//tableName:=strings.Replace(templateKey,"_template","",-1)
 	var optionEvent QueryOption
 	tableMap:=make(map[string]interface{})
 	tableMap["import_batch_no"]=importBatchNo
