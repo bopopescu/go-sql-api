@@ -2406,10 +2406,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 		tableMap:=make(map[string]interface{})
 		tableMap["import_batch_no"]=importBatchNo
 		optionEvent.ExtendedMap=tableMap
-		_,error=mysql.PostEvent(api,tx,master_table,"POST",nil,optionEvent,"")
-		if error!=nil{
+		_,errorMessage=mysql.PostEvent(api,tx,master_table,"POST",nil,optionEvent,"")
+		if errorMessage!=nil{
 			tx.Rollback()
-			return c.String(http.StatusInternalServerError, error.Error())
+			return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
 		}
 		tx.Commit()
         //  异步任务
