@@ -1345,10 +1345,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 						lib.Logger.Error("error=%s",error.Error())
 						errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 						tx.Rollback()
-					}else{
-						tx.Commit()
 					}
-
 
 					//if result!="" && conditionFieldKey!=""{
 					//	option.ExtendedMap[conditionFieldKey]=result
@@ -1613,14 +1610,12 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
 						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
 						//result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
-						result,errorMessage:=ExecWithTx(api,tx,option,conditionFiledArr,varMap,itemScript)
-						if errorMessage!=nil{
-							lib.Logger.Infof("result=",result," errorMessage=",errorMessage)
+						result,error:=ExecWithTx(api,tx,option,conditionFiledArr,varMap,itemScript)
+						if error!=nil{
+							lib.Logger.Infof("result=",result," errorMessage=",error.Error())
+							errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 							tx.Rollback()
-						}else{
-							tx.Commit()
 						}
-
 
 					}
 					//  返回类型  /*RETURN_HANDLE*/
@@ -1919,7 +1914,7 @@ func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,condition
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
-	//lib.Logger.Infof("operateScipt=", operateScipt)
+	lib.Logger.Infof("operateScipt=", operateScipt)
 	//result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 
 	result,error=tx.Exec(operateScipt)

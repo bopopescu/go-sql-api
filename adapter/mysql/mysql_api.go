@@ -181,6 +181,7 @@ func (api *MysqlAPI)ExecSql(sql string) (rs []map[string]interface{},errorMessag
 }
 func (api *MysqlAPI)ExecSqlWithTx(sql string,tx *sql.Tx) (rs sql.Result,error error){
 	//api.exec(sql,params)
+	lib.Logger.Print("execSql=",sql)
 	rs,error=tx.Exec(sql)
 	return
 }
@@ -772,7 +773,6 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interf
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 			return 0,masterPriKey,masterId,errorMessage
 		}else{
-			tx.Commit()
 			masterRowAffect,error=rs.RowsAffected()
 		}
 
@@ -822,11 +822,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interf
 		slaveIds.PushBack(slavePriId)
 
 		if err!=nil{
-			// 回滚已经插入的数据
-			api.Delete(masterTableName,masterId,nil)
-			for e := slaveIds.Front(); e != nil; e = e.Next() {
-				api.Delete(slaveTableName,e.Value,nil)
-			}
+			tx.Rollback()
 			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 			return 0,masterKey,masterId,errorMessage
 		}else{
@@ -840,7 +836,6 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interf
 				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
 				return 0,masterKey,masterId,errorMessage
 			}else{
-				tx.Commit()
 				slaveRowAffect,err=rs.RowsAffected()
 
 			}
