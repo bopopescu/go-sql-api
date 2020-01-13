@@ -114,7 +114,8 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 }
 func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Infof("error=",error)
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName := payload["masterTableName"].(string)
 		slaveTableName := payload["slaveTableName"].(string)
@@ -151,9 +152,11 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		option.ExtendedArr=slaveInfoMap
 		masterTableInfoMap[masterKey]=masterId
 		option.ExtendedMap=masterTableInfoMap
-		dataR,errorMessage:=mysql.PostEvent(api,slaveTableName,"POST",nil,option,redisHost)
+		dataR,errorMessage:=mysql.PostEvent(api,tx,slaveTableName,"POST",nil,option,redisHost)
         if errorMessage!=nil{
-        	// tx.Rollback()
+        	 tx.Rollback()
+		}else{
+			tx.Commit()
 		}
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -203,8 +206,8 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	var count int
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
-		//fmt.Print(error)
+		tx,error:=api.Connection().Begin()
+		fmt.Print(error)
 		payload, errorMessage := bodyMapOf(c)
 		masterTableName:=payload["masterTableName"].(string)
 		slaveTableName:=payload["slaveTableName"].(string)
@@ -310,10 +313,13 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		option.ExtendedMap=masterInfoMap
 
 		// 后置事件
-		mysql.PostEvent(api,slaveTableName,"DELETE",nil,option,"")
+		_,errorMessage=mysql.PostEvent(api,tx,slaveTableName,"DELETE",nil,option,"")
 
 		if errorMessage != nil {
+			tx.Rollback()
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}else {
+			tx.Commit()
 		}
 		cacheKeyPattern:="/api"+"/"+databaseMeta.DatabaseName+"/"+masterTableName+"*"
 		if(redisHost!=""){
@@ -356,6 +362,8 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Error(error)
 		// masterTableName := payload["masterTableName"].(string)
 		slaveTableName := payload["slaveTableName"].(string)
 		slaveTableInfo:=payload["slaveTableInfo"].(string)
@@ -385,12 +393,16 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		option.ExtendedMap=masterTableInfoMap
 		mysql.PreEvent(api,slaveTableName,"PATCH",nil,option,"")
 
-		rowesAffected, errorMessage := api.RelatedUpdate(operates, payload,userIdJwtStr)
+		rowesAffected, errorMessage := api.RelatedUpdateWithTx(tx,operates, payload,userIdJwtStr)
+
 		if errorMessage != nil {
+			tx.Rollback()
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}else{
+			tx.Commit()
 		}
 
-		mysql.PostEvent(api,slaveTableName,"PATCH",nil,option,"")
+		mysql.PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -493,7 +505,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		   isNeedPostEventStr:=rsq["is_need_post_event"].(string)
 		   isNeedCache,err=strconv.Atoi(isNeedCacheStr)
 		   isNeedPostEvent,err=strconv.Atoi(isNeedPostEventStr)
-
+           lib.Logger.Print("isNeedPostEvent=",isNeedPostEvent)
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
@@ -530,10 +542,6 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 
 
-			// 无分页的后置事件
-			if isNeedPostEvent==1{
-				mysql.PostEvent(api,tableName,"GET",data,option,redisHost)
-			}
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
@@ -1818,7 +1826,8 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Error(error)
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -1892,22 +1901,24 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
-		//rs, errorMessage := api.CreateTx(tableName, option.ExtendedMap)
-		rs, errorMessage := api.Create(tableName, option.ExtendedMap)
+		rs, error := api.CreateWithTx(tx,tableName, option.ExtendedMap)
+		//rs, errorMessage := api.Create(tableName, option.ExtendedMap)
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)
 
 		// 后置事件的事物回滚 需要用tx来提交执行
 		//tx.Commit()
-		if errorMessage != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		if error != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,error.Error())
 		}
 		rowesAffected, err := rs.RowsAffected()
 		// 后置事件
-		_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
-       //if errorMessage!=nil{
-	   //    tx.Rollback() // 回滚
-       // }
+		_,errorMessage=mysql.PostEvent(api,tx,tableName,"POST",nil,option,redisHost)
+       if errorMessage!=nil{
+	      tx.Rollback() // 回滚
+       }else{
+       	  tx.Commit()
+	   }
 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
@@ -2071,6 +2082,7 @@ func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context
 
 func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
 		fileHeader,error:=c.FormFile("file")
 		lib.Logger.Infof("error=",error)
 		templateKey:=c.QueryParam(key.IMPORT_TEMPLATE_KEY)
@@ -2379,14 +2391,14 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 			}
 		lib.Logger.Info("import-sql=",importBuffer.String())
-		importRs,errorMessage:=api.ExecSql(importBuffer.String())
-		lib.Logger.Info("importRs=",importRs)
+		rs,error:=api.ExecSqlWithTx(importBuffer.String(),tx)
+		lib.Logger.Info("importRs=",rs)
 		// 同步任务
 		var optionEvent QueryOption
 		tableMap:=make(map[string]interface{})
 		tableMap["import_batch_no"]=importBatchNo
 		optionEvent.ExtendedMap=tableMap
-		mysql.PostEvent(api,master_table,"POST",nil,optionEvent,"")
+		mysql.PostEvent(api,tx,master_table,"POST",nil,optionEvent,"")
         //  异步任务
 		c1 := make (chan int);
 		go asyncImportBatch(api,templateKey,importBatchNo,c1)
@@ -2615,7 +2627,8 @@ func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string) func(c e
 }
 func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Infof("error=",error)
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 
@@ -2641,12 +2654,12 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwtStr
 		}
-		rs,errorMessage:=api.UpdateBatch(tableName, option.Wheres, payload)
+		rs,error:=api.UpdateBatchWithTx(tx,tableName, option.Wheres, payload)
 		//fmt.Print("sql",sql)
         //rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.UpdateBatch(tableName, option.Wheres, payload)
-		if errorMessage != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		if error != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError,error.Error())
 		}
 		rowesAffected, err := rs.RowsAffected()
 		var firstPrimaryKey string
@@ -2695,10 +2708,12 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			}
 			option.ExtendedMap=extendMap
 
-			_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
-			//if errorMessage!=nil{
-			//	tx.Rollback()
-			//}
+			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
+			if errorMessage!=nil{
+				tx.Rollback()
+			}else{
+				tx.Commit()
+			}
 
 		}
 		if err != nil {
@@ -2746,7 +2761,8 @@ func endpointTableFlush(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 
 func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Infof("error",error)
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -2819,13 +2835,17 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 		//修改时不能修改主键值
 		delete(payload, firstPrimaryKey)
-		rs,errorMessage:=api.Update(tableName, id, payload)
+		rs,error:=api.UpdateWithTx(tx,tableName, id, payload)
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)
 		//tx.Commit()
 		//rs, errorMessage := api.Update(tableName, id, payload)
-		if errorMessage != nil {
+		if error != nil {
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
+			tx.Rollback()
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
+		}else{
+			tx.Commit()
 		}
 
 
@@ -2874,10 +2894,12 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			option.ExtendedMap=extendMap
 			option.ExtendedMapSecond=beforeUpdateMap
 
-			_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,"")
-			//if errorMessage!=nil{
-			//	tx.Rollback()
-			//}
+			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
+			if errorMessage!=nil{
+				tx.Rollback()
+			}else {
+				tx.Commit()
+			}
 
 		}
 
@@ -2956,6 +2978,8 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Error("error=",error)
 		tableName := c.Param("table")
 		id := c.Param("id")
 		var option QueryOption
@@ -2995,11 +3019,12 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			break
 		}
 
-        rs,errorMessage:=api.Delete(tableName, id, nil)
+        rs,error:=api.DeleteWithTx(tx,tableName, id, nil)
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)
 		//rs, errorMessage := api.Delete(tableName, id, nil)
-		if errorMessage != nil {
+		if error != nil {
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
 		rowesAffected, err := rs.RowsAffected()
@@ -3008,10 +3033,12 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		}
 		// 后置事件
 
-		_,errorMessage=mysql.PostEvent(api,tableName,"DELETE",nil,option,"")
-		//if errorMessage!=nil{
-		//	tx.Rollback()
-		//}
+		_,errorMessage=mysql.PostEvent(api,tx,tableName,"DELETE",nil,option,"")
+		if errorMessage!=nil{
+			tx.Rollback()
+		}else{
+			tx.Commit()
+		}
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
@@ -3051,8 +3078,8 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 // endpointBatchPut
 func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
-		//fmt.Print("error",error)
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Error("error",error)
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -3109,23 +3136,28 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if meta.HaveField("submit_person"){
 					recordItem["submit_person"]=userIdJwtStr
 				}
-				rs,errorMessage:=api.Create(tableName, recordItem)
+				rs,errorMessage:=api.CreateWithTx(tx,tableName, recordItem)
 				//fmt.Print("sql",sql)
 				//rs,error:=tx.Exec(sql)
 				//fmt.Print("error",error)
 				//rs, errorMessage := api.Create(tableName, recordItem)
 				// 如果插入失败回滚
 				if errorMessage!=nil{
+					tx.Rollback()
 					r_msg=append(r_msg,errorMessage.Error())
 					break;
+				}else{
+					tx.Commit()
 				}
 				rowesAffected, err := rs.RowsAffected()
 				// 后置事件
 				if rowesAffected>0{
-					_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
-					//if errorMessage!=nil{
-					//	tx.Rollback()
-					//}
+					_,errorMessage=mysql.PostEvent(api,tx,tableName,"POST",nil,option,redisHost)
+					if errorMessage!=nil{
+						tx.Rollback()
+					}else{
+						tx.Commit()
+					}
 				}
 
 				if err != nil {
@@ -3144,19 +3176,21 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if meta.HaveField("update_person"){
 					recordItem["update_person"]=userIdJwtStr
 				}
-				rs, errorMessage := api.Update(tableName,priId, recordItem)
+				rs, error := api.UpdateWithTx(tx,tableName,priId, recordItem)
 				// 如果插入失败回滚
-				if errorMessage!=nil{
-					r_msg=append(r_msg,errorMessage.Error())
+				if error!=nil{
+					r_msg=append(r_msg,error.Error())
 					break;
 				}
 				rowesAffected, err := rs.RowsAffected()
 				// 后置事件
 				if rowesAffected>0{
-					_,errorMessage=mysql.PostEvent(api,tableName,"PATCH",nil,option,redisHost)
-					//if errorMessage!=nil{
-					//	tx.Rollback()
-					//}
+					_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,redisHost)
+					if errorMessage!=nil{
+						tx.Rollback()
+					}else{
+						tx.Commit()
+					}
 				}
 
 				if err != nil {
@@ -3208,7 +3242,8 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		//tx,error:=api.Connection().Begin()
+		tx,error:=api.Connection().Begin()
+		lib.Logger.Error(error)
 		payload, errorMessage := bodySliceOf(c)
 		tableName := c.Param("table")
 		if errorMessage != nil {
@@ -3266,7 +3301,13 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			if len(data)>0{
 				recordItem=data[0]
 			}
-			_,errorMessage:=api.Create(tableName, recordItem)
+			_,error:=api.CreateWithTx(tx,tableName, recordItem)
+			if error!=nil{
+				errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
+				tx.Rollback()
+			}else{
+				tx.Commit()
+			}
 			//fmt.Print("sql",sql)
            //_,error:=tx.Exec(sql)
            fmt.Print("error",errorMessage)
@@ -3283,7 +3324,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			}
 
 			// 后置事件
-			_,errorMessage=mysql.PostEvent(api,tableName,"POST",nil,option,redisHost)
+			_,errorMessage=mysql.PostEvent(api,tx,tableName,"POST",nil,option,redisHost)
 			//if errorMessage!=nil{
 			//	tx.Rollback()
 			//}

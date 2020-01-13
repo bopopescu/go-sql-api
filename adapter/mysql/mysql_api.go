@@ -84,7 +84,7 @@ func (api *MysqlAPI) GetDatabaseMetadataWithView() *DataBaseMetadata {
 	for _, t := range meta.Tables {
 		if t.TableType == "VIEW" && t.Comment != "" {
 
-			//
+			//f
 			wMap := map[string]WhereOperation{}
 			wMap["view_name"] = WhereOperation{
 				Operation: "eq",
@@ -178,6 +178,11 @@ func (api *MysqlAPI)ExecFunc(sql string) (rs []map[string]interface{},errorMessa
 func (api *MysqlAPI)ExecSql(sql string) (rs []map[string]interface{},errorMessage *ErrorMessage){
 	//api.exec(sql,params)
 	return api.query(sql)
+}
+func (api *MysqlAPI)ExecSqlWithTx(sql string,tx *sql.Tx) (rs sql.Result,error error){
+	//api.exec(sql,params)
+	rs,error=tx.Exec(sql)
+	return
 }
 // GetConnectionPool which Pool is Singleton Connection Pool
 func (api *MysqlAPI) GetConnectionPool(dbURI string) *sql.DB {
@@ -383,6 +388,11 @@ func (api *MysqlAPI) Create(table string, obj map[string]interface{}) (rs sql.Re
 		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
 	}
 	return api.exec(sql)
+}
+
+func (api *MysqlAPI) CreateWithTx(tx *sql.Tx,table string, obj map[string]interface{}) (rs sql.Result,error error) {
+	sql, error := api.sql.InsertByTable(table, obj)
+	return api.ExecSqlWithTx(sql,tx)
 }
 // Create by Table name and obj map
 func (api *MysqlAPI) CreateSql(table string, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
@@ -643,6 +653,206 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rowAaffect=rowAaffect+masterRowAffect
   return rowAaffect,masterKey,masterId,nil
 }
+func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interface{},obj map[string]interface{},submitPerson string) (rowAffect int64,masterKey string,masterId string,errorMessage *ErrorMessage) {
+
+	var rowAaffect int64
+	var masterRowAffect int64
+	var slaveRowAffect int64
+	var	rs sql.Result
+	var error error
+	//var masterId string
+
+	slaveIds := list.New()
+	masterTableName:=obj["masterTableName"].(string)
+	slaveTableName:=obj["slaveTableName"].(string)
+	masterTableInfo:=obj["masterTableInfo"]
+
+	slaveTableInfo:=obj["slaveTableInfo"].(string)
+	lib.Logger.Infof("masterTableInfo=",masterTableInfo)
+	masterInfoMap:=make(map[string]interface{})
+	var slaveInfoMap []map[string]interface{}
+	slaveMetaData:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
+	//slaveInfoMap:=make([]map[string]interface{})
+	if masterTableInfo!=nil{
+		if masterTableInfo.(string)!=""{
+			masterInfoMap,errorMessage=Json2map(masterTableInfo.(string))
+		}
+
+	}
+
+
+	if errorMessage!=nil{
+		lib.Logger.Infof("err=",errorMessage)
+	}
+	//
+	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
+
+	var primaryColumns []*ColumnMetadata
+	var masterPriKey string
+	var slavePriId string
+	var slavePriKey string
+
+	var primaryColumns1 []*ColumnMetadata
+	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+	slaveMeta:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
+	primaryColumns=masterMeta.GetPrimaryColumns()
+	primaryColumns1=slaveMeta.GetPrimaryColumns()
+	if masterMeta.HaveField("create_time"){
+		masterInfoMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+	}
+
+	if masterMeta.HaveField("submit_person"){
+		masterInfoMap["submit_person"]=submitPerson
+	}
+	// 如果是一对一 且有相互依赖
+	if len(slaveInfoMap)==1 {
+		for _, slave := range slaveInfoMap {
+			if slaveMeta.HaveField("create_time"){
+				slave["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+			}
+			for _, col := range primaryColumns1 {
+				if col.Key == "PRI" {
+					slavePriKey = col.ColumnName
+
+					if slave[slavePriKey] != nil {
+						slavePriId = slave[slavePriKey].(string)
+					}
+					lib.Logger.Infof("slavePriId-key==", slavePriKey)
+					break; //取第一个主键
+				}
+			}
+
+		}
+	}
+	if masterMeta.HaveField(slavePriKey){
+		uuid := uuid.NewV4()
+		//slavePriId=uuid.String()
+		if slavePriId == "" {
+			slavePriId = uuid.String()
+		}
+		lib.Logger.Infof("slavePriId====", slavePriId)
+		masterInfoMap[slavePriKey] = slavePriId
+	}
+
+
+	for _, col := range primaryColumns {
+		if col.Key == "PRI" {
+			masterPriKey=col.ColumnName
+			if masterInfoMap[masterPriKey]==nil || masterInfoMap[masterPriKey]==""{
+				uuid := uuid.NewV4()
+				masterId=uuid.String()
+				masterInfoMap[masterPriKey]=masterId
+			}else{
+				masterId=masterInfoMap[masterPriKey].(string)
+			}
+
+			break;//取第一个主键
+		}
+	}
+	masterKey=masterPriKey
+	masterInfoMap[masterPriKey]=masterId
+
+	if errorMessage!=nil{
+		lib.Logger.Infof("err=",errorMessage)
+	}
+	lib.Logger.Infof("slaveTableName",slaveTableName)
+	lib.Logger.Infof("slaveInfoMap",slaveInfoMap)
+	var sql string
+	if obj["isCreated"]==nil{
+		sql, error = api.sql.InsertByTable(masterTableName, masterInfoMap)
+		rs,error=api.ExecSqlWithTx(sql,tx)
+		if error != nil {
+			tx.Rollback()
+			// 回滚已经插入的数据
+			//	api.Delete(masterTableName,masterId,nil)
+			//	for e := slaveIds.Front(); e != nil; e = e.Next() {
+			//		api.Delete(slaveTableName,e.Value,nil)
+			//	}
+			lib.Logger.Infof("err=",error.Error())
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
+			return 0,masterPriKey,masterId,errorMessage
+		}else{
+			tx.Commit()
+			masterRowAffect,error=rs.RowsAffected()
+		}
+
+	}
+
+
+
+
+
+
+	for _, slave := range slaveInfoMap {
+		if slave["extra_info"]!=nil{
+			slave["extra_info"]=slave["extra_info"]
+			extraBytes,err:=json.Marshal(slave["extra_info"])
+			fmt.Print(err)
+			extraStr:=string(extraBytes[:])
+			slave["extra_info"]=extraStr
+		}
+		for _, col := range primaryColumns1 {
+			if col.Key == "PRI" {
+				slavePriKey = col.ColumnName
+
+				if slave[slavePriKey]!=nil{
+					slavePriId=slave[slavePriKey].(string)
+				}
+				lib.Logger.Infof("slave", slave)
+				break; //取第一个主键
+			}
+		}
+		//设置主键id
+		slave[masterPriKey]=masterId
+		//if slavePriId==""{
+		uuid := uuid.NewV4()
+		slavePriId=uuid.String()
+		slave[slavePriKey]=slavePriId
+		//	}else {
+		//	slave[slavePriKey]=slavePriId
+		//}
+		if slaveMetaData.HaveField("create_time"){
+			slave["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		}
+
+
+		sql, err := api.sql.InsertByTable(slaveTableName, slave)
+		lib.Logger.Infof("get-sql-err=",err)
+		lib.Logger.Infof("slavePriId",slavePriId)
+		slaveIds.PushBack(slavePriId)
+
+		if err!=nil{
+			// 回滚已经插入的数据
+			api.Delete(masterTableName,masterId,nil)
+			for e := slaveIds.Front(); e != nil; e = e.Next() {
+				api.Delete(slaveTableName,e.Value,nil)
+			}
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return 0,masterKey,masterId,errorMessage
+		}else{
+			rs,error:=api.ExecSqlWithTx(sql,tx)
+
+			if error != nil {
+				lib.Logger.Infof("batch-slave-err",error)
+				tx.Rollback()
+
+
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+				return 0,masterKey,masterId,errorMessage
+			}else{
+				tx.Commit()
+				slaveRowAffect,err=rs.RowsAffected()
+
+			}
+			rowAaffect=rowAaffect+slaveRowAffect
+		}
+
+	}
+	rowAaffect=rowAaffect+masterRowAffect
+	return rowAaffect,masterKey,masterId,nil
+}
+
+
 func SelectOperaInfo(api adapter.IDatabaseAPI,tableName string,apiMethod string,isAsyncTask string) (rs []map[string]interface{},errorMessage *ErrorMessage) {
 
 	whereOption := map[string]WhereOperation{}
@@ -1071,6 +1281,207 @@ func (api *MysqlAPI) RelatedUpdate(operates []map[string]interface{},obj map[str
 
 }
 
+func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interface{},obj map[string]interface{},updatePerson string) (rowAffect int64,errorMessage *ErrorMessage) {
+	var rowAaffect int64
+	var masterRowAffect int64
+	var slaveRowAffect int64
+	var	rs sql.Result
+	var masterId string
+	var masterKeyColName string
+	var slaveKeyColName string
+	slaveIds := list.New()
+	masterTableName:=obj["masterTableName"].(string)
+	slaveTableName:=obj["slaveTableName"].(string)
+	masterTableInfo:=obj["masterTableInfo"].(string)
+	slaveTableInfo:=obj["slaveTableInfo"].(string)
+	lib.Logger.Infof("masterTableInfo=",masterTableInfo)
+	masterInfoMap:=make(map[string]interface{})
+	var slaveInfoMap []map[string]interface{}
+
+	//slaveInfoMap:=make([]map[string]interface{})
+	var primaryColumns []*ColumnMetadata
+	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
+	primaryColumns=masterMeta.GetPrimaryColumns()
+
+	var primaryColumns1 []*ColumnMetadata
+	masterMeta1:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
+	primaryColumns1=masterMeta1.GetPrimaryColumns()
+	for _, col := range primaryColumns {
+		if col.Key == "PRI" {
+			masterKeyColName=col.ColumnName
+			break;//取第一个主键
+		}
+	}
+	for _, col := range primaryColumns1 {
+		if col.Key == "PRI" {
+			slaveKeyColName=col.ColumnName
+			break;//取第一个主键
+		}
+	}
+	masterInfoMap,errorMessage=Json2map(masterTableInfo)
+	if errorMessage!=nil{
+		lib.Logger.Infof("err=",errorMessage)
+	}
+	masterId=masterInfoMap[masterKeyColName].(string)
+	//
+	slaveInfoMap,errorMessage=JsonArr2map(slaveTableInfo)
+	if errorMessage!=nil{
+		lib.Logger.Infof("err=",errorMessage)
+	}
+	lib.Logger.Infof("slaveTableName",slaveTableName)
+	lib.Logger.Infof("slaveInfoMap",slaveInfoMap)
+	if masterMeta.HaveField("submit_person"){
+		masterInfoMap["submit_person"]=updatePerson
+	}
+	sql, err := api.sql.UpdateByTableAndId(masterTableName,masterId, masterInfoMap)
+
+	if errorMessage != nil {
+		errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+		return 0,errorMessage
+	}
+
+	rs,error:=api.ExecSqlWithTx(sql,tx)
+	if error != nil  {
+		// 回滚已经插入的数据
+		tx.Rollback()
+		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+error.Error()}
+		return 0,errorMessage
+	}else{
+		tx.Commit()
+	}
+
+	masterRowAffect,err=rs.RowsAffected()
+	if err != nil {
+
+		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+		return 0,errorMessage
+	}
+	//var masterOrderNum int
+	//if masterInfoMap["order_num"]!=nil{
+	//masterOrderNum,_=strconv.Atoi(masterInfoMap["order_num"].(string))
+	//}
+
+	// 查询 被删除id
+	b := bytes.Buffer{}
+	for _, slave := range slaveInfoMap {
+		if slave[slaveKeyColName]!=nil{
+			b.WriteString(slave[slaveKeyColName].(string)+",")
+		}
+
+	}
+	inParams:="'"+strings.Replace(b.String(),",","','",-1)+"'"
+	inParams=strings.Replace(inParams,",''","",-1)
+	inParams=strings.Replace(inParams,"\\'","'",-1)
+	inParams=strings.Replace(inParams,"''","'",-1)
+	inParams=strings.Replace(inParams,"'","",-1)
+	inParams=strings.Replace(inParams,",","','",-1)
+	//  subject_key IN ('102\',\'501'))
+	var queryOption0 QueryOption
+
+	whereOption0:=make(map[string]WhereOperation)
+	whereOption0["id"] = WhereOperation{
+		Operation: "notIn",
+		Value:     inParams,
+	}
+	whereOption0[masterKeyColName] = WhereOperation{
+		Operation: "eq",
+		Value:     masterInfoMap[masterKeyColName],
+	}
+	queryOption0.Wheres=whereOption0
+	queryOption0.Table=slaveTableName
+	rr,errorMessage:=api.Select(queryOption0)
+	for _,item:=range rr{
+		var ids []string
+		var deleteEdOption QueryOption
+		ids=append(ids,item[slaveKeyColName].(string))
+		deleteEdOption.Ids=ids
+		PreEvent(api,slaveTableName,"DELETE",nil,deleteEdOption,"")
+		_,errorMessage:=api.Delete(slaveTableName,item[slaveKeyColName],nil)
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
+
+	for i, slave := range slaveInfoMap {
+		if slave["extra_info"]!=nil{
+			slave["extra_info"]=slave["extra_info"]
+			extraBytes,err:=json.Marshal(slave["extra_info"])
+			fmt.Print(err)
+			extraStr:=string(extraBytes[:])
+			slave["extra_info"]=extraStr
+		}
+
+
+		var updateSql string
+
+		if slave[slaveKeyColName]!=nil{
+			if slave[slaveKeyColName].(string)!=""{
+				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName,slave[slaveKeyColName].(string), slave)
+				rs,error=api.ExecSqlWithTx(updateSql,tx)
+				if error!=nil{
+					tx.Rollback()
+
+				}else{
+					tx.Commit()
+				}
+				lib.Logger.Infof("err=",err)
+			}else{
+				slave[slaveKeyColName]=uuid.NewV4().String()
+				//rs,errorMessage=api.Create(slaveTableName,slave)
+
+				objCreate:=make(map[string]interface{})
+				objCreate=obj
+				var createSlaveMap []map[string]interface{}
+				createSlaveMap=append(createSlaveMap,slave)
+				byte,error:=json.Marshal(createSlaveMap)
+				lib.Logger.Infof("error=",error)
+				objCreate["slaveTableInfo"]=string(byte[:])
+				objCreate["isCreated"]="1"
+				api.RelatedCreateWithTx(tx,operates,objCreate,updatePerson)
+				lib.Logger.Infof("rsCreate=",rs)
+
+			}
+
+		}else{
+			slave[slaveKeyColName]=uuid.NewV4().String()
+			//rs,errorMessage=api.Create(slaveTableName,slave)
+
+			objCreate:=make(map[string]interface{})
+			objCreate=obj
+			var createSlaveMap []map[string]interface{}
+			createSlaveMap=append(createSlaveMap,slave)
+			byte,error:=json.Marshal(createSlaveMap)
+			lib.Logger.Infof("error=",error)
+			objCreate["slaveTableInfo"]=string(byte[:])
+			objCreate["isCreated"]="1"
+			api.RelatedCreate(operates,objCreate,updatePerson)
+			lib.Logger.Infof("rsCreate=",rs)
+
+		}
+
+		lib.Logger.Infof("i=",i)
+		slaveIds.PushBack(slave[slaveKeyColName].(string))
+
+		if err!=nil{
+			// 回滚已经插入的数据
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return 0,errorMessage
+		}else{
+
+			if errorMessage != nil {
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+errorMessage.Error()}
+				return 0,errorMessage
+			}else{
+				slaveRowAffect,err=rs.RowsAffected()
+			}
+			rowAaffect=rowAaffect+slaveRowAffect
+		}
+
+	}
+	rowAaffect=rowAaffect+masterRowAffect
+
+	return rowAaffect,nil
+
+}
+
 func (api *MysqlAPI) CreateTableStructure(execSql string) (errorMessage *ErrorMessage) {
 	r,error:=api.connection.Exec(execSql)
 	lib.Logger.Infof("result=",r)
@@ -1081,6 +1492,7 @@ func (api *MysqlAPI) CreateTableStructure(execSql string) (errorMessage *ErrorMe
 		return nil
 	}
 }
+
 func (api *MysqlAPI) UpdateSql(table string, id interface{}, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
 	if id != nil {
 		sql, err := api.sql.UpdateByTableAndId(table, id, obj)
@@ -1108,6 +1520,13 @@ func (api *MysqlAPI) Update(table string, id interface{}, obj map[string]interfa
 		return
 	}
 }
+func (api *MysqlAPI) UpdateWithTx(tx *sql.Tx,table string, id interface{}, obj map[string]interface{}) (rs sql.Result,error error) {
+	if id != nil {
+		sql, _ := api.sql.UpdateByTableAndId(table, id, obj)
+		return api.ExecSqlWithTx(sql,tx)
+	}
+	return
+}
 func (api *MysqlAPI) UpdateBatchSql(table string, where map[string]WhereOperation, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
 
 	sql, err := api.sql.UpdateByTableAndFields(table, where, obj)
@@ -1126,6 +1545,12 @@ func (api *MysqlAPI) UpdateBatch(table string, where map[string]WhereOperation, 
 			return
 		}
 		return api.exec(sql)
+
+}
+func (api *MysqlAPI) UpdateBatchWithTx(tx *sql.Tx,table string, where map[string]WhereOperation, obj map[string]interface{}) (rs sql.Result,error error) {
+
+	sql, _ := api.sql.UpdateByTableAndFields(table, where, obj)
+	return api.ExecSqlWithTx(sql,tx)
 
 }
 // Delete by Table name and where obj
@@ -1158,6 +1583,18 @@ func (api *MysqlAPI) Delete(table string, id interface{}, obj map[string]interfa
 		return
 	}
 	return api.exec(sSQL)
+}
+
+// Delete by Table name and where obj
+func (api *MysqlAPI) DeleteWithTx(tx *sql.Tx,table string, id interface{}, obj map[string]interface{}) (rs sql.Result,error error) {
+	var sSQL string
+	if id != nil {
+		sSQL, error= api.sql.DeleteByTableAndId(table, id)
+	} else {
+		sSQL, error= api.sql.DeleteByTable(table, obj)
+	}
+
+	return api.ExecSqlWithTx(sSQL,tx)
 }
 
 // Select by Table name , where or id

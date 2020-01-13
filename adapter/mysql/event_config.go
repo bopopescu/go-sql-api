@@ -3,6 +3,7 @@ package mysql
 import (
 	"bytes"
 	"container/list"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/shiyongabc/go-sql-api/adapter"
@@ -89,6 +90,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		}
 		if(operate_content!=""){
 			operate_content=strings.Replace(operate_content,"\r\n","",-1)
+
 			json.Unmarshal([]byte(operate_content), &operateCondContentJsonMap)
 		}
 		if(filter_content!=""){
@@ -526,7 +528,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
 						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
 						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
-						lib.Logger.Infof("sync_handle-result=",result," errorMessage=",errorMessage)
+						if errorMessage!=nil{
+							lib.Logger.Infof("sync_handle-result=",result," errorMessage=",errorMessage)
+						}
+
 					}
 					//  返回类型  /*RETURN_HANDLE*/
 					if strings.Contains(itemScript,"/*RETURN_HANDLE*/"){
@@ -1075,9 +1080,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 
 //后置事件处理
-func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
+func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
     //tx,err:=api.Connection().Begin()
-    //fmt.Print("//tx-error",err)
+	//lib.Logger.Error("err=%s",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
 	lib.Logger.Error("errorMessage=%s",errorMessage)
 
@@ -1334,14 +1339,20 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-					var result string
-					result,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
-					lib.Logger.Infof("result=",result)
-					lib.Logger.Error("errorMessage=%s",errorMessage)
-
-					if result!="" && conditionFieldKey!=""{
-						option.ExtendedMap[conditionFieldKey]=result
+					rs,error:=api.ExecSqlWithTx(operateFuncSql,tx)
+					lib.Logger.Infof("result=",rs)
+					if error!=nil{
+						lib.Logger.Error("error=%s",error.Error())
+						errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
+						tx.Rollback()
+					}else{
+						tx.Commit()
 					}
+
+
+					//if result!="" && conditionFieldKey!=""{
+					//	option.ExtendedMap[conditionFieldKey]=result
+					//}
 
 
 
@@ -1601,10 +1612,15 @@ func PostEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,da
 					//  同步类型/*SYNC_HANDLE*/
 					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
 						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
-						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
+						//result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
+						result,errorMessage:=ExecWithTx(api,tx,option,conditionFiledArr,varMap,itemScript)
 						if errorMessage!=nil{
 							lib.Logger.Infof("result=",result," errorMessage=",errorMessage)
+							tx.Rollback()
+						}else{
+							tx.Commit()
 						}
+
 
 					}
 					//  返回类型  /*RETURN_HANDLE*/
@@ -1894,5 +1910,23 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",errorMessage,)
 	}
 
+	return
+}
+func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result sql.Result,error error){
+	for _,itemField:=range conditionFiledArr{
+		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
+	}
+	for k,v :=range varMap{
+		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
+	}
+	//lib.Logger.Infof("operateScipt=", operateScipt)
+	//result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
+
+	result,error=tx.Exec(operateScipt)
+
+	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
+	if error!=nil{
+		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",error.Error())
+	}
 	return
 }
