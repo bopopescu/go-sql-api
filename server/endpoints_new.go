@@ -167,7 +167,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		}
 		// 执行异步任务 c1 := make (chan int);
 		c1 := make (chan int);
-		go asyncOptionEvent(api,slaveTableName,option,c1)
+		go asyncOptionEvent(api,slaveTableName,"POST",option,c1)
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
 		if(redisHost!=""){
 			pool:=newPool(redisHost)
@@ -407,7 +407,8 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		}else{
 			tx.Commit()
 		}
-
+		c1 := make (chan int);
+		go asyncOptionEvent(api,slaveTableName,"PATCH",option,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -1929,7 +1930,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 
 		// 执行异步任务 c1 := make (chan int);
 		c1 := make (chan int);
-		go asyncOptionEvent(api,tableName,option,c1)
+		go asyncOptionEvent(api,tableName,"POST",option,c1)
 		//添加时清楚缓存
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
@@ -2455,10 +2456,14 @@ func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,tableName stri
 	optionEvent.ExtendedMap=tableMap
 
 	//mysql.AsyncEvent(api,tableName,"POST",nil,optionEvent,"")
-	asyncOptionEvent(api,tableName,optionEvent,c)
+	asyncOptionEvent(api,tableName,"POST",optionEvent,c)
 }
-func asyncOptionEvent(api adapter.IDatabaseAPI,tableName string,optionEvent QueryOption,c chan int){
-	mysql.AsyncEvent(api,tableName,"POST",nil,optionEvent,"")
+func asyncOptionEvent(api adapter.IDatabaseAPI,tableName string,apiMethod string,optionEvent QueryOption,c chan int){
+	mysql.AsyncEvent(api,tableName,apiMethod,nil,optionEvent,"")
+	c <- 1
+}
+func asyncOptionArrEvent(api adapter.IDatabaseAPI,tableName string,apiMethod string,optionArr QueryOption,c chan int){
+	mysql.AsyncEventArr(api,tableName,apiMethod,nil,optionArr,"")
 	c <- 1
 }
 func processBlock(line []byte) {
@@ -2757,6 +2762,8 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 
 		}
        //tx.Commit()
+		c1 := make (chan int);
+		go asyncOptionEvent(api,tableName,"PATCH",option,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -2938,7 +2945,8 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			}
 
 		}
-
+		c1 := make (chan int);
+		go asyncOptionEvent(api,tableName,"PATCH",option,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3082,6 +3090,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			}
 		}
 		//tx.Commit()
+
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3124,8 +3133,8 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			jwtToken=  cookie.Value
 		}
 		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
-
-
+		var option0 QueryOption
+		var extendedArr    []map[string]interface{}
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
 			var option QueryOption
@@ -3162,6 +3171,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				// 后置事件
 				if rowesAffected>0{
 					_,errorMessage=mysql.PostEvent(api,tx,tableName,"POST",nil,option,redisHost)
+					extendedArr=append(extendedArr,option.ExtendedMap)
 					if errorMessage!=nil{
 						tx.Rollback()
 						return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -3195,10 +3205,10 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				// 后置事件
 				if rowesAffected>0{
 					_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,redisHost)
+					extendedArr=append(extendedArr,option.ExtendedMap)
 					if errorMessage!=nil{
 						tx.Rollback()
-					}else{
-						tx.Commit()
+						return echo.NewHTTPError(http.StatusInternalServerError,errorMessage.ErrorDescription)
 					}
 				}
 
@@ -3214,10 +3224,11 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
 
 
+		tx.Commit()
+		option0.ExtendedArr=extendedArr
+		c1 := make (chan int);
 
-
-
-
+		go asyncOptionArrEvent(api,tableName,"PATCH",option0,c1)
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
@@ -3287,6 +3298,8 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		var totalRowesAffected int64=0
 		r_msg:=[]string{}
 		var savedIds []string
+		var option0 QueryOption
+		var extendedArr    []map[string]interface{}
 		for _, record := range payload {
 			recordItem:=record.(map[string]interface{})
 			if recordItem[priKey]!=nil{
@@ -3315,20 +3328,16 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				tx.Rollback()
 				return c.String(http.StatusInternalServerError, error.Error())
 			}
-			//fmt.Print("sql",sql)
-           //_,error:=tx.Exec(sql)
-           fmt.Print("error",errorMessage)
 			//tx.Commit()
 			//_, err := api.Create(tableName, recordItem)
 			savedIds=append(savedIds,recordItem[priKey].(string))
 
 			// 后置事件
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"POST",nil,option,redisHost)
+			extendedArr=append(extendedArr,option.ExtendedMap)
 			if errorMessage!=nil{
 				tx.Rollback()
 				return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
-			}else{
-				tx.Commit()
 			}
 			if err != nil {
 				r_msg=append(r_msg,err.Error())
@@ -3338,10 +3347,11 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 
 
+		option0.ExtendedArr=extendedArr
 
-
-
-
+        tx.Commit()
+		c1 := make (chan int);
+		go asyncOptionArrEvent(api,tableName,"POST",option0,c1)
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")

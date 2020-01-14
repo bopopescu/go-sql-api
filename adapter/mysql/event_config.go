@@ -649,6 +649,16 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 	return data,nil;
 }
+// 异步执行多个option  AsyncEventArr
+func AsyncEventArr(api adapter.IDatabaseAPI,tableName string ,equestMethod string,data []map[string]interface{},option QueryOption,redisHost string)(rs []map[string]interface{},errorMessage *ErrorMessage){
+    for _,item:=range option.ExtendedArr{
+    	var option QueryOption
+    	option.ExtendedMap=item
+		AsyncEvent(api,tableName ,equestMethod,data,option,redisHost)
+	}
+	return data,nil;
+}
+
 
 //前置事件处理
 
