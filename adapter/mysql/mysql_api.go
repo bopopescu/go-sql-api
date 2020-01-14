@@ -1342,8 +1342,6 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 		tx.Rollback()
 		errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+error.Error()}
 		return 0,errorMessage
-	}else{
-		tx.Commit()
 	}
 
 	masterRowAffect,err=rs.RowsAffected()
@@ -1415,8 +1413,6 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				if error!=nil{
 					tx.Rollback()
 
-				}else{
-					tx.Commit()
 				}
 				lib.Logger.Infof("err=",err)
 			}else{
@@ -1448,7 +1444,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 			lib.Logger.Infof("error=",error)
 			objCreate["slaveTableInfo"]=string(byte[:])
 			objCreate["isCreated"]="1"
-			api.RelatedCreate(operates,objCreate,updatePerson)
+			api.RelatedCreateWithTx(tx,operates,objCreate,updatePerson)
 			lib.Logger.Infof("rsCreate=",rs)
 
 		}

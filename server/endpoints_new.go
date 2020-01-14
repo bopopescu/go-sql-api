@@ -2677,7 +2677,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			tx.Rollback()
 			return c.String(http.StatusInternalServerError, error.Error())
 		}
-
+		var option2 QueryOption
 		rowesAffected, err := rs.RowsAffected()
 		var firstPrimaryKey string
 		masterTableName:=tableName
@@ -2723,8 +2723,9 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 				masterPrimaryKeyValue=masterInfo[0][firstPrimaryKey].(string)
 				extendMap=masterInfo[0]
 			}
+			extendMap=mysql.BuildMapFromObj(payload,extendMap)
 			option.ExtendedMap=extendMap
-
+			option2=option
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
 				tx.Rollback()
@@ -2763,7 +2764,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		}
        //tx.Commit()
 		c1 := make (chan int);
-		go asyncOptionEvent(api,tableName,"PATCH",option,c1)
+		go asyncOptionEvent(api,tableName,"PATCH",option2,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -2782,6 +2783,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Infof("error",error)
+		var option2 QueryOption
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
 		id := c.Param("id")
@@ -2908,9 +2910,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			}
 			option.PriKey=firstPrimaryKey
 			extendMap[firstPrimaryKey]=id
+			extendMap=mysql.BuildMapFromObj(payload,extendMap)
 			option.ExtendedMap=extendMap
 			option.ExtendedMapSecond=beforeUpdateMap
-
+			option2=option
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
 				tx.Rollback()
@@ -2946,7 +2949,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 
 		}
 		c1 := make (chan int);
-		go asyncOptionEvent(api,tableName,"PATCH",option,c1)
+		go asyncOptionEvent(api,tableName,"PATCH",option2,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
