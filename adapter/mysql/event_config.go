@@ -658,8 +658,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
 	lib.Logger.Error("errorMessage=%s",errorMessage)
 
-	var fields []string
+
 	for _,operate:=range operates {
+		var fields []string
 		var conditionFiledArr []string
 		var resultFieldsArr []string
 		var filterFiledArr []string
