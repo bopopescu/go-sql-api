@@ -1663,6 +1663,11 @@ func (api *MysqlAPI) SelectTotalCount(option QueryOption) (totalCount int,errorM
 		return
 	}
 	str, _ := data[0]["TotalCount"].(string)
+	if str==""{
+		//如果链接的是中间件 中间件会统一转成小写
+		str, _ = data[0]["totalcount"].(string)
+
+	}
 	totalCount, _ = strconv.Atoi(str)
 	return
 }
