@@ -258,12 +258,14 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		lib.Logger.Error("errorMessage=%s",errorMessage)
 
 		if isRetainMasterInfo=="0"||isRetainMasterInfo==""{
-			rs,errorMessage:=	api.Delete(masterTableName,masterId,nil)
+			_,error=	api.DeleteWithTx(tx,masterTableName,masterId,nil)
+			if error!=nil{
+				tx.Rollback()
+			}
 			count=1;
 			if errorMessage!=nil{
 				lib.Logger.Error("errorMessage=%s",errorMessage)
 			}
-			lib.Logger.Infof("rs",rs)
 
 		}
 
@@ -301,7 +303,10 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		}
 		for _,slaveInfo:=range slaveInfoMap {
 			slaveId:= slaveInfo[slaveColumnName].(string)
-			api.Delete(slaveTableName,slaveId,nil)
+			_,error=api.DeleteWithTx(tx,slaveTableName,slaveId,nil)
+			if error!=nil{
+				tx.Rollback()
+			}
 			count=count+1
 		}
 
@@ -313,11 +318,11 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		option.ExtendedMap=masterInfoMap
 
 		// 后置事件
-		_,error=mysql.PostEvent(api,tx,slaveTableName,"DELETE",nil,option,"")
+		_,errorMessage=mysql.PostEvent(api,tx,slaveTableName,"DELETE",nil,option,"")
 
-		if error != nil {
+		if errorMessage != nil {
 			tx.Rollback()
-			return echo.NewHTTPError(http.StatusInternalServerError,error.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage.ErrorDescription)
 		}else {
 			tx.Commit()
 		}
