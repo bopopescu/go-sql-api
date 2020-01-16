@@ -2734,11 +2734,11 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
 				tx.Rollback()
-			}else{
-				tx.Commit()
 			}
 
+
 		}
+		tx.Commit()
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
@@ -2922,12 +2922,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
 				tx.Rollback()
-			}else {
-				tx.Commit()
 			}
 
 		}
-
+		tx.Commit()
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"detail"){
 			endIndex:=strings.LastIndex(tableName,"detail")
