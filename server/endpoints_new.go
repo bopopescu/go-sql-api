@@ -398,11 +398,11 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		option.ExtendedMap=masterTableInfoMap
 		mysql.PreEvent(api,slaveTableName,"PATCH",nil,option,"")
 
-		rowesAffected, error := api.RelatedUpdateWithTx(tx,operates, payload,userIdJwtStr)
+		rowesAffected, errorMessage := api.RelatedUpdateWithTx(tx,operates, payload,userIdJwtStr)
 
-		if error != nil {
+		if errorMessage != nil {
 			tx.Rollback()
-			return echo.NewHTTPError(http.StatusInternalServerError,error.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage.ErrorDescription)
 		}
 
 		_,errorMessage=mysql.PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
