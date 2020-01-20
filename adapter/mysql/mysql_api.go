@@ -1373,7 +1373,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	var queryOption0 QueryOption
 
 	whereOption0:=make(map[string]WhereOperation)
-	whereOption0["id"] = WhereOperation{
+	whereOption0[slaveKeyColName] = WhereOperation{
 		Operation: "notIn",
 		Value:     inParams,
 	}
