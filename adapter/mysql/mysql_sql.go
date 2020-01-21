@@ -186,6 +186,11 @@ func (s *SQL) UpdateByTableAndId(tableName string, id interface{}, record map[st
 	for i, priKeyName := range priKeyNames{
 		builder = builder.Where(goqu.Ex{priKeyName: ids[i]})
 	}
+	//version处理幂等性问题
+	if s.dbMeta.TableHaveField(tableName,"version_no"){
+		builder = builder.Where(goqu.Ex{"version_no": record["version_no"]})
+		record["version_no"]=record["version_no"].(float64)+1
+	}
 	sql, _, err = builder.ToUpdateSql(record)
 	return
 }
@@ -213,6 +218,11 @@ func (s *SQL) UpdateByTableAndFields(tableName string, where map[string]WhereOpe
 		builder = builder.Where(goqu.ExOr{f:goqu.Op{v.Operation: v.Value}})
 		//rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
+	}
+	//version处理幂等性问题
+	if s.dbMeta.TableHaveField(tableName,"version_no"){
+		builder = builder.Where(goqu.Ex{"version_no": record["version_no"]})
+		record["version_no"]=record["version_no"].(float64)+1
 	}
 	sql, _, err = builder.ToUpdateSql(record)
 	sql=strings.Replace(sql,"'null'","NULL",-1)
