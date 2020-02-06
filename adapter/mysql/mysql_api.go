@@ -654,7 +654,7 @@ func (api *MysqlAPI) RelatedCreate(operates []map[string]interface{},obj map[str
 	rowAaffect=rowAaffect+masterRowAffect
   return rowAaffect,masterKey,masterId,nil
 }
-func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interface{},obj map[string]interface{},submitPerson string) (rowAffect int64,masterKey string,masterId string,errorMessage *ErrorMessage) {
+func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTable string,obj map[string]interface{},submitPerson string) (rowAffect int64,masterKey string,masterId string,errorMessage *ErrorMessage) {
 
 	var rowAaffect int64
 	var masterRowAffect int64
@@ -758,6 +758,14 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interf
 	}
 	lib.Logger.Infof("slaveTableName",slaveTableName)
 	lib.Logger.Infof("slaveInfoMap",slaveInfoMap)
+
+	var option QueryOption
+	option.ExtendedMap=masterInfoMap
+	data,errorMessage:=PreEvent(api,masterTableName,"POST",nil,option,"")
+	if len(data)>0{
+		masterInfoMap=data[0]
+	}
+
 	var sql string
 	if obj["isCreated"]==nil{
 		sql, error = api.sql.InsertByTable(masterTableName, masterInfoMap)
@@ -815,6 +823,11 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interf
 			slave["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
 
+		option.ExtendedMap=slave
+		data,errorMessage:=PreEvent(api,slaveTableName,"POST",nil,option,"")
+		if len(data)>0{
+			slave=data[0]
+		}
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
 		lib.Logger.Infof("get-sql-err=",err)
@@ -1427,7 +1440,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				lib.Logger.Infof("error=",error)
 				objCreate["slaveTableInfo"]=string(byte[:])
 				objCreate["isCreated"]="1"
-				api.RelatedCreateWithTx(tx,operates,objCreate,updatePerson)
+				api.RelatedCreateWithTx(tx,masterTableName,slaveTableName,objCreate,updatePerson)
 				lib.Logger.Infof("rsCreate=",rs)
 
 			}
@@ -1444,7 +1457,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 			lib.Logger.Infof("error=",error)
 			objCreate["slaveTableInfo"]=string(byte[:])
 			objCreate["isCreated"]="1"
-			api.RelatedCreateWithTx(tx,operates,objCreate,updatePerson)
+			api.RelatedCreateWithTx(tx,masterTableName,slaveTableName,objCreate,updatePerson)
 			lib.Logger.Infof("rsCreate=",rs)
 
 		}

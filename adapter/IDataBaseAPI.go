@@ -11,7 +11,7 @@ type IDatabaseAPI interface {
 	CreateSql(table string, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage)
 	ReplaceCreate(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
 	RelatedCreate(operates []map[string]interface{},  obj map[string]interface{},submitPerson string) (rowAaffect int64,masterKey string,masterId string,errorMessage *ErrorMessage)
-	RelatedCreateWithTx(tx *sql.Tx,operates []map[string]interface{},  obj map[string]interface{},submitPerson string) (rowAaffect int64,masterKey string,masterId string,errorMessage *ErrorMessage)
+	RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTable string,  obj map[string]interface{},submitPerson string) (rowAaffect int64,masterKey string,masterId string,errorMessage *ErrorMessage)
 	CreateTableStructure(execSql string) (errorMessage *ErrorMessage)
 	RelatedUpdate(operates []map[string]interface{}, obj map[string]interface{},submitPerson string) (rowAaffect int64,errorMessage *ErrorMessage)
 	RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interface{}, obj map[string]interface{},submitPerson string) (rowAaffect int64,errorMessage *ErrorMessage)

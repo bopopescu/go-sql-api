@@ -1182,6 +1182,17 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		if operateFilterContentJsonMap["filterFieldKey"]!=nil{
 			filterFieldKey=operateFilterContentJsonMap["filterFieldKey"].(string)
 		}
+		var filterFieldKeyValue string
+		if strings.Contains(filterFieldKey,"=") {
+			arr := strings.Split(filterFieldKey, "=")
+			filterFieldKey = arr[0]
+			filterFieldKeyValue = arr[1]
+		}
+		if filterFieldKey!=""&&filterFieldKeyValue!=InterToStr(option.ExtendedMap[filterFieldKey]){
+			continue
+		}
+
+
 		for _,item:= range conditionFiledArr{
 			if item !=""{
 				fieldList.PushBack(item)

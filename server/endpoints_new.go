@@ -133,7 +133,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, errorMessage)
 		}
-		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST","0")
+		//operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST","0")
 		cookie,err := c.Request().Cookie("Authorization")
 		if err!=nil{
 			lib.Logger.Infof("err=",err.Error())
@@ -143,7 +143,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 			jwtToken=  cookie.Value
 		}
 		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
-		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreateWithTx(tx,operates,payload,userIdJwtStr)
+		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreateWithTx(tx,masterTableName,slaveTableName,payload,userIdJwtStr)
 		// 后置条件处理
 		if errorMessage != nil {
 			tx.Rollback()
