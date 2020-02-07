@@ -1082,16 +1082,17 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}
 		}
 		if "PRE_EMBED_SCRIPT"==operate_type {
+			// 通过自定义脚本前置获取需要入库的数据
 			if operateScipt!="" {
-				for _,itemField:=range conditionFiledArr{
-					operateScipt=strings.Replace(operateScipt,"$"+itemField,InterToStr(option.ExtendedMap[itemField]),-1)
+				preData,errorMessage:=MutilExec(api,option,conditionFiledArr,nil,operateScipt)
+				lib.Logger.Infof("preData=,", preData,"errorMessage=",errorMessage,)
+				if len(preData)>0{
+					for k,v:=range preData[0]{
+						option.ExtendedMap[k]=v
+					}
 				}
-				lib.Logger.Infof("operateScipt=", operateScipt)
-				result,errorMessage:=api.ExecFuncForOne(operateScipt,"result")
-				lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
-				if result!="" && conditionFieldKey!=""{
-					option.ExtendedMap[conditionFieldKey]=result
-				}
+				
+
 			}
 
 		}
