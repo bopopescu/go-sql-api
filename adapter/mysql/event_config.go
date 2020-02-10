@@ -55,7 +55,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var filterFieldKey string
 		//	var actionType string
 		var actionType string
-
+		var filterFiledArr []string
+		var filterFiledArrStr string
 
 		fieldList:=list.New()
 
@@ -103,6 +104,40 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if operateFilterContentJsonMap["filterFieldKey"]!=nil{
 			filterFieldKey=operateFilterContentJsonMap["filterFieldKey"].(string)
 		}
+		if operateFilterContentJsonMap["filterFields"]!=nil{
+			filterFiledArrStr=operateFilterContentJsonMap["filterFields"].(string)
+			json.Unmarshal([]byte(filterFiledArrStr), &filterFiledArr)
+		}
+		var isFiltered bool
+		if strings.Contains(filterFieldKey,"="){
+			arr:=strings.Split(filterFieldKey,"=")
+			field0:=arr[0]
+			value0:=arr[1]
+			if option.ExtendedMap[field0]==value0{
+				isFiltered=true
+				break;
+			}else{
+				isFiltered=false
+			}
+		}else if filterFieldKey==""{
+			isFiltered=true
+		}
+		// 如果不满足过滤条件 则不执行当前事件
+		if !isFiltered{
+			continue
+		}
+
+		if filterFunc!=""{
+			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
+			filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
+			if errorMessage!=nil{
+				//tx.Rollback()
+			}
+			if filterResult!=""{
+				continue
+			}
+		}
+
 		for _,item:= range conditionFiledArr{
 			if item !=""{
 				fieldList.PushBack(item)
@@ -795,22 +830,28 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			filterFiledArrStr=filterCondContentJsonMap["filterFields"].(string)
 			json.Unmarshal([]byte(filterFiledArrStr), &filterFiledArr)
 		}
-		var isFiltered bool
-		for _,item:=range filterFiledArr{
-			if strings.Contains(item,"="){
-				arr:=strings.Split(item,"=")
-				field0:=arr[0]
-				value0:=arr[1]
-				if option.ExtendedMap[field0]==value0{
-					isFiltered=true
-					break;
-				}
 
-			}
-
+		// filterFieldKey
+		if filterCondContentJsonMap["filterFieldKey"]!=nil{
+			filterKey=filterCondContentJsonMap["filterFieldKey"].(string)
 		}
-		// 如果被拦截 则不执行当前前置事件
-		if isFiltered{
+
+		var isFiltered bool
+		if strings.Contains(filterKey,"="){
+			arr:=strings.Split(filterKey,"=")
+			field0:=arr[0]
+			value0:=arr[1]
+			if option.ExtendedMap[field0]==value0{
+				isFiltered=true
+				break;
+			}else{
+				isFiltered=false
+			}
+		}else if filterKey==""{
+			isFiltered=true
+		}
+		// 如果不满足过滤条件 则不执行当前事件
+		if !isFiltered{
 			continue
 		}
 		if filterFunc!=""{
@@ -823,10 +864,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				continue
 			}
 		}
-		// filterFieldKey
-		if filterCondContentJsonMap["filterFieldKey"]!=nil{
-			filterKey=filterCondContentJsonMap["filterFieldKey"].(string)
-		}
+
 		// 前置事件新处理方式   只传参数   逻辑处理在存储过程处理
 		if "CASCADE_DELETE"==operate_type|| "UPDATE_MASTER"==operate_type{
 			if operateFunc!=""{
@@ -1183,15 +1221,26 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		if operateFilterContentJsonMap["filterFieldKey"]!=nil{
 			filterFieldKey=operateFilterContentJsonMap["filterFieldKey"].(string)
 		}
-		var filterFieldKeyValue string
-		if strings.Contains(filterFieldKey,"=") {
-			arr := strings.Split(filterFieldKey, "=")
-			filterFieldKey = arr[0]
-			filterFieldKeyValue = arr[1]
+
+		var isFiltered bool
+		if strings.Contains(filterFieldKey,"="){
+			arr:=strings.Split(filterFieldKey,"=")
+			field0:=arr[0]
+			value0:=arr[1]
+			if option.ExtendedMap[field0]==value0{
+				isFiltered=true
+				break;
+			}else{
+				isFiltered=false
+			}
+		}else if filterFieldKey==""{
+			isFiltered=true
 		}
-		if filterFieldKey!=""&&filterFieldKeyValue!=InterToStr(option.ExtendedMap[filterFieldKey]){
+		// 如果不满足过滤条件 则不执行当前事件
+		if !isFiltered{
 			continue
 		}
+
 
 
 		for _,item:= range conditionFiledArr{

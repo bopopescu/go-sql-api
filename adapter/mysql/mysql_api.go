@@ -762,8 +762,13 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 	var option QueryOption
 	option.ExtendedMap=masterInfoMap
 	data,errorMessage:=PreEvent(api,masterTableName,"POST",nil,option,"")
+	if errorMessage!=nil{
+		return 0,masterPriKey,masterId,errorMessage
+	}
 	if len(data)>0{
 		masterInfoMap=data[0]
+		//如果前置事件有覆盖主键id的业务id 则以业务id为准
+		masterId=InterToStr(masterInfoMap[masterKey])
 	}
 
 	var sql string
