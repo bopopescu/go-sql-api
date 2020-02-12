@@ -1532,7 +1532,10 @@ func (api *MysqlAPI) Update(table string, id interface{}, obj map[string]interfa
 }
 func (api *MysqlAPI) UpdateWithTx(tx *sql.Tx,table string, id interface{}, obj map[string]interface{}) (rs sql.Result,error error) {
 	if id != nil {
-		sql, _ := api.sql.UpdateByTableAndId(table, id, obj)
+		sql, err := api.sql.UpdateByTableAndId(table, id, obj)
+		if err!=nil{
+			return nil,err
+		}
 		return api.ExecSqlWithTx(sql,tx)
 	}
 	return

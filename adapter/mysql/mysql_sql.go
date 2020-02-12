@@ -188,8 +188,13 @@ func (s *SQL) UpdateByTableAndId(tableName string, id interface{}, record map[st
 	}
 	//version处理幂等性问题
 	if s.dbMeta.TableHaveField(tableName,"version_no"){
+		if record["version_no"]==nil{
+			err = fmt.Errorf("version_no must pass !")
+			return
+		}
 		builder = builder.Where(goqu.Ex{"version_no": record["version_no"]})
-		record["version_no"]=record["version_no"].(float64)+1
+		record["version_no"]=InterToInt(record["version_no"])+1
+
 	}
 	sql, _, err = builder.ToUpdateSql(record)
 	return

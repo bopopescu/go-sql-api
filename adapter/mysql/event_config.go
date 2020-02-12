@@ -1954,6 +1954,17 @@ func InterToStr(fieldInter interface{})(string){
 	}
 	return result
 }
+func InterToInt(fieldInter interface{})(int64){
+	var result int64
+	switch fieldInter.(type){
+	case string: result, _ = strconv.ParseInt(fieldInter.(string), 10, 64)
+	case int:result=fieldInter.(int64)
+		// int64
+	case int64:result= fieldInter.(int64)
+
+	}
+	return result
+}
 
 func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,operateScipt string)(result string,errorMessage *ErrorMessage){
 	for _,itemField:=range conditionFiledArr{
