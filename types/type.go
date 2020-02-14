@@ -9,6 +9,7 @@ var ERR_SQL_EXECUTION = "err_sql_execution"
 var ERR_SQL_RESULTS = "err_sql_results"
 var ERR_PARAMETER = "err_parameter"
 var ERR_JSONCONVERT="err_json_convert"
+var ERR_REPEAT_SUBMIT = "err_repeat_submit"
 
 // ErrorMessage
 type ErrorMessage struct {

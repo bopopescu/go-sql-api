@@ -32,12 +32,12 @@ import (
 
 
 // mountEndpoints to echo server
-func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisHost string) {
-	s.GET("/api/"+databaseName+"/clear/cache/", endpointTableClearCacheSpecific(api,redisHost)).Name = "clear cache"
+func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,redisHost string,redisPassword string) {
+	s.GET("/api/"+databaseName+"/clear/cache/", endpointTableClearCacheSpecific(api,redisHost,redisPassword)).Name = "clear cache"
 
-	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisHost)).Name = "batch save related table"
-	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisHost)).Name = "batch delete related table"
-	s.PUT("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api)).Name = "update related table"
+	s.POST("/api/"+databaseName+"/related/batch/", endpointRelatedBatch(api,redisHost,redisPassword)).Name = "batch save related table"
+	s.DELETE("/api/"+databaseName+"/related/delete/", endpointRelatedDelete(api,redisHost,redisPassword)).Name = "batch delete related table"
+	s.PUT("/api/"+databaseName+"/related/record/", endpointRelatedPatch(api,redisHost,redisPassword)).Name = "update related table"
 	s.GET("/api/"+databaseName+"/metadata/", endpointMetadata(api)).Name = "Database Metadata"
 	s.POST("/api/"+databaseName+"/echo/", endpointEcho).Name = "Echo API"
 	s.GET("/api/"+databaseName+"/endpoints/", endpointServerEndpoints(s)).Name = "Server Endpoints"
@@ -47,30 +47,30 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	s.GET("/api/"+databaseName+"/swagger/", endpointSwaggerJSON(api)).Name = "Swagger Infomation"
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
-	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api,redisHost)).Name = "Retrive Some Records"
-	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api,redisHost)).Name = "Create Single Record"
-	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api,redisHost)).Name = "Remove Some Records"
+	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api,redisHost,redisPassword)).Name = "Retrive Some Records"
+	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api,redisHost,redisPassword)).Name = "Create Single Record"
+	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api,redisHost,redisPassword)).Name = "Remove Some Records"
 
-	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisHost)).Name = "Retrive Record By ID"
-	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisHost)).Name = "Delete Record By ID"
-	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Update Record By ID"
+	s.GET("/api/"+databaseName+"/:table/:id", endpointTableGetSpecific(api,redisHost,redisPassword)).Name = "Retrive Record By ID"
+	s.DELETE("/api/"+databaseName+"/:table/:id", endpointTableDeleteSpecific(api,redisHost,redisPassword)).Name = "Delete Record By ID"
+	s.PATCH("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost,redisPassword)).Name = "Update Record By ID"
 	//  根据条件批量修改对象的局部字段
-	s.PATCH("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost)).Name = "PATCH Record By part field"
-	s.PUT("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost)).Name = "Update Record By part field"
-	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost)).Name = "Put Record By ID"
+	s.PATCH("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost,redisPassword)).Name = "PATCH Record By part field"
+	s.PUT("/api/"+databaseName+"/:table/where/", endpointTableUpdateSpecificField(api,redisHost,redisPassword)).Name = "Update Record By part field"
+	s.PUT("/api/"+databaseName+"/:table/:id", endpointTableUpdateSpecific(api,redisHost,redisPassword)).Name = "Put Record By ID"
 
-	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost)).Name = "Batch Create Records"
-	s.PUT("/api/"+databaseName+"/:table/batch/", endpointBatchPut(api,redisHost)).Name = "Batch put Records"
+	s.POST("/api/"+databaseName+"/:table/batch/", endpointBatchCreate(api,redisHost,redisPassword)).Name = "Batch Create Records"
+	s.PUT("/api/"+databaseName+"/:table/batch/", endpointBatchPut(api,redisHost,redisPassword)).Name = "Batch put Records"
     //手动执行异步任务
-	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost)).Name = "exec async task"
+	s.GET("/api/"+databaseName+"/async/", endpointTableAsync(api,redisHost,redisPassword)).Name = "exec async task"
 	//手动执行异步任务1
-	s.GET("/api/"+databaseName+"/async/batch", endpointTableAsyncBatch(api,redisHost)).Name = "exec batch async task"
+	s.GET("/api/"+databaseName+"/async/batch", endpointTableAsyncBatch(api,redisHost,redisPassword)).Name = "exec batch async task"
 
 	//手动刷新表结构
-	s.GET("/api/"+databaseName+"/table/flush", endpointTableFlush(api,redisHost)).Name = "exec table flush"
+	s.GET("/api/"+databaseName+"/table/flush", endpointTableFlush(api,redisHost,redisPassword)).Name = "exec table flush"
 
 	////创建表
-	//s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost)).Name = "create table structure"
+	//s.POST("/api/"+databaseName+"/table/", endpointTableStructorCreate(api,redisHost,redisPassword)).Name = "create table structure"
 	////查询
 	//s.GET("/api/"+databaseName+"/table/", endpointGetMetadataByTable(api)).Name = "query table structure"
 	////查询
@@ -78,19 +78,19 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	//
 	//
 	////添加列
-	//s.POST("/api/"+databaseName+"/table/column/", endpointTableColumnCreate(api,redisHost)).Name = "add table column"
+	//s.POST("/api/"+databaseName+"/table/column/", endpointTableColumnCreate(api,redisHost,redisPassword)).Name = "add table column"
 	////修改列
-	//s.PUT("/api/"+databaseName+"/table/column/", endpointTableColumnPut(api,redisHost)).Name = "put table column"
+	//s.PUT("/api/"+databaseName+"/table/column/", endpointTableColumnPut(api,redisHost,redisPassword)).Name = "put table column"
 	////删除列
-	//s.DELETE("/api/"+databaseName+"/table/column/", endpointTableColumnDelete(api,redisHost)).Name = "delete table column"
+	//s.DELETE("/api/"+databaseName+"/table/column/", endpointTableColumnDelete(api,redisHost,redisPassword)).Name = "delete table column"
 
 	//导入
-	s.POST("/api/"+databaseName+"/import/", endpointImportData(api,redisHost)).Name = "import data to template"
+	s.POST("/api/"+databaseName+"/import/", endpointImportData(api,redisHost,redisPassword)).Name = "import data to template"
 	//执行func
-	s.POST("/api/"+databaseName+"/func/", endpointFunc(api,redisHost)).Name = "exec function"
+	s.POST("/api/"+databaseName+"/func/", endpointFunc(api,redisHost,redisPassword)).Name = "exec function"
 
 	//手动执行远程api
-	s.GET("/api/"+databaseName+"/remote/", endpointRemote(api,redisHost)).Name = "exec remote task"
+	s.GET("/api/"+databaseName+"/remote/", endpointRemote(api,redisHost,redisPassword)).Name = "exec remote task"
 
 }
 
@@ -112,7 +112,7 @@ func endpointMetadata(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		return c.JSON( http.StatusOK, api.GetDatabaseMetadata())
 	}
 }
-func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Infof("error=",error)
@@ -143,6 +143,24 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 			jwtToken=  cookie.Value
 		}
 		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+masterTableName+slaveTableName+"POST"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+		lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, masterTableName+"-"+slaveTableName+"操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
 		rowesAffected,masterKey,masterId, errorMessage := api.RelatedCreateWithTx(tx,masterTableName,slaveTableName,payload,userIdJwtStr)
 		// 后置条件处理
 		if errorMessage != nil {
@@ -153,7 +171,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		option.ExtendedArr=slaveInfoMap
 		masterTableInfoMap[masterKey]=masterId
 		option.ExtendedMap=masterTableInfoMap
-		dataR,errorMessage:=mysql.PostEvent(api,tx,slaveTableName,"POST",nil,option,redisHost)
+		//dataR,errorMessage:=mysql.PostEvent(api,tx,slaveTableName,"POST",nil,option,redisHost)
         if errorMessage!=nil{
         	 tx.Rollback()
 		}else{
@@ -162,49 +180,48 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}
-		if len(dataR)>0{
-			option.ExtendedMap=dataR[0]
-		}
+		//if len(dataR)>0{
+		//	option.ExtendedMap=dataR[0]
+		//}
 		// 执行异步任务 c1 := make (chan int);
 		c1 := make (chan int);
 		go asyncOptionEvent(api,slaveTableName,"POST",option,c1)
-		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
-		if(redisHost!=""){
-			pool:=newPool(redisHost)
-			redisConn:=pool.Get()
-			defer redisConn.Close()
-			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+masterTableName+slaveTableName+"POST",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+masterTableName+slaveTableName+"POST",1)
 
-			fmt.Println(val, err)
-			//redisConn.Send("MULTI")
-			for i, _ := range val {
-				_, err = redisConn.Do("DEL", val[i])
-				if err != nil {
-					fmt.Println("redis delelte failed:", err)
-				}
-				lib.Logger.Infof("DEL-CACHE",val[i], err)
+		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+masterTableName+"*"
+
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+		fmt.Println(val, err)
+		//redisConn.Send("MULTI")
+		for i, _ := range val {
+			_, err = redisConn.Do("DEL", val[i])
+			if err != nil {
+				fmt.Println("redis delelte failed:", err)
 			}
+			lib.Logger.Infof("DEL-CACHE",val[i], err)
 		}
+
 
 		cacheKeyPattern1:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+slaveTableName+"*"
-		if(redisHost!=""){
-			pool:=newPool(redisHost)
-			redisConn:=pool.Get()
-			defer redisConn.Close()
-			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
 
-			fmt.Println(val1, err)
-			//redisConn.Send("MULTI")
-			for i, _ := range val1 {
-				redisConn.Send("DEL", val1[i])
-			}
+		val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
+
+		fmt.Println(val1, err)
+		//redisConn.Send("MULTI")
+		for i, _ := range val1 {
+			redisConn.Send("DEL", val1[i])
 		}
+
 
 
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
-func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	var count int
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
@@ -328,7 +345,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 		}
 		cacheKeyPattern:="/api"+"/"+databaseMeta.DatabaseName+"/"+masterTableName+"*"
 		if(redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
@@ -347,7 +364,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 
 		cacheKeyPattern1:="/api"+"/"+databaseMeta.DatabaseName+"/"+slaveTableName+"*"
 		if(redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 			val1, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern1))
@@ -364,12 +381,12 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string) func(c ech
 	}
 }
 
-func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
+func endpointRelatedPatch(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Error(error)
-		// masterTableName := payload["masterTableName"].(string)
+		masterTableName := payload["masterTableName"].(string)
 		slaveTableName := payload["slaveTableName"].(string)
 		slaveTableInfo:=payload["slaveTableInfo"].(string)
 		masterTableInfo:=payload["masterTableInfo"].(string)
@@ -392,6 +409,25 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 		}
 		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
+
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+masterTableName+slaveTableName+"POST"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+		lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, masterTableName+"-"+slaveTableName+"操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
 		operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "PATCH","0")
 		var option QueryOption
 		option.ExtendedArr=slaveInfoMap
@@ -405,13 +441,17 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI) func(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage.ErrorDescription)
 		}
 
-		_,errorMessage=mysql.PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
+		//_,errorMessage=mysql.PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
 		if errorMessage!=nil{
 			tx.Rollback()
 			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage.ErrorDescription)
 		}else{
 			tx.Commit()
 		}
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+masterTableName+slaveTableName+"POST",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+masterTableName+slaveTableName+"POST",1)
 		c1 := make (chan int);
 		go asyncOptionEvent(api,slaveTableName,"PATCH",option,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
@@ -444,7 +484,7 @@ func endpointGetMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context) e
 	}
 }
 
-func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// cookie,err := c.Request().Cookie("Authorization")
 		// fmt.Print("Authorization",cookie.Value)
@@ -520,7 +560,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			cacheData, err = redis.String(redisConn.Do("GET", params))
 
@@ -539,7 +579,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
 			if cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{
-				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost,isNeedCache,option)
+				return responseTableGet(c,cacheData,false,tableName,api,params,redisHost,redisPassword,isNeedCache,option)
 			}
 
 			//无需分页,直接返回数组
@@ -556,11 +596,11 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
-			return responseTableGet(c,data,false,tableName,api,params,redisHost,isNeedCache,option)
+			return responseTableGet(c,data,false,tableName,api,params,redisHost,redisPassword,isNeedCache,option)
 		}else{
 			var cacheTotalCount string
 			if(isNeedCache==1&&redisHost!=""){
-				pool:=newPool(redisHost)
+				pool:=newPool(redisHost,redisPassword)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				cacheTotalCount,err=redis.String(redisConn.Do("GET",params+"-totalCount"))
@@ -576,7 +616,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if err!=nil{
 					lib.Logger.Infof("err",err)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost,isNeedCache,option)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,cacheData},true,tableName,api,params,redisHost,redisPassword,isNeedCache,option)
 
 			}else{
 
@@ -588,7 +628,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 				data, errorMessage := api.Select(option)
 				if(isNeedCache==1&&redisHost!=""){
-					pool:=newPool(redisHost)
+					pool:=newPool(redisHost,redisPassword)
 					redisConn:=pool.Get()
 					defer redisConn.Close()
 					redisConn.Do("SET",params+"-totalCount",totalCount)
@@ -597,7 +637,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 				if errorMessage != nil {
 					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 				}
-				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost,isNeedCache,option)
+				return responseTableGet(c, &Paginator{int(option.Offset/option.Limit+1),option.Limit, int(math.Ceil(float64(totalCount)/float64(option.Limit))),totalCount,data},true,tableName,api,params,redisHost,redisPassword,isNeedCache,option)
 
 			}
 
@@ -1333,7 +1373,7 @@ func calculateForExpress(api adapter.IDatabaseAPI,arr []string,conditionFiledKey
 	return result,nil
 
 }
-func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,isNeedCache int,headOption QueryOption) error{
+func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename string,api adapter.IDatabaseAPI,cacheParams string,redisHost string,redisPassword string,isNeedCache int,headOption QueryOption) error{
 	tableName:=filename
 	if c.Request().Header.Get("accept")=="application/octet-stream"||c.QueryParams().Get("accept")=="application/octet-stream" {
 		if c.QueryParams().Get("filename")!="" {
@@ -1706,7 +1746,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 		var cacheData string
 		var err error
 		if(isNeedCache==1&&redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 
@@ -1740,7 +1780,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			cacheDataStr:=string(dataByte[:])
 
 			if(isNeedCache==1&&redisHost!=""){
-				pool:=newPool(redisHost)
+				pool:=newPool(redisHost,redisPassword)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				redisConn.Do("SET",cacheParams,cacheDataStr)
@@ -1761,7 +1801,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 			//lib.Logger.Infof("cacheDataStr",cacheDataStr)
 
 			if(isNeedCache==1&&redisHost!=""){
-				pool:=newPool(redisHost)
+				pool:=newPool(redisHost,redisPassword)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				redisConn.Do("SET",cacheParams,cacheDataStr)
@@ -1773,7 +1813,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 	}
 }
 
-func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		var count int
 		//tableName := c.Param("table")
@@ -1782,7 +1822,7 @@ func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) 
 			cacheKeyPattern:=cacheKey
 			lib.Logger.Infof("cacheKey=",cacheKey)
 			if(redisHost!=""){
-				pool:=newPool(redisHost)
+				pool:=newPool(redisHost,redisPassword)
 				redisConn:=pool.Get()
 				defer redisConn.Close()
 				val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
@@ -1807,7 +1847,7 @@ func endpointTableClearCacheSpecific(api adapter.IDatabaseAPI,redisHost string) 
 
 
 
-func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tableName := c.Param("table")
 		var id string
@@ -1834,20 +1874,56 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string) func(c 
 	}
 }
 
-func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Error(error)
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
+		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+		if meta.HaveField("create_time"){
+			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		}
+		cookie,err := c.Request().Cookie("Authorization")
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
+
+		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
+		if meta.HaveField("submit_person"){
+			payload["submit_person"]=userIdJwtStr
+		}
+
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+tableName+"POST"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+        lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, tableName+"操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+
+
+
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
         // 前置事件
 		var option QueryOption
 
-		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 
 		primaryColumns:=meta.GetPrimaryColumns()
 		var priId interface{}
@@ -1879,7 +1955,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 		option.ExtendedMap=payload
 		option.PriKey=priKey
-		cookie,err := c.Request().Cookie("Authorization")
+
 		if cookie==nil{
 			option.Authorization=""
 		}else{
@@ -1887,22 +1963,13 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 
 
-		if meta.HaveField("create_time"){
-			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
-		}
-
 		if err!=nil{
 			lib.Logger.Infof("err=",err.Error())
 		}
-		var jwtToken string
-		if cookie!=nil{
-			jwtToken=  cookie.Value
-		}
-		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
+
 
 		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
         if meta.HaveField("submit_person"){
-			payload["submit_person"]=userIdJwtStr
 			option.ExtendedMap["submit_person"]=userIdJwtStr
 		}
 		data,errorMessage:=mysql.PreEvent(api,tableName,"POST",nil,option,redisHost)
@@ -1932,7 +1999,10 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 	   }else{
        	  tx.Commit()
 	   }
-
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+tableName+"POST",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+tableName+"POST",1)
 		// 执行异步任务 c1 := make (chan int);
 		c1 := make (chan int);
 		go asyncOptionEvent(api,tableName,"POST",option,c1)
@@ -1948,22 +2018,18 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
-		if(redisHost!=""){
-			pool:=newPool(redisHost)
-			redisConn:=pool.Get()
-			defer redisConn.Close()
-			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
-			fmt.Println(val, err)
-			//redisConn.Send("MULTI")
-			for i, _ := range val {
-				_, err = redisConn.Do("DEL", val[i])
-				if err != nil {
-					fmt.Println("redis delelte failed:", err)
-				}
-				lib.Logger.Infof("DEL-CACHE",val[i], err)
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+		fmt.Println(val, err)
+		//redisConn.Send("MULTI")
+		for i, _ := range val {
+			_, err = redisConn.Do("DEL", val[i])
+			if err != nil {
+				fmt.Println("redis delelte failed:", err)
 			}
+			lib.Logger.Infof("DEL-CACHE",val[i], err)
 		}
+
       println("rowesAffected=",rowesAffected,"pri",priId)
        if rowesAffected>0 {
 		   return c.String(http.StatusOK, mysql.InterToStr(priId))
@@ -1974,7 +2040,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 	}
 }
 
-func endpointTableColumnDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableColumnDelete(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		//sql:="alter table test1 add  id_test varchar(128) comment 'id_test' comment '测试表';"
 
@@ -1998,7 +2064,7 @@ func endpointTableColumnDelete(api adapter.IDatabaseAPI,redisHost string) func(c
 	}
 }
 
-func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		//sql:="alter table test1 add  id_test varchar(128) comment 'id_test' comment '测试表';"
 
@@ -2028,7 +2094,7 @@ func endpointTableColumnPut(api adapter.IDatabaseAPI,redisHost string) func(c ec
 	}
 }
 
-func endpointRemote(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointRemote(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// 测试
 		authorization:=c.QueryParam(key.AUTHORIZATION_KEY)
@@ -2067,7 +2133,7 @@ func endpointRemote(api adapter.IDatabaseAPI,redisHost string) func(c echo.Conte
 		return c.String(http.StatusOK, strconv.Itoa(response.StatusCode))
 	}
 }
-func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointFunc(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// 测试
 	//	rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
@@ -2090,7 +2156,7 @@ func endpointFunc(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context
 	}
 }
 
-func endpointImportData(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		fileHeader,error:=c.FormFile("file")
@@ -2486,7 +2552,7 @@ func check(e error) {
 		panic(e)
 	}
 }
-func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		//sql:="alter table test1 add  id_test varchar(128) comment 'id_test' comment '测试表';"
 
@@ -2523,7 +2589,7 @@ func endpointTableColumnCreate(api adapter.IDatabaseAPI,redisHost string) func(c
 		return c.String(http.StatusOK, "ok")
 	}
 }
-func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableStructorCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		//sql:="create table test1( id varchar(128) comment 'id',pass varchar(128) comment '密码') comment '测试表';"
 
@@ -2618,7 +2684,7 @@ func endpointDeleteMetadataByTable(api adapter.IDatabaseAPI) func(c echo.Context
 }
 
 
-func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		asyncKey := c.QueryParam(key.ASYNC_KEY)
 		lib.Logger.Infof("asyncKey=",asyncKey)
@@ -2636,7 +2702,7 @@ func endpointTableAsync(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 	}
 }
 // endpointTableAsyncBatch
-func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c1 := make (chan int);
 		arr:=[5]int{1,2,3,4,5}
@@ -2648,7 +2714,7 @@ func endpointTableAsyncBatch(api adapter.IDatabaseAPI,redisHost string) func(c e
 		return c.String(http.StatusOK, "ok")
 	}
 }
-func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Infof("error=",error)
@@ -2677,6 +2743,33 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwtStr
 		}
+
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+
+		optionParams,err:=json.Marshal(option)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		optionParamsArrStr:=string(optionParams[:])
+		optionParamStr:=util.GetMd5String(optionParamsArrStr,true,false)
+
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+optionParamStr+tableName+"PATCHWHERE"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+		lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, tableName+"操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+
+
 		rs,error:=api.UpdateBatchWithTx(tx,tableName, option.Wheres, payload)
 		if error!=nil{
 			tx.Rollback()
@@ -2739,6 +2832,10 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 
 		}
 		tx.Commit()
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+optionParamStr+tableName+"PATCHWHERE",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+optionParamStr+tableName+"PATCHWHERE",1)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError,ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()})
 		}
@@ -2748,25 +2845,21 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
-		if(redisHost!=""){
-			pool:=newPool(redisHost)
-			redisConn:=pool.Get()
-			defer redisConn.Close()
-			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
-			fmt.Println(val, err)
-			//redisConn.Send("MULTI")
-			if rowesAffected>0{
-				for i, _ := range val {
-					_, err = redisConn.Do("DEL", val[i])
-					if err != nil {
-						fmt.Println("redis delelte failed:", err)
-					}
-					lib.Logger.Infof("DEL-CACHE",val[i], err)
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+		fmt.Println(val, err)
+		//redisConn.Send("MULTI")
+		if rowesAffected>0{
+			for i, _ := range val {
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
 				}
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
-
 		}
+
        //tx.Commit()
 		c1 := make (chan int);
 		go asyncOptionEvent(api,tableName,"PATCH",option2,c1)
@@ -2774,7 +2867,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string)
 	}
 }
 
-func endpointTableFlush(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableFlush(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		//tx,error:=api.Connection().Begin()
         api.UpdateAPIMetadata()
@@ -2784,7 +2877,7 @@ func endpointTableFlush(api adapter.IDatabaseAPI,redisHost string) func(c echo.C
 }
 
 
-func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Infof("error",error)
@@ -2795,6 +2888,43 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+
+		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
+		if meta.HaveField("update_time"){
+			payload["update_time"]=time.Now().Format("2006-01-02 15:04:05")
+		}
+		cookie,err := c.Request().Cookie("Authorization")
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
+
+		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
+		if meta.HaveField("submit_person"){
+			payload["update_person"]=userIdJwtStr
+		}
+
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+id+tableName+"PATCH"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+		lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, tableName+"操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+
+
 		// 修改之前的信息
 		beforeUpdateMap:=make(map[string]interface{})
 		var beforeUpdateption QueryOption
@@ -2844,21 +2974,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			payload=data[0]
 		}
 
-		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
-		cookie,err := c.Request().Cookie("Authorization")
-		lib.Logger.Infof("err=",err)
 
-		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
-		}
-		var jwtToken string
-		if cookie!=nil{
-			jwtToken=  cookie.Value
-		}
-		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
-		if meta.HaveField("update_person"){
-			payload["update_person"]=userIdJwtStr
-		}
 		//修改时不能修改主键值
 		delete(payload, firstPrimaryKey)
 		rs,error:=api.UpdateWithTx(tx,tableName, id, payload)
@@ -2926,38 +3042,39 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string) func
 
 		}
 		tx.Commit()
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+id+tableName+"PATCH",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+id+tableName+"PATCH",1)
+
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"detail"){
 			endIndex:=strings.LastIndex(tableName,"detail")
 			cacheTable:=string(tableName[0:endIndex])
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
-		if(redisHost!=""){
-			pool:=newPool(redisHost)
-			redisConn:=pool.Get()
-			defer redisConn.Close()
-			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
 
-			fmt.Println(val, err)
-			//redisConn.Send("MULTI")
-			if rowesAffected>0{
-				for i, _ := range val {
-					_, err = redisConn.Do("DEL", val[i])
-					if err != nil {
-						fmt.Println("redis delelte failed:", err)
-					}
-					lib.Logger.Infof("DEL-CACHE",val[i], err)
+		val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
+
+		fmt.Println(val, err)
+		//redisConn.Send("MULTI")
+		if rowesAffected>0{
+			for i, _ := range val {
+				_, err = redisConn.Do("DEL", val[i])
+				if err != nil {
+					fmt.Println("redis delelte failed:", err)
 				}
+				lib.Logger.Infof("DEL-CACHE",val[i], err)
 			}
-
 		}
+
 		c1 := make (chan int);
 		go asyncOptionEvent(api,tableName,"PATCH",option2,c1)
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
 
-func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		payload, errorMessage := bodyMapOf(c)
 		tableName := c.Param("table")
@@ -2980,7 +3097,7 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 
 		if(redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
@@ -3000,7 +3117,7 @@ func endpointTableDelete(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 	}
 }
 
-func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Error("error=",error)
@@ -3075,7 +3192,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 			cacheKeyPattern="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+cacheTable+"*"
 		}
 		if(redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
@@ -3101,7 +3218,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string) func
 	}
 }
 // endpointBatchPut
-func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Error("error",error)
@@ -3112,6 +3229,25 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 		primaryColumns:=meta.GetPrimaryColumns()
+
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+tableName+"BATCHBATCH"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+		lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, tableName+"批量操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
 
 		var priId string
 		var priKey string
@@ -3231,6 +3367,12 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 
 
 		tx.Commit()
+
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+tableName+"BATCHBATCH",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+tableName+"BATCHBATCH",1)
+
 		option0.ExtendedArr=extendedArr
 		c1 := make (chan int);
 
@@ -3243,7 +3385,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 		}
 
 		if(redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
@@ -3266,7 +3408,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string) func(c echo.Con
 	}
 }
 
-func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.Context) error {
+func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		tx,error:=api.Connection().Begin()
 		lib.Logger.Error(error)
@@ -3278,6 +3420,35 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		meta:=api.GetDatabaseMetadata().GetTableMeta(tableName)
 		primaryColumns:=meta.GetPrimaryColumns()
 
+		cookie,err := c.Request().Cookie("Authorization")
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
+		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
+
+		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
+
+		pool := newPool(redisHost,redisPassword)
+		redisConn := pool.Get()
+		defer redisConn.Close()
+		paramBytes,err:=json.Marshal(payload)
+		//lib.Logger.Error("extract paylod err=",err.Error())
+		params:=string(paramBytes[:])
+		paramV:=util.GetMd5String(params,true,false)
+		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+tableName+"POSTBATCH"))
+		if errC!=nil{
+			lib.Logger.Error("obtain fom cache err=",errC.Error())
+		}
+		lib.Logger.Info("paramV",paramV)
+		lib.Logger.Info("paramVC",paramVCache)
+
+		if errC==nil &&paramV==paramVCache{//errC==nil&&len(paramVCache)>0 &&paramV==paramVCache[0]
+			errorMessage = &ErrorMessage{ERR_REPEAT_SUBMIT, tableName+"批量操作重复提交!"}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+
+
 		var priId string
 		var priKey string
 		for _, col := range primaryColumns {
@@ -3288,17 +3459,6 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 				break;//取第一个主键
 			}
 		}
-		cookie,err := c.Request().Cookie("Authorization")
-		lib.Logger.Infof("err=",err)
-
-		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
-		}
-		var jwtToken string
-		if cookie!=nil{
-			jwtToken=  cookie.Value
-		}
-		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
 
 		var totalRowesAffected int64=0
@@ -3356,6 +3516,11 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		option0.ExtendedArr=extendedArr
 
         tx.Commit()
+		//请求数据存在缓存中 用于校验重复提交问题
+		redisConn.Do("SET", paramV+tableName+"POSTBATCH",paramV)
+		// 设置有效期为1秒
+		redisConn.Do("EXPIRE",paramV+tableName+"POSTBATCH",1)
+
 		c1 := make (chan int);
 		go asyncOptionArrEvent(api,tableName,"POST",option0,c1)
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
@@ -3366,7 +3531,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string) func(c echo.
 		}
 
 		if(redisHost!=""){
-			pool:=newPool(redisHost)
+			pool:=newPool(redisHost,redisPassword)
 			redisConn:=pool.Get()
 			defer redisConn.Close()
 			val, err := redis.Strings(redisConn.Do("KEYS", cacheKeyPattern))
@@ -3631,7 +3796,7 @@ func parseWhereParams(whereStr string) (option QueryOption, errorMessage *ErrorM
 	return
 }
 
-func newPool(server string) *redis.Pool {
+func newPool(server string,password string) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     18,
 		MaxActive:   50,
@@ -3641,10 +3806,10 @@ func newPool(server string) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
-			//if _, err := c.Do("AUTH", password); err != nil {
-			//	c.Close()
-			//	return nil, err
-			//}
+			if _, err := c.Do("AUTH", password); err != nil {
+				c.Close()
+				return nil, err
+			}
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {

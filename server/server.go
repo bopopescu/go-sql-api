@@ -14,7 +14,7 @@ type MysqlAPIServer struct {
 }
 
 // New create a new MysqlAPIServer instance
-func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
+func New(api adapter.IDatabaseAPI,redisHost string,redisPassword string) *MysqlAPIServer {
 	server := &MysqlAPIServer{}
 	server.Echo = echo.New()
 	server.HTTPErrorHandler = lib.ErrorHandler
@@ -34,7 +34,7 @@ func New(api adapter.IDatabaseAPI,redisHost string) *MysqlAPIServer {
 	//	fmt.Println("Connect to redis success")
 	//}
 
-	mountEndpoints(server.Echo, server.api,databaseName,redisHost)
+	mountEndpoints(server.Echo, server.api,databaseName,redisHost,redisPassword)
 	return server
 }
 

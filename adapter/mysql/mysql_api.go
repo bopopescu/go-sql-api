@@ -835,7 +835,6 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 		}
 
 		sql, err := api.sql.InsertByTable(slaveTableName, slave)
-		lib.Logger.Infof("get-sql-err=",err)
 		lib.Logger.Infof("slavePriId",slavePriId)
 		slaveIds.PushBack(slavePriId)
 
@@ -847,7 +846,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 			rs,error:=api.ExecSqlWithTx(sql,tx)
 
 			if error != nil {
-				lib.Logger.Infof("batch-slave-err",error)
+				lib.Logger.Infof("exec-post-event-error=",error)
 				tx.Rollback()
 
 
@@ -855,7 +854,18 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 				return 0,masterKey,masterId,errorMessage
 			}else{
 				slaveRowAffect,err=rs.RowsAffected()
+				if slaveRowAffect>0{
+					var option QueryOption
+					option.ExtendedMap=slave
+					_,errorMessage=PostEvent(api,tx,slaveTableName,"POST",nil,option,"")
+					if errorMessage!=nil{
+						lib.Logger.Infof("exec-post-event-error=",errorMessage)
+						tx.Rollback()
 
+						errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"exec-post-event-error="+errorMessage.ErrorDescription}
+						return 0,masterKey,masterId,errorMessage
+					}
+				}
 			}
 			rowAaffect=rowAaffect+slaveRowAffect
 		}
@@ -1481,6 +1491,18 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				return 0,errorMessage
 			}else{
 				slaveRowAffect,err=rs.RowsAffected()
+				if slaveRowAffect>0{
+					var option QueryOption
+					option.ExtendedMap=slave
+					_,errorMessage=PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
+					if errorMessage!=nil{
+						lib.Logger.Infof("batch-related-slave-err",errorMessage)
+						tx.Rollback()
+
+						errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"exec sql error:"+errorMessage.ErrorDescription}
+						return 0,errorMessage
+					}
+				}
 			}
 			rowAaffect=rowAaffect+slaveRowAffect
 		}

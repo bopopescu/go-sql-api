@@ -15,6 +15,7 @@ type cliArgs struct {
 	ListenAddress      string `cli:"*l,*listen" usage:"listen host and port" dft:"$API_HOST_LS"`
 	NoInfomationSchema bool `cli:"n,noinfo" usage:"dont use mysql information shcema" dft:"$API_NO_USE_INFO"`
 	RedisHost      string `cli:"*r,*rhost" usage:"mysql connection str" dft:"$API_REDIS_HOST"`
+	RedisPassword      string `cli:"*p,*rpass" usage:"mysql connection str" dft:"$API_REDIS_PASSWORD"`
 }
 
 func main() {
@@ -32,7 +33,8 @@ func main() {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)
 		redisHost:=argv.RedisHost
-		server.New(api,redisHost).Start(argv.ListenAddress)
+		redisPassword:=argv.RedisPassword
+		server.New(api,redisHost,redisPassword).Start(argv.ListenAddress)
 		return nil
 	})
 
