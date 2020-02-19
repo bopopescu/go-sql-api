@@ -609,10 +609,27 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			var content string
 			var userIds string
 			var msgType int
+			var BusMsgType int
+			var MsgKey string
 			var err error
 			if operateCondContentJsonMap["msg_type"]!=nil{
 				msgType, err = strconv.Atoi(operateCondContentJsonMap["msg_type"].(string))
 				lib.Logger.Infof("msgType=",msgType)
+				if err!=nil{
+					lib.Logger.Infof("err=",err.Error())
+				}
+			}
+			if operateCondContentJsonMap["bus_msg_type"]!=nil{
+				BusMsgType, err = strconv.Atoi(operateCondContentJsonMap["bus_msg_type"].(string))
+				lib.Logger.Infof("bus_msg_type=",BusMsgType)
+				if err!=nil{
+					lib.Logger.Infof("err=",err.Error())
+				}
+			}
+			// MsgKey
+			if operateCondContentJsonMap["bus_msg_type"]!=nil{
+				MsgKey, err = operateCondContentJsonMap["msg_key"].(string)
+				lib.Logger.Infof("msg_key=",MsgKey)
 				if err!=nil{
 					lib.Logger.Infof("err=",err.Error())
 				}
@@ -645,6 +662,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			pushParamMap["senderName"]="SYSTEM"
 			pushParamMap["userIds"]=userIds
 			pushParamMap["msgType"]=msgType
+			pushParamMap["BusMsgType"]=BusMsgType
+			pushParamMap["MsgKey"]=MsgKey
 			pushParamMap["title"]=title
 			pushParamMap["content"]=content
 			pushParamMap["timestamp"]=time.Now().Format("2006-01-02 15:04:05")
