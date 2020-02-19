@@ -3041,6 +3041,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 			extendMap=mysql.BuildMapFromObj(payload,extendMap)
 			option.ExtendedMap=extendMap
 			option.ExtendedMapSecond=beforeUpdateMap
+			if cookie!=nil{
+				option.Authorization=cookie.Value
+			}
+
 			option2=option
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
