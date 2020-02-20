@@ -89,6 +89,8 @@ type QueryOption struct {
 	OrWheres map[string]WhereOperation // field -> { operation, value }
 	Orders map[string]string // field -> { operation, value }
 	Search string                    // fuzzy query word
+	SubTableKey string
+	SubTableFields []string                  // select fields
 }
 // 聚合函数 MAX() MIN() SUM() AVG() COUNT()
 //type GroupFunc struct {

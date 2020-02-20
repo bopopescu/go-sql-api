@@ -441,6 +441,7 @@ func NewQueryParametersForMySQLAPI() (ps []spec.Parameter) {
 	ps=append(ps,NewQueryParametersForOrder()...)
 	ps=append(ps,NewQueryParametersForGroup()...)
 	ps=append(ps,NewQueryParametersForOutputDields()...)
+	ps=append(ps,NewQueryParametersForSub()...)
 	return
 }
 func NewQueryParametersForQueryTableStructure() (ps []spec.Parameter) {
@@ -523,7 +524,14 @@ func NewQueryParametersForOutputDields() (ps []spec.Parameter) {
 	}
 	return
 }
+func NewQueryParametersForSub() (ps []spec.Parameter) {
+	ps = []spec.Parameter{
+		NewQueryParameter(key.SUB_KEY, "指定子查询key(subTableName.key)", "string", false),
+		NewQueryArrayParameter(key.SUB_KEY_QUERY_FIELDS, "指定查询子查询字段", "string", false),
 
+	}
+	return
+}
 func NewQueryArrayParameter(paramName, paramDescription, paramType string, required bool) (p spec.Parameter) {
 	p = spec.Parameter{
 		SimpleSchema: spec.SimpleSchema{

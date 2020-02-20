@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/labstack/gommon/log"
 	"github.com/shiyongabc/go-sql-api/server/lib"
 	"github.com/shiyongabc/go-sql-api/server/util"
 	"net/http"
@@ -591,14 +592,28 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
-			// 如果有虚拟子表 把子表内容  1 支持虚拟子表字段  2 查所有
-			if option.FieldsType=="2" || option.FieldsType=="1"{
-				data=obtainSubVirtualData(api,tableName,option.Wheres["account_period_year"].Value,data,option.FieldsType)
+			if option.SubTableKey!="" && strings.Contains(option.SubTableKey,"."){
+				arr:=strings.Split(option.SubTableKey,".")
+				subTableName:=arr[0]
+				subTablePriKey:=arr[1]
+				var optionSub QueryOption
+				optionSub.Table=subTableName
+				optionSub.Fields=option.SubTableFields
+				subWhere:=make(map[string]WhereOperation)
+				for _,item:=range data{
+					subWhere[subTablePriKey]=WhereOperation{
+						Operation: "eq",
+						Value: item[subTablePriKey],
+
+					}
+					optionSub.Wheres=subWhere
+					subData, errorMessage := api.Select(optionSub)
+					if errorMessage!=nil{
+						log.Print(errorMessage)
+					}
+					item[subTableName]=subData
+				}
 			}
-
-
-
-
 
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -634,6 +649,29 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 				}
 
 				data, errorMessage := api.Select(option)
+				if option.SubTableKey!="" && strings.Contains(option.SubTableKey,"."){
+					arr:=strings.Split(option.SubTableKey,".")
+					subTableName:=arr[0]
+					subTablePriKey:=arr[1]
+					var optionSub QueryOption
+					optionSub.Table=subTableName
+					optionSub.Fields=option.SubTableFields
+					subWhere:=make(map[string]WhereOperation)
+					for _,item:=range data{
+						subWhere[subTablePriKey]=WhereOperation{
+							Operation: "eq",
+							Value: item[subTablePriKey],
+
+						}
+						optionSub.Wheres=subWhere
+						subData, errorMessage := api.Select(optionSub)
+						if errorMessage!=nil{
+							log.Print(errorMessage)
+						}
+						item[subTableName]=subData
+					}
+				}
+
 				if(isNeedCache==1&&redisHost!=""){
 					pool:=newPool(redisHost,redisPassword)
 					redisConn:=pool.Get()
@@ -3596,7 +3634,9 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	queryParam := c.QueryParams()
 	groupFunc :=c.QueryParam(key.GROUP_FUNC)
     fieldsType:=c.QueryParam(key.KEY_QUERY_FIELDS_TYPE)
+	subKey:=c.QueryParam(key.SUB_KEY)
     option.FieldsType=fieldsType
+    option.SubTableKey=subKey
 	//lib.Logger.Infof("groupFunc",groupFunc)
 	option.GroupFunc=groupFunc
 	//option.Index, option.Limit, option.Offset, option.Fields, option.Wheres, option.Links, err = parseQueryParams(c)
@@ -3624,6 +3664,14 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 		for _, f := range queryParam[key.KEY_QUERY_FIELDS] {
 			if (f != "") {
 				option.Fields = append(option.Fields, f)
+			}
+		}
+	}
+	option.SubTableFields = make([]string, 0)
+	if queryParam[key.KEY_QUERY_FIELDS] != nil { // _fields
+		for _, f := range queryParam[key.SUB_KEY_QUERY_FIELDS] {
+			if (f != "") {
+				option.SubTableFields = append(option.SubTableFields, f)
 			}
 		}
 	}
