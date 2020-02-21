@@ -2946,7 +2946,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
 
 		lib.Logger.Infof("userIdJwtStr=",userIdJwtStr)
-		if meta.HaveField("submit_person"){
+		if meta.HaveField("update_person"){
 			payload["update_person"]=userIdJwtStr
 		}
 
