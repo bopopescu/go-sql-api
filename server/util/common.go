@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"github.com/shiyongabc/go-sql-api/server/lib"
+	"regexp"
 
 	"fmt"
 	"github.com/shiyongabc/jwt-go"
@@ -150,6 +151,14 @@ func UniqueId() string {
 		return ""
 	}
 	return GetMd5String(base64.URLEncoding.EncodeToString(b), true,false)
+}
+func ValidSqlInject(param string)(b bool){
+	// (\\+\\')|(\\?\\#)|(/\\*(\\?:.|[\\n\\r])*?\\*/)|(\b(select|update|and|or|delete|insert|trancate|char|chr|into|substr|ascii|declare|exec|count|master|into|drop|execute)\b)
+	paramExp := regexp.MustCompile("(\\'+)|(\\#+)|(/\\*(\\?:.|[\\n\\r])*?\\*/)|(\b(select|update|and|or|delete|insert|trancate|char|chr|into|substr|ascii|declare|exec|count|master|into|drop|execute)\b)")
+	repStr:=paramExp.FindString(param)
+	println("repStr",repStr)
+	b=repStr!=""
+	return
 }
 //func main() {
 //	id:=GetSnowflakeId()

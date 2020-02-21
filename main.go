@@ -28,7 +28,8 @@ func main() {
     // 定时任务	logPrintCron()
 	//str:=util.GetBetweenStr("/*ASS_VAR*//*JUDE_SINGLE*/$Stest$E SET maxNo=(SELECT MAX(`stu_no`) AS result FROM test.`stu`);","$S","$E")
 	//println("str",str)
-
+	//b:=util.ValidSqlInject("29994a91-aee1-4ff8-be26-f34f3db6e562")
+	//println("b",b)
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)

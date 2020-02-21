@@ -498,6 +498,9 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 		// fmt.Print("Authorization",cookie.Value)
 		tableName := c.Param("table")
 		option ,errorMessage:= parseQueryParams(c)
+		if errorMessage!=nil{
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
 		option.Table = tableName
 		// 如果是查询商品列表 隔离绿通公司查询商品
 		// 如果没有传服务商id  则默认查 绿通公司的商品
@@ -1897,11 +1900,16 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string,redisPas
 		tableName := c.Param("table")
 		var id string
 		id = c.Param("id")
-
 		option ,errorMessage:= parseQueryParams(c)
 		if errorMessage != nil {
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+		isInject:=util.ValidSqlInject(id)
+		if isInject{
+			errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
+
 		option.Table = tableName
 		option.Id = id
 		rs, errorMessage := api.Select(option)
@@ -3172,6 +3180,12 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 		lib.Logger.Error("error=",error)
 		tableName := c.Param("table")
 		id := c.Param("id")
+
+		isInject:=util.ValidSqlInject(id)
+		if isInject{
+			errorMessage:= &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
+		}
 		var option QueryOption
 		var ids []string
 		ids=append(ids,id)
@@ -3706,6 +3720,11 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 				for _, subWhere := range subWhereArr {
 					arr := r.FindStringSubmatch(subWhere)
 					if len(arr) == 4 {
+						isInject:=util.ValidSqlInject(arr[3])
+						if isInject{
+							errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+							return
+						}
 						switch arr[2] {
 						case "in", "notIn":
 							option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
@@ -3726,6 +3745,11 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 
 				arr := r.FindStringSubmatch(sWhere)
 				if len(arr) == 4 {
+					isInject:=util.ValidSqlInject(arr[3])
+					if isInject{
+						errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+						return
+					}
 					switch arr[2] {
 					case "in", "notIn":
 						option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
@@ -3757,6 +3781,11 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 			for _,subWhere:=range subWhereArr{
 				arr := oswr.FindStringSubmatch(subWhere)
 				if len(arr) == 4 {
+					isInject:=util.ValidSqlInject(arr[3])
+					if isInject{
+						errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+						return
+					}
 					switch arr[2] {
 					case "in", "notIn":
 						option.OrWheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
@@ -3818,6 +3847,11 @@ func parseWhereParams(whereStr string) (option QueryOption, errorMessage *ErrorM
 				for _, subWhere := range subWhereArr {
 					arr := r.FindStringSubmatch(subWhere)
 					if len(arr) == 4 {
+						isInject:=util.ValidSqlInject(arr[3])
+						if isInject{
+							errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+							return
+						}
 						switch arr[2] {
 						case "in", "notIn":
 							option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
@@ -3834,6 +3868,11 @@ func parseWhereParams(whereStr string) (option QueryOption, errorMessage *ErrorM
 			} else {
 				arr := r.FindStringSubmatch(sWhere)
 				if len(arr) == 4 {
+					isInject:=util.ValidSqlInject(arr[3])
+					if isInject{
+						errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+						return
+					}
 					switch arr[2] {
 					case "in", "notIn":
 						option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
