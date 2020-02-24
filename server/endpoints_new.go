@@ -151,6 +151,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 			jwtToken=  cookie.Value
 		}
 		userIdJwtStr:=util.ObtainUserByToken(jwtToken,"userId")
+
 		pool := newPool(redisHost,redisPassword)
 		redisConn := pool.Get()
 		defer redisConn.Close()
@@ -561,6 +562,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
        // is_need_cache
        var isNeedCache int
 		var isNeedPostEvent int
+		var appointUser,appointClient string
        // 返回的字段是否需要计算公式计算
        for _,rsq:=range rsQuery{
 		   isNeedCacheStr:=rsq["is_need_cache"].(string)
@@ -568,6 +570,9 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 		   isNeedCache,err=strconv.Atoi(isNeedCacheStr)
 		   isNeedPostEvent,err=strconv.Atoi(isNeedPostEventStr)
            lib.Logger.Print("isNeedPostEvent=",isNeedPostEvent)
+		   appointUser=mysql.InterToStr(rsq["appoint_user"])
+		   appointClient=mysql.InterToStr(rsq["appoint_client"])
+
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
@@ -586,7 +591,45 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
 
+		// 指定user或client查询
+		cookie,err := c.Request().Cookie("Authorization")
+		var jwtToken string
+		if cookie!=nil{
+			jwtToken=  cookie.Value
+		}
 
+		if appointUser!=""{
+			userId:=util.ObtainUserByToken(jwtToken,"userId")
+			if userId==""{
+				errorMessage = &ErrorMessage{ERR_AUTH, "认证信息无效!"}
+				return echo.NewHTTPError(http.StatusUnauthorized,errorMessage)
+			}
+			wheres:=make(map[string]WhereOperation)
+			if option.Wheres!=nil{
+				wheres=option.Wheres
+			}
+			wheres[appointUser]=WhereOperation{
+				Operation:"eq",
+				Value:userId,
+			}
+			option.Wheres=wheres
+		}
+		if appointClient!=""{
+			clientId:=util.ObtainUserByToken(jwtToken,"client_id")
+			if clientId==""{
+				errorMessage = &ErrorMessage{ERR_AUTH, "认证信息无效!"}
+				return echo.NewHTTPError(http.StatusUnauthorized,errorMessage)
+			}
+			wheres:=make(map[string]WhereOperation)
+			if option.Wheres!=nil{
+				wheres=option.Wheres
+			}
+			wheres[appointClient]=WhereOperation{
+				Operation:"eq",
+				Value:clientId,
+			}
+			option.Wheres=wheres
+		}
 		if option.Index==0{
 			// 如果缓存中有值 用缓存中的值  否则把查询出来的值放在缓存中
 			if cacheData!="QUEUED"&&cacheData!=""&&cacheData!="null"{

@@ -89,6 +89,9 @@ func ObtainUserByToken(authorization string,key string) string{
 	lib.Logger.Infof("jwtToken=",error)
 	//token,error:=ParseWithClaims(jwtToken,MapClaims{},getValidationKey)
 	//  a,error:=  jwt.DecodeSegment(jwtToken)
+	if token==nil{
+		return ""
+	}
 	var cl jwt.MapClaims
 	//	var cc Claims
 	cl = token.Claims.(jwt.MapClaims)
