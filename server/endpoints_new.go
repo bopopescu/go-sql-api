@@ -144,7 +144,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 		//operates, errorMessage := mysql.SelectOperaInfo(api, api.GetDatabaseMetadata().DatabaseName+"."+slaveTableName, "POST","0")
 		cookie,err := c.Request().Cookie("Authorization")
 		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
+			lib.Logger.Error("errorMessage=%s",err.Error())
 		}
 		var jwtToken string
 		if cookie!=nil{
@@ -161,7 +161,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 		paramV:=util.GetMd5String(params,true,false)
 		paramVCache, errC:= redis.String(redisConn.Do("GET", paramV+masterTableName+slaveTableName+"POST"))
 		if errC!=nil{
-			lib.Logger.Error("obtain fom cache err=",errC.Error())
+			lib.Logger.Error("errorMessage-redis=",errC.Error())
 		}
 		lib.Logger.Info("paramV",paramV)
 		lib.Logger.Info("paramVC",paramVCache)
@@ -410,7 +410,7 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 		}
 		cookie,err := c.Request().Cookie("Authorization")
 		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
+			lib.Logger.Error("errorMessage=%s",err.Error())
 		}
 		var jwtToken string
 		if cookie!=nil{
@@ -593,6 +593,9 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 
 		// 指定user或client查询
 		cookie,err := c.Request().Cookie("Authorization")
+		if err!=nil{
+			lib.Logger.Error("errorMessage=%s",err.Error())
+		}
 		var jwtToken string
 		if cookie!=nil{
 			jwtToken=  cookie.Value
@@ -1982,6 +1985,9 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword
 			payload["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
 		cookie,err := c.Request().Cookie("Authorization")
+		if err!=nil{
+			lib.Logger.Error("errorMessage=%s",err.Error())
+		}
 		var jwtToken string
 		if cookie!=nil{
 			jwtToken=  cookie.Value
@@ -2270,7 +2276,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 		cookie,err := c.Request().Cookie("Authorization")
 		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
+			lib.Logger.Error("errorMessage=%s",err.Error())
 		}
 		var jwtToken string
 		if cookie!=nil{
@@ -2829,7 +2835,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string,
 		lib.Logger.Infof("err=",err)
 
 		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
+			lib.Logger.Error("errorMessage=%s",err.Error())
 		}
 		var jwtToken string
 		if cookie!=nil{
@@ -2990,6 +2996,9 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 			payload["update_time"]=time.Now().Format("2006-01-02 15:04:05")
 		}
 		cookie,err := c.Request().Cookie("Authorization")
+		if err!=nil{
+			lib.Logger.Error("errorMessage=%s",err.Error())
+		}
 		var jwtToken string
 		if cookie!=nil{
 			jwtToken=  cookie.Value
@@ -3371,10 +3380,8 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 
 		r_msg:=[]string{}
 		cookie,err := c.Request().Cookie("Authorization")
-		lib.Logger.Infof("err=",err)
-
 		if err!=nil{
-			lib.Logger.Infof("err=",err.Error())
+			lib.Logger.Error("errorMessage=%s",err.Error())
 		}
 		var jwtToken string
 		if cookie!=nil{
@@ -3527,6 +3534,9 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword
 		primaryColumns:=meta.GetPrimaryColumns()
 
 		cookie,err := c.Request().Cookie("Authorization")
+		if err!=nil{
+			lib.Logger.Error("errorMessage=%s",err.Error())
+		}
 		var jwtToken string
 		if cookie!=nil{
 			jwtToken=  cookie.Value

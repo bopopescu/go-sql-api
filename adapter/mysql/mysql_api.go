@@ -172,17 +172,32 @@ func (api *MysqlAPI) UpdateAPIMetadata() adapter.IDatabaseAPI {
 	return api
 }
 func (api *MysqlAPI)ExecFunc(sql string) (rs []map[string]interface{},errorMessage *ErrorMessage){
-	//api.exec(sql,params)
-	return api.query(sql)
+	lib.Logger.Infof("execSql=",sql)
+	rs,errorMessage=api.query(sql)
+	if errorMessage!=nil{
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
+	lib.Logger.Infof("result=",rs)
+	return
 }
 func (api *MysqlAPI)ExecSql(sql string) (rs []map[string]interface{},errorMessage *ErrorMessage){
 	//api.exec(sql,params)
-	return api.query(sql)
+	lib.Logger.Infof("execSql=",sql)
+	rs,errorMessage=api.query(sql)
+	if errorMessage!=nil{
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
+	lib.Logger.Infof("result=",rs)
+	return
 }
 func (api *MysqlAPI)ExecSqlWithTx(sql string,tx *sql.Tx) (rs sql.Result,error error){
 	//api.exec(sql,params)
 	lib.Logger.Print("execSql=",sql)
 	rs,error=tx.Exec(sql)
+	if error!=nil{
+		lib.Logger.Error("errorMessage=%s",error.Error())
+	}
+	lib.Logger.Infof("result=",rs)
 	return
 }
 // GetConnectionPool which Pool is Singleton Connection Pool
@@ -979,8 +994,10 @@ func (api *MysqlAPI)ExecFuncForOne(sql string,key string)(result string,errorMes
 	lib.Logger.Infof("execSql=",sql)
 	rs,errorMessage:= api.ExecFunc(sql)
 	//rs,error:= api.ExecFunc("SELECT ROUND(calculateBalance('101','31bf0e40-5b28-54fc-9f15-d3e49cf595c1','005ef4c0-f188-4dec-9efb-f3291aefc78a'),2) AS result; ")
-	lib.Logger.Infof("error",errorMessage)
-	lib.Logger.Infof("rs1",rs)
+	if errorMessage!=nil{
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
+	lib.Logger.Infof("result=",rs)
 	for _,item:=range rs{
 		lib.Logger.Infof("")
 		if item[key]!=nil{

@@ -24,6 +24,7 @@ func newLogger() (l *log.Logger) {
 var LoggerMiddleware=middleware.LoggerWithConfig(middleware.LoggerConfig{
 	Format: "[REQ] ${time_rfc3339_nano} ${method} (HTTP${status}) ${uri} ${latency}ns\n",
 })
+
 var ErrorHandler= func (err error, c echo.Context) {
 	if reflect.TypeOf(err) == reflect.TypeOf(&echo.HTTPError{}) {
 		httpError := err.(*echo.HTTPError)

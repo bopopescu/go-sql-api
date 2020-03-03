@@ -25,8 +25,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 	if len(operates)==0{
 		return
 	}
+    if errorMessage!=nil{
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
 
-	lib.Logger.Error("errorMessage=%s",errorMessage)
 
 	for _,operate:=range operates {
 		var operateCondContentJsonMap map[string]interface{}
@@ -129,10 +131,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 		if filterFunc!=""{
 			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
-			filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
-			if errorMessage!=nil{
-				//tx.Rollback()
-			}
+			filterResult,_:=api.ExecFuncForOne(filterFuncSql,"result")
+
 			if filterResult!=""{
 				continue
 			}
@@ -315,12 +315,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					lib.Logger.Infof("result=",result)
-					lib.Logger.Error("errorMessage=%s",errorMessage)
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
+					_,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
+
 				}else if len(conditionFiledArr)>0{
 					paramsFunc:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 					paramArr:=strings.Split(paramsFunc,",")
@@ -330,9 +326,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 					}
 					if paramsFunc!=""{
 						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
-						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-						lib.Logger.Infof("result=",result)
-						lib.Logger.Error("errorMessage=%s",errorMessage)
+						_,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
+
 						errorMessage=errorMessage
 
 					}
@@ -343,22 +338,14 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if operateProcedure!=""{
 				if conditionFieldKeyValue!=""{
 					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
-					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-					lib.Logger.Infof("result=",result)
-					lib.Logger.Error("errorMessage=%s",errorMessage)
-					if errorMessage!=nil {
-						//tx.Rollback()
-					}
+					_,errorMessage=api.ExecFuncForOne(operateProcedureSql,"result")
+
 				}else if len(conditionFiledArr)>0{
 					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 					if paramsPro!=""{
 						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
-						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-						lib.Logger.Infof("result=",result)
-						lib.Logger.Error("errorMessage=%s",errorMessage)
-						if errorMessage!=nil{
-							//tx.Rollback()
-						}
+						_,errorMessage=api.ExecFuncForOne(operateProcedureSql,"result")
+
 					}
 				}
 
@@ -376,15 +363,13 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 				syncComplexOption.Wheres=complexWhereMap
 				syncComplexData, errorMessage:= api.Select(syncComplexOption)
-				fmt.Print("syncComplexData=",syncComplexData)
-				fmt.Print(errorMessage)
+				if errorMessage!=nil{
+					lib.Logger.Error("errorMessage=",errorMessage)
+				}
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
-					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					lib.Logger.Infof("result=",result)
-				    if errorMessage!=nil{
-				    	//tx.Rollback()
-					}
+					_,errorMessage=api.ExecFuncForOne(operateFuncSql,"result")
+
 				}
 
 			}
@@ -407,8 +392,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if actionType=="MUTIL_PROCESS"{
 				operateSciptArr:=strings.Split(operateScipt,";")
 				for _,itemScript:=range operateSciptArr{
-					result,errorMessage:=SingleExec(api,option,conditionFiledArr,itemScript)
-					lib.Logger.Infof("result=",result,"errorMessage=",errorMessage)
+					_,_=SingleExec(api,option,conditionFiledArr,itemScript)
+
 				}
 			}
 			if actionType=="MUTIL_PROCESS_COMPLEX"{
@@ -503,8 +488,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 							}
 							execSql.WriteString(" "+endStr)
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
-							lib.Logger.Error("errorMessage=%s",errorMessage)
+							result,_:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+
 							for _,item:=range intoArr{
 								key:=strings.Trim(item," ")
 								var value string
@@ -531,8 +516,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 							execSql.WriteString(itemScript)
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
-							lib.Logger.Error("errorMessage=%s",errorMessage)
+							result,_:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+
 							for _,item:=range fieldArr{
 								key:=strings.Trim(item," ")
 								var value string
@@ -562,8 +547,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 							intoStr=strings.Trim(intoStr," ")
 
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
-							lib.Logger.Error("errorMessage=%s",errorMessage)
+							result,_:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+
 							var value string
 							if len(result)>0{
 								value=InterToStr(result[0][intoStr])
@@ -577,10 +562,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 					//  同步类型/*SYNC_HANDLE*/
 					if strings.Contains(itemScript,"/*SYNC_HANDLE*/"){
 						itemScript=strings.Replace(itemScript,"/*SYNC_HANDLE*/","",-1)
-						result,errorMessage:=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
-						if errorMessage!=nil{
-							lib.Logger.Infof("sync_handle-result=",result," errorMessage=",errorMessage)
-						}
+						_,_=SingleExec1(api,option,conditionFiledArr,varMap,itemScript)
+
 
 					}
 					//  返回类型  /*RETURN_HANDLE*/
@@ -616,14 +599,14 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				msgType, err = strconv.Atoi(operateCondContentJsonMap["msg_type"].(string))
 				lib.Logger.Infof("msgType=",msgType)
 				if err!=nil{
-					lib.Logger.Infof("err=",err.Error())
+					lib.Logger.Error("errorMessage=%s",err.Error())
 				}
 			}
 			if operateCondContentJsonMap["bus_msg_type"]!=nil{
 				BusMsgType, err = strconv.Atoi(operateCondContentJsonMap["bus_msg_type"].(string))
 				lib.Logger.Infof("bus_msg_type=",BusMsgType)
 				if err!=nil{
-					lib.Logger.Infof("err=",err.Error())
+					lib.Logger.Error("errorMessage=%s",err.Error())
 				}
 			}
 			// MsgKey
@@ -631,7 +614,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				MsgKey= operateCondContentJsonMap["msg_key"].(string)
 				lib.Logger.Infof("msg_key=",MsgKey)
 				if err!=nil{
-					lib.Logger.Infof("err=",err.Error())
+					lib.Logger.Error("errorMessage=%s",err.Error())
 				}
 			}
 			if operateCondContentJsonMap["title"]!=nil{
@@ -644,16 +627,12 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if operateFunc!=""&&userIdsParam!=""{
 				userIdsFuncSql:="select "+operateFunc+"("+userIdsParam+") as result;"
 				userIds,errorMessage=api.ExecFuncForOne(userIdsFuncSql,"result")
-				lib.Logger.Infof("userIds=",userIds)
-				lib.Logger.Error("errorMessage=%s",errorMessage)
 				errorMessage=errorMessage
 
 			}
 			if operateFunc1!=""&&contentParam!=""{
 				conctentFuncSql:="select "+operateFunc1+"("+contentParam+") as result;"
 				content,errorMessage=api.ExecFuncForOne(conctentFuncSql,"result")
-				lib.Logger.Infof("content=",content)
-				lib.Logger.Error("errorMessage=%s",errorMessage)
 				errorMessage=errorMessage
 
 			}
@@ -675,6 +654,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			reqest, err := http.NewRequest("POST", operate_table, bytes.NewBuffer(pushParamMapBytes))
 			if option.Authorization==""{
 				fmt.Println("authorization is null")
+				lib.Logger.Error("authorization is null")
 				continue
 			}
 			//增加header选项
@@ -723,7 +703,10 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 	//tx,err:=api.Connection().Begin()
 	//fmt.Print("//tx-error",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
-	lib.Logger.Error("errorMessage=%s",errorMessage)
+	if errorMessage!=nil{
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
+
 
 
 	for _,operate:=range operates {
@@ -780,6 +763,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}
 			if operateCondJsonMap["conditionTable"]!=nil{
 				conditionTable=operateCondJsonMap["conditionTable"].(string)
+				lib.Logger.Info("conditionTable=%s",conditionTable)
 			}
 
 			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
@@ -836,9 +820,6 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
 		operate_type=operateCondContentJsonMap["operate_type"].(string)
 		operate_table=operateCondContentJsonMap["operate_table"].(string)
-		lib.Logger.Infof("operate_type=",operate_type)
-		lib.Logger.Infof("operate_table=",operate_table)
-		lib.Logger.Infof("operate_type=",conditionTable)
 
 
 		if(filter_content!=""){
@@ -893,8 +874,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				ids:=option.Ids
 				for _,item:=range ids{
 					operateFuncSql:="select "+operateFunc+"('"+item+"');"
-					_,errorMessage:=api.ExecFunc(operateFuncSql)
-					lib.Logger.Error("errorMessage=%s",errorMessage)
+					_,_=api.ExecFunc(operateFuncSql)
 				}
 
 
@@ -920,7 +900,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			if errorMessage!=nil{
 				lib.Logger.Error("errorMessage=%s", errorMessage)
 			}else{
-				lib.Logger.Infof("rs", rsQuery)
+				lib.Logger.Infof("result=", rsQuery)
 			}
 			operate_type:=operateCondContentJsonMap["operate_type"].(string)
 			pri_key:=operateCondContentJsonMap["pri_key"].(string)
@@ -944,7 +924,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 						action_field_value0_int,err0:=strconv.Atoi(action_field_value0)
 
 						if err0!=nil{
-							lib.Logger.Infof("err0",err0)
+							lib.Logger.Error("errorMessage=%s",errorMessage)
 						}
 						action_field_value=action_field_value0_int+action_field_value1_int
 						break
@@ -955,13 +935,13 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				if pri_key_value!=""{
 					rsU,err:=	api.Update(tableName,pri_key_value,actionFiledMap)
 					if err!=nil{
-						fmt.Print("err=",err)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 					}
 
 					rowesAffected,error:=rsU.RowsAffected()
 					lib.Logger.Infof("rowesAffected=",rowesAffected)
 					if error!=nil{
-						lib.Logger.Infof("err=",error)
+						lib.Logger.Error("errorMessage=%s",errorMessage)
 					}
 
 				}
@@ -1016,11 +996,11 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 					operateFuncSql="select "+operateFunc+"() as result;"
 				}
 
-					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,_:=api.ExecFuncForOne(operateFuncSql,"result")
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
-					lib.Logger.Error("errorMessage=%s",errorMessage)
+					//lib.Logger.Error("errorMessage=%s",errorMessage)
 
 
 			}
@@ -1036,19 +1016,13 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				}
 				if params!="''"{
 					operateFuncSql="select "+operateFunc+"("+params+") as result;"
-					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-                    fmt.Print(result,errorMessage)
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
+					_,errorMessage0:=api.ExecFuncForOne(operateFuncSql,"result")
+					errorMessage=errorMessage0
 				}else if len(option.Ids)>0{
 					for _,id:=range option.Ids{
 						operateFuncSql="select "+operateFunc+"('"+id+"') as result;"
-						result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-						fmt.Print(result,errorMessage)
-						if errorMessage!=nil{
-							//tx.Rollback()
-						}
+						_,errorMessage0:=api.ExecFuncForOne(operateFuncSql,"result")
+						errorMessage=errorMessage0
 					}
 
 				}
@@ -1127,14 +1101,12 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 						operateFuncSql="select "+operateFunc+"() as result;"
 					}
 
-					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
+					result,errorMessage0:=api.ExecFuncForOne(operateFuncSql,"result")
+					errorMessage=errorMessage0
 					if result!="" && conditionFieldKey!=""{
 						option.ExtendedMap[conditionFieldKey]=result
 					}
-					lib.Logger.Error("errorMessage=%s",errorMessage)
-					if errorMessage!=nil{
-						//tx.Rollback()
-					}
+
 				}
 
 
@@ -1144,8 +1116,8 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		if "PRE_EMBED_SCRIPT"==operate_type {
 			// 通过自定义脚本前置获取需要入库的数据
 			if operateScipt!="" {
-				preData,errorMessage:=MutilExec(api,option,conditionFiledArr,nil,operateScipt)
-				lib.Logger.Infof("preData=,", preData,"errorMessage=",errorMessage,)
+				preData,errorMessage0:=MutilExec(api,option,conditionFiledArr,nil,operateScipt)
+				errorMessage=errorMessage0
 				if len(preData)>0{
 					for k,v:=range preData[0]{
 						option.ExtendedMap[k]=v
@@ -1171,9 +1143,9 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
     //tx,err:=api.Connection().Begin()
 	//lib.Logger.Error("err=%s",err)
 	operates,errorMessage:=	SelectOperaInfo(api,api.GetDatabaseMetadata().DatabaseName+"."+tableName,equestMethod,"0")
-	lib.Logger.Error("errorMessage=%s",errorMessage)
-
-	//	var actionType string
+	if errorMessage!=nil{
+		lib.Logger.Error("errorMessage=%s",errorMessage)
+	}
 
 
 	for _,operate:=range operates {
@@ -1421,8 +1393,12 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 					}
 
 					querOptionPatch := QueryOption{Wheres: whereOptionPatch, Table: tableName}
-					rsQueryPatch, errorMessage:= api.Select(querOptionPatch)
-					lib.Logger.Error("errorMessage=%s",errorMessage)
+					rsQueryPatch, errorMessage0:= api.Select(querOptionPatch)
+					errorMessage=errorMessage0
+					if errorMessage!=nil{
+						lib.Logger.Error("errorMessage=%s",errorMessage)
+					}
+
 					// 先删掉 已经计算出来的得分记录  然后重新计算
 					deleteWhere:=make(map[string]interface{})
 					deleteWhere[conditionFieldKey]=conditionFieldKeyValue
@@ -1448,12 +1424,13 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			if operateFunc!=""{
 				if conditionFieldKeyValue!=""{
 					operateFuncSql:="select "+operateFunc+"('"+conditionFieldKeyValue+"') as result;"
-					rs,error:=api.ExecSqlWithTx(operateFuncSql,tx)
-					lib.Logger.Infof("result=",rs)
+					_,error:=api.ExecSqlWithTx(operateFuncSql,tx)
+
 					if error!=nil{
-						lib.Logger.Error("error=%s",error.Error())
 						errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 						tx.Rollback()
+						return nil,errorMessage
+
 					}
 
 					//if result!="" && conditionFieldKey!=""{
@@ -1471,11 +1448,13 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 					}
 					if paramsFunc!=""{
 						operateFuncSql:="select "+operateFunc+"("+paramsFunc+");"
-						result,error:=api.ExecSqlWithTx(operateFuncSql,tx)
+						_,error:=api.ExecSqlWithTx(operateFuncSql,tx)
 						if error!=nil{
-							lib.Logger.Error("result=%s,error=%s",result,error.Error())
 							errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 							tx.Rollback()
+							if errorMessage!=nil{
+								return nil,errorMessage
+							}
 						}
 
 					}
@@ -1486,18 +1465,19 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			if operateProcedure!=""{
 				if conditionFieldKeyValue!=""{
 					operateProcedureSql:="CALL "+operateProcedure+"('"+conditionFieldKeyValue+"');"
-					result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-					lib.Logger.Infof("result=",result)
-					lib.Logger.Error("errorMessage=%s",errorMessage)
-
+					_,errorMessage=api.ExecFuncForOne(operateProcedureSql,"result")
+					if errorMessage!=nil{
+						return nil,errorMessage
+					}
 
 				}else if len(conditionFiledArr)>0{
 					paramsPro:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 					if paramsPro!=""{
 						operateProcedureSql:="CALL "+operateProcedure+"("+paramsPro+");"
-						result,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
-						lib.Logger.Infof("result=",result)
-						lib.Logger.Error("errorMessage=%s",errorMessage)
+						_,errorMessage:=api.ExecFuncForOne(operateProcedureSql,"result")
+					    if errorMessage!=nil{
+							return nil,errorMessage
+						}
 
 					}
 				}
@@ -1520,8 +1500,9 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 				fmt.Print(errorMessage)
 				for _,item:=range syncComplexData{
 					operateFuncSql:="select "+operateFunc+"('"+item["id"].(string)+"') as result;"
-					result,errorMessage:=api.ExecFuncForOne(operateFuncSql,"result")
-					lib.Logger.Infof("result,errorMessage",result,errorMessage)
+					_,errorMessage0:=api.ExecFuncForOne(operateFuncSql,"result")
+					errorMessage=errorMessage0
+
 
 				}
 
@@ -1545,8 +1526,11 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			if actionType=="MUTIL_PROCESS"{
 				operateSciptArr:=strings.Split(operateScipt,";")
 				for _,itemScript:=range operateSciptArr{
-					result,errorMessage:=SingleExec(api,option,conditionFiledArr,itemScript)
-					lib.Logger.Infof("result=",result,"errorMessage=",errorMessage)
+					_,errorMessage=SingleExec(api,option,conditionFiledArr,itemScript)
+					if errorMessage!=nil{
+						return nil,errorMessage
+					}
+
 				}
 			}
 			if actionType=="MUTIL_PROCESS_COMPLEX"{
@@ -1642,8 +1626,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 							}
 							execSql.WriteString(" "+endStr)
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
-							lib.Logger.Error("errorMessage=%s",errorMessage)
+							result,_:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
 							for _,item:=range intoArr{
 									key:=strings.Trim(item," ")
 									var value string
@@ -1670,8 +1653,8 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 
 							execSql.WriteString(itemScript)
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
-							lib.Logger.Error("errorMessage=%s",errorMessage)
+							result,errorMessage0:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							errorMessage=errorMessage0
 							for _,item:=range fieldArr{
 								key:=strings.Trim(item," ")
 								if strings.Contains(key,"."){
@@ -1704,8 +1687,8 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 							intoStr=strings.Trim(intoStr," ")
 
 							//
-							result,errorMessage:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
-							lib.Logger.Error("errorMessage=%s",errorMessage)
+							result,errorMessage0:=MutilExec(api,option,conditionFiledArr,varMap,execSql.String())
+							errorMessage=errorMessage0
 							var value string
 							if len(result)>0{
 								value=InterToStr(result[0][intoStr])
@@ -1726,6 +1709,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 							lib.Logger.Infof("result=",result," errorMessage=",error.Error())
 							errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,error.Error()}
 							tx.Rollback()
+							return nil,errorMessage
 						}
 
 					}
@@ -1760,7 +1744,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 				msgType, err = strconv.Atoi(operateCondContentJsonMap["msg_type"].(string))
 				lib.Logger.Infof("msgType=",msgType)
 				if err!=nil{
-					lib.Logger.Infof("err=",err.Error())
+					lib.Logger.Infof("errorMessage=%s",err.Error())
 				}
 			}
 			if operateCondContentJsonMap["title"]!=nil{
@@ -1795,10 +1779,10 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			pushParamMap["content"]=content
 			pushParamMap["timestamp"]=time.Now().Format("2006-01-02 15:04:05")
 			pushParamMapBytes,err:=json.Marshal(pushParamMap)
-			fmt.Print("err",err)
 			reqest, err := http.NewRequest("POST", operate_table, bytes.NewBuffer(pushParamMapBytes))
 			if option.Authorization==""{
 				fmt.Println("authorization is null")
+				lib.Logger.Error("authorization is null")
 				continue
 			}
 			//增加header选项
@@ -2008,9 +1992,7 @@ func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr [
 	//lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
-	if errorMessage!=nil{
-		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",errorMessage,)
-	}
+
 	return
 }
 
@@ -2023,9 +2005,6 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 	}
 
 	result,errorMessage=api.ExecSql(operateScipt)
-	if errorMessage!=nil{
-		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",errorMessage,)
-	}
 
 	return
 }
@@ -2036,14 +2015,13 @@ func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,condition
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
-	lib.Logger.Infof("operateScipt=", operateScipt)
+	lib.Logger.Infof("execSql=", operateScipt)
 	//result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 
 	result,error=tx.Exec(operateScipt)
-
-	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 	if error!=nil{
-		lib.Logger.Infof("operateScipt=,", operateScipt,"errorMessage=",error.Error())
+		lib.Logger.Error("errorMessage=%s",error.Error())
 	}
+	lib.Logger.Infof("result=,", result)
 	return
 }
