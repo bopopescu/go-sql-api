@@ -663,19 +663,20 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			reqest.Header.Set("Accept", "application/json, text/plain, */*")
 			reqest.Header.Set("Content-type", "application/json")
 			if err != nil {
-				panic(err)
+				lib.Logger.Error("errorMessage=%s",err.Error())
 			}
 			//处理返回结果
-			response, _ := client.Do(reqest)
-			fmt.Print("response", response)
+			response, error := client.Do(reqest)
 			var resultMap map[string]interface{}
 			if response.StatusCode == 200 {
 				body, _ := ioutil.ReadAll(response.Body)
 				json.Unmarshal(body, &resultMap)
 				fmt.Println("responseBody",string(body))
+				lib.Logger.Info("responseBody=%s",string(body))
 
 			}else{
 				// errorMessage.ErrorDescription="api remote error"
+				lib.Logger.Error("errorMessage=%s",error.Error())
 			}
 
 		}
