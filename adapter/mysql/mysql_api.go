@@ -720,12 +720,15 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 	var masterPriKey string
 	var slavePriId string
 	var slavePriKey string
-
+    var slavePriKey1 string
 	var primaryColumns1 []*ColumnMetadata
+	var primaryColumns2 []*ColumnMetadata
 	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
 	slaveMeta:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
+	slaveMeta1:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName1)
 	primaryColumns=masterMeta.GetPrimaryColumns()
 	primaryColumns1=slaveMeta.GetPrimaryColumns()
+	primaryColumns2=slaveMeta1.GetPrimaryColumns()
 	if masterMeta.HaveField("create_time"){
 		masterInfoMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 	}
@@ -878,7 +881,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 				tx.Rollback()
 
 
-				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+error.Error()}
 				return 0,masterKey,masterId,errorMessage
 			}else{
 				slaveRowAffect,err=rs.RowsAffected()
@@ -901,12 +904,12 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 	}
 	for _, slave := range slaveInfoMap1 {
 
-		for _, col := range primaryColumns1 {
+		for _, col := range primaryColumns2 {
 			if col.Key == "PRI" {
-				slavePriKey = col.ColumnName
+				slavePriKey1 = col.ColumnName
 
-				if slave[slavePriKey]!=nil{
-					slavePriId=slave[slavePriKey].(string)
+				if slave[slavePriKey1]!=nil{
+					slavePriId=slave[slavePriKey1].(string)
 				}
 				lib.Logger.Infof("slave", slave)
 				break; //取第一个主键
@@ -917,7 +920,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 		//if slavePriId==""{
 		uuid := uuid.NewV4()
 		slavePriId=uuid.String()
-		slave[slavePriKey]=slavePriId
+		slave[slavePriKey1]=slavePriId
 		//	}else {
 		//	slave[slavePriKey]=slavePriId
 		//}
@@ -947,7 +950,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 				tx.Rollback()
 
 
-				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+error.Error()}
 				return 0,masterKey,masterId,errorMessage
 			}else{
 				slaveRowAffect,err=rs.RowsAffected()
@@ -1413,6 +1416,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	var masterId string
 	var masterKeyColName string
 	var slaveKeyColName string
+	var slaveKeyColName1 string
 	var slaveTableName1 string
 	var slaveTableInfoStr1 string
 	var slaveInfoMap1 []map[string]interface{}
@@ -1439,6 +1443,9 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	var primaryColumns1 []*ColumnMetadata
 	masterMeta1:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
 	primaryColumns1=masterMeta1.GetPrimaryColumns()
+	var primaryColumns2 []*ColumnMetadata
+	masterMeta2:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName1)
+	primaryColumns2=masterMeta2.GetPrimaryColumns()
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			masterKeyColName=col.ColumnName
@@ -1448,6 +1455,12 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	for _, col := range primaryColumns1 {
 		if col.Key == "PRI" {
 			slaveKeyColName=col.ColumnName
+			break;//取第一个主键
+		}
+	}
+	for _, col := range primaryColumns2 {
+		if col.Key == "PRI" {
+			slaveKeyColName1=col.ColumnName
 			break;//取第一个主键
 		}
 	}
@@ -1620,9 +1633,9 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	for i, slave := range slaveInfoMap1 {
 		var updateSql string
 
-		if slave[slaveKeyColName]!=nil{
-			if slave[slaveKeyColName].(string)!=""{
-				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName1,slave[slaveKeyColName].(string), slave)
+		if slave[slaveKeyColName1]!=nil{
+			if slave[slaveKeyColName1].(string)!=""{
+				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName1,slave[slaveKeyColName1].(string), slave)
 				rs,error=api.ExecSqlWithTx(updateSql,tx)
 				if error!=nil{
 					tx.Rollback()
@@ -1630,7 +1643,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				}
 				lib.Logger.Infof("err=",err)
 			}else{
-				slave[slaveKeyColName]=uuid.NewV4().String()
+				slave[slaveKeyColName1]=uuid.NewV4().String()
 				//rs,errorMessage=api.Create(slaveTableName,slave)
 
 				objCreate:=make(map[string]interface{})
@@ -1647,7 +1660,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 			}
 
 		}else{
-			slave[slaveKeyColName]=uuid.NewV4().String()
+			slave[slaveKeyColName1]=uuid.NewV4().String()
 			//rs,errorMessage=api.Create(slaveTableName,slave)
 
 			objCreate:=make(map[string]interface{})
@@ -1664,7 +1677,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 		}
 
 		lib.Logger.Infof("i=",i)
-		slaveIds.PushBack(slave[slaveKeyColName].(string))
+		slaveIds.PushBack(slave[slaveKeyColName1].(string))
 
 		if err!=nil{
 			// 回滚已经插入的数据
