@@ -641,28 +641,32 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 
 			//无需分页,直接返回数组
 			data, errorMessage := api.Select(option)
-			if option.SubTableKey!="" && strings.Contains(option.SubTableKey,"."){
-				arr:=strings.Split(option.SubTableKey,".")
-				subTableName:=arr[0]
-				subTablePriKey:=arr[1]
-				var optionSub QueryOption
-				optionSub.Table=subTableName
-				optionSub.Fields=option.SubTableFields
-				subWhere:=make(map[string]WhereOperation)
-				for _,item:=range data{
-					subWhere[subTablePriKey]=WhereOperation{
-						Operation: "eq",
-						Value: item[subTablePriKey],
+			// 多个subTableKey
+			subTableKeyArr:=strings.Split(option.SubTableKey,",")
+			for _,item:=range subTableKeyArr{
+				if item!="" && strings.Contains(item,"."){
+					arr:=strings.Split(item,".")
+					subTableName:=arr[0]
+					subTablePriKey:=arr[1]
+					var optionSub QueryOption
+					optionSub.Table=subTableName
+					subWhere:=make(map[string]WhereOperation)
+					for _,item:=range data{
+						subWhere[subTablePriKey]=WhereOperation{
+							Operation: "eq",
+							Value: item[subTablePriKey],
 
+						}
+						optionSub.Wheres=subWhere
+						subData, errorMessage := api.Select(optionSub)
+						if errorMessage!=nil{
+							log.Print(errorMessage)
+						}
+						item[subTableName]=subData
 					}
-					optionSub.Wheres=subWhere
-					subData, errorMessage := api.Select(optionSub)
-					if errorMessage!=nil{
-						log.Print(errorMessage)
-					}
-					item[subTableName]=subData
 				}
 			}
+
 
 			if errorMessage != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -698,26 +702,29 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 				}
 
 				data, errorMessage := api.Select(option)
-				if option.SubTableKey!="" && strings.Contains(option.SubTableKey,"."){
-					arr:=strings.Split(option.SubTableKey,".")
-					subTableName:=arr[0]
-					subTablePriKey:=arr[1]
-					var optionSub QueryOption
-					optionSub.Table=subTableName
-					optionSub.Fields=option.SubTableFields
-					subWhere:=make(map[string]WhereOperation)
-					for _,item:=range data{
-						subWhere[subTablePriKey]=WhereOperation{
-							Operation: "eq",
-							Value: item[subTablePriKey],
+				// 多个subTableKey
+				subTableKeyArr:=strings.Split(option.SubTableKey,",")
+				for _,item:=range subTableKeyArr{
+					if item!="" && strings.Contains(item,"."){
+						arr:=strings.Split(item,".")
+						subTableName:=arr[0]
+						subTablePriKey:=arr[1]
+						var optionSub QueryOption
+						optionSub.Table=subTableName
+						subWhere:=make(map[string]WhereOperation)
+						for _,item:=range data{
+							subWhere[subTablePriKey]=WhereOperation{
+								Operation: "eq",
+								Value: item[subTablePriKey],
 
+							}
+							optionSub.Wheres=subWhere
+							subData, errorMessage := api.Select(optionSub)
+							if errorMessage!=nil{
+								log.Print(errorMessage)
+							}
+							item[subTableName]=subData
 						}
-						optionSub.Wheres=subWhere
-						subData, errorMessage := api.Select(optionSub)
-						if errorMessage!=nil{
-							log.Print(errorMessage)
-						}
-						item[subTableName]=subData
 					}
 				}
 

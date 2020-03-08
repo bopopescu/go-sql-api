@@ -676,17 +676,30 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 	var slaveRowAffect int64
 	var	rs sql.Result
 	var error error
+	var slaveTableName1 string
+	var slaveTableInfo1Str string
+	var slaveInfoMap1 []map[string]interface{}
 	//var masterId string
 
 	slaveIds := list.New()
 	masterTableName:=obj["masterTableName"].(string)
 	slaveTableName:=obj["slaveTableName"].(string)
+	if obj["slaveTableName1"]!=nil{
+		slaveTableName1=obj["slaveTableName1"].(string)
+	}
+	if obj["slaveTableInfo1"]!=nil{
+		slaveTableInfo1Str=obj["slaveTableInfo1"].(string)
+	}
+	if slaveTableInfo1Str!=""{
+		slaveInfoMap1,errorMessage=JsonArr2map(slaveTableInfo1Str)
+	}
 	masterTableInfo:=obj["masterTableInfo"]
 
 	slaveTableInfo:=obj["slaveTableInfo"].(string)
 	lib.Logger.Infof("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
+
 	slaveMetaData:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName)
 	//slaveInfoMap:=make([]map[string]interface{})
 	if masterTableInfo!=nil{
@@ -886,6 +899,76 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 		}
 
 	}
+	for _, slave := range slaveInfoMap1 {
+
+		for _, col := range primaryColumns1 {
+			if col.Key == "PRI" {
+				slavePriKey = col.ColumnName
+
+				if slave[slavePriKey]!=nil{
+					slavePriId=slave[slavePriKey].(string)
+				}
+				lib.Logger.Infof("slave", slave)
+				break; //取第一个主键
+			}
+		}
+		//设置主键id
+		slave[masterPriKey]=masterId
+		//if slavePriId==""{
+		uuid := uuid.NewV4()
+		slavePriId=uuid.String()
+		slave[slavePriKey]=slavePriId
+		//	}else {
+		//	slave[slavePriKey]=slavePriId
+		//}
+		if slaveMetaData.HaveField("create_time"){
+			slave["create_time"]=time.Now().Format("2006-01-02 15:04:05")
+		}
+
+		option.ExtendedMap=slave
+		data,errorMessage:=PreEvent(api,slaveTableName1,"POST",nil,option,"")
+		if len(data)>0{
+			slave=data[0]
+		}
+
+		sql, err := api.sql.InsertByTable(slaveTableName1, slave)
+		lib.Logger.Infof("slavePriId",slavePriId)
+		slaveIds.PushBack(slavePriId)
+
+		if err!=nil{
+			tx.Rollback()
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return 0,masterKey,masterId,errorMessage
+		}else{
+			rs,error:=api.ExecSqlWithTx(sql,tx)
+
+			if error != nil {
+				lib.Logger.Infof("exec-post-event-error=",error)
+				tx.Rollback()
+
+
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+err.Error()}
+				return 0,masterKey,masterId,errorMessage
+			}else{
+				slaveRowAffect,err=rs.RowsAffected()
+				if slaveRowAffect>0{
+					var option QueryOption
+					option.ExtendedMap=slave
+					_,errorMessage=PostEvent(api,tx,slaveTableName1,"POST",nil,option,"")
+					if errorMessage!=nil{
+						lib.Logger.Infof("exec-post-event-error=",errorMessage)
+						tx.Rollback()
+
+						errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"exec-post-event-error="+errorMessage.ErrorDescription}
+						return 0,masterKey,masterId,errorMessage
+					}
+				}
+			}
+			rowAaffect=rowAaffect+slaveRowAffect
+		}
+
+	}
+
 	rowAaffect=rowAaffect+masterRowAffect
 	return rowAaffect,masterKey,masterId,nil
 }
@@ -1330,6 +1413,9 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	var masterId string
 	var masterKeyColName string
 	var slaveKeyColName string
+	var slaveTableName1 string
+	var slaveTableInfoStr1 string
+	var slaveInfoMap1 []map[string]interface{}
 	slaveIds := list.New()
 	masterTableName:=obj["masterTableName"].(string)
 	slaveTableName:=obj["slaveTableName"].(string)
@@ -1338,7 +1424,13 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	lib.Logger.Infof("masterTableInfo=",masterTableInfo)
 	masterInfoMap:=make(map[string]interface{})
 	var slaveInfoMap []map[string]interface{}
-
+    if obj["slaveTableName1"]!=nil{
+		slaveTableName1=obj["slaveTableName1"].(string)
+	}
+	if obj["slaveTableInfo"]!=nil{
+		slaveTableInfoStr1=obj["slaveTableInfo"].(string)
+		slaveInfoMap1,errorMessage=JsonArr2map(slaveTableInfoStr1)
+	}
 	//slaveInfoMap:=make([]map[string]interface{})
 	var primaryColumns []*ColumnMetadata
 	masterMeta:=api.GetDatabaseMetadata().GetTableMeta(masterTableName)
@@ -1512,6 +1604,83 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 					var option QueryOption
 					option.ExtendedMap=slave
 					_,errorMessage=PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
+					if errorMessage!=nil{
+						lib.Logger.Infof("batch-related-slave-err",errorMessage)
+						tx.Rollback()
+
+						errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"exec sql error:"+errorMessage.ErrorDescription}
+						return 0,errorMessage
+					}
+				}
+			}
+			rowAaffect=rowAaffect+slaveRowAffect
+		}
+
+	}
+	for i, slave := range slaveInfoMap1 {
+		var updateSql string
+
+		if slave[slaveKeyColName]!=nil{
+			if slave[slaveKeyColName].(string)!=""{
+				updateSql, err = api.sql.UpdateByTableAndId(slaveTableName1,slave[slaveKeyColName].(string), slave)
+				rs,error=api.ExecSqlWithTx(updateSql,tx)
+				if error!=nil{
+					tx.Rollback()
+
+				}
+				lib.Logger.Infof("err=",err)
+			}else{
+				slave[slaveKeyColName]=uuid.NewV4().String()
+				//rs,errorMessage=api.Create(slaveTableName,slave)
+
+				objCreate:=make(map[string]interface{})
+				objCreate=obj
+				var createSlaveMap []map[string]interface{}
+				createSlaveMap=append(createSlaveMap,slave)
+				byte,error:=json.Marshal(createSlaveMap)
+				lib.Logger.Infof("error=",error)
+				objCreate["slaveTableInfo"]=string(byte[:])
+				objCreate["isCreated"]="1"
+				api.RelatedCreateWithTx(tx,masterTableName,slaveTableName1,objCreate,updatePerson)
+				lib.Logger.Infof("rsCreate=",rs)
+
+			}
+
+		}else{
+			slave[slaveKeyColName]=uuid.NewV4().String()
+			//rs,errorMessage=api.Create(slaveTableName,slave)
+
+			objCreate:=make(map[string]interface{})
+			objCreate=obj
+			var createSlaveMap []map[string]interface{}
+			createSlaveMap=append(createSlaveMap,slave)
+			byte,error:=json.Marshal(createSlaveMap)
+			lib.Logger.Infof("error=",error)
+			objCreate["slaveTableInfo"]=string(byte[:])
+			objCreate["isCreated"]="1"
+			api.RelatedCreateWithTx(tx,masterTableName,slaveTableName1,objCreate,updatePerson)
+			lib.Logger.Infof("rsCreate=",rs)
+
+		}
+
+		lib.Logger.Infof("i=",i)
+		slaveIds.PushBack(slave[slaveKeyColName].(string))
+
+		if err!=nil{
+			// 回滚已经插入的数据
+			errorMessage = &ErrorMessage{ERR_SQL_EXECUTION,err.Error()}
+			return 0,errorMessage
+		}else{
+
+			if errorMessage != nil {
+				errorMessage = &ErrorMessage{ERR_SQL_RESULTS,"Can not get rowesAffected:"+errorMessage.Error()}
+				return 0,errorMessage
+			}else{
+				slaveRowAffect,err=rs.RowsAffected()
+				if slaveRowAffect>0{
+					var option QueryOption
+					option.ExtendedMap=slave
+					_,errorMessage=PostEvent(api,tx,slaveTableName1,"PATCH",nil,option,"")
 					if errorMessage!=nil{
 						lib.Logger.Infof("batch-related-slave-err",errorMessage)
 						tx.Rollback()
