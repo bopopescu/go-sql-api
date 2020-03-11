@@ -1519,18 +1519,23 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 				continue
 			}
 			if actionType=="SINGLE_PROCESS"{
-				result,errorMessage:=SingleExec(api,option,conditionFiledArr,operateScipt)
-				if result!="" && conditionFieldKey!="" && errorMessage.ErrorDescription!=""{
-					option.ExtendedMap[conditionFieldKey]=result
+				_,error:=ExecWithTx(api,tx,option,conditionFiledArr,nil,operateScipt)
+				if  error!=nil{
+					errorMessage=&ErrorMessage{ERR_SQL_RESULTS,error.Error()}
+					tx.Rollback()
+					return nil,errorMessage
 				}
 			}
 			if actionType=="MUTIL_PROCESS"{
 				operateSciptArr:=strings.Split(operateScipt,";")
 				for _,itemScript:=range operateSciptArr{
-					_,errorMessage=SingleExec(api,option,conditionFiledArr,itemScript)
-					if errorMessage!=nil{
+					_,error:=ExecWithTx(api,tx,option,conditionFiledArr,nil,itemScript)
+					if  error!=nil{
+						errorMessage=&ErrorMessage{ERR_SQL_RESULTS,error.Error()}
+						tx.Rollback()
 						return nil,errorMessage
 					}
+
 
 				}
 			}
@@ -1996,7 +2001,7 @@ func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr [
 
 	return
 }
-
+//针对查询 没有事务
 func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result []map[string]interface{},errorMessage *ErrorMessage){
 	for _,itemField:=range conditionFiledArr{
 		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
@@ -2009,6 +2014,7 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 
 	return
 }
+//针对添加或修改 有事务
 func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result sql.Result,error error){
 	for _,itemField:=range conditionFiledArr{
 		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
