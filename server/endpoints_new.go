@@ -183,12 +183,11 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 		//dataR,errorMessage:=mysql.PostEvent(api,tx,slaveTableName,"POST",nil,option,redisHost)
         if errorMessage!=nil{
         	 tx.Rollback()
+			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 		}else{
 			tx.Commit()
 		}
-		if errorMessage != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
-		}
+
 		//if len(dataR)>0{
 		//	option.ExtendedMap=dataR[0]
 		//}
@@ -287,6 +286,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string,redisPasswo
 			_,error=	api.DeleteWithTx(tx,masterTableName,masterId,nil)
 			if error!=nil{
 				tx.Rollback()
+				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
 			count=1;
 			if errorMessage!=nil{
@@ -332,6 +332,7 @@ func endpointRelatedDelete(api adapter.IDatabaseAPI,redisHost string,redisPasswo
 			_,error=api.DeleteWithTx(tx,slaveTableName,slaveId,nil)
 			if error!=nil{
 				tx.Rollback()
+				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
 			count=count+1
 		}
@@ -2936,6 +2937,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string,
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
 				tx.Rollback()
+				return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
 			}
 
 
@@ -3154,6 +3156,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
 			if errorMessage!=nil{
 				tx.Rollback()
+				return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
 			}
 
 		}
@@ -3299,6 +3302,7 @@ func endpointTableDeleteSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 		_,errorMessage=mysql.PostEvent(api,tx,tableName,"DELETE",nil,option,"")
 		if errorMessage!=nil{
 			tx.Rollback()
+			return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
 		}else{
 			tx.Commit()
 		}
