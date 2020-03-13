@@ -115,9 +115,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			arr:=strings.Split(filterFieldKey,"=")
 			field0:=arr[0]
 			value0:=arr[1]
-			if option.ExtendedMap[field0]==value0{
+
+			extendParamStr:=InterToStr(option.ExtendedMap[field0])
+			if extendParamStr==value0{
 				isFiltered=true
-				break;
 			}else{
 				isFiltered=false
 			}
@@ -845,9 +846,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			arr:=strings.Split(filterKey,"=")
 			field0:=arr[0]
 			value0:=arr[1]
-			if option.ExtendedMap[field0]==value0{
+			extendParamStr:=InterToStr(option.ExtendedMap[field0])
+			if extendParamStr==value0{
 				isFiltered=true
-				break;
 			}else{
 				isFiltered=false
 			}
@@ -1222,9 +1223,9 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			arr:=strings.Split(filterFieldKey,"=")
 			field0:=arr[0]
 			value0:=arr[1]
-			if option.ExtendedMap[field0]==value0{
+			extendParamStr:=InterToStr(option.ExtendedMap[field0])
+			if extendParamStr==value0{
 				isFiltered=true
-				break;
 			}else{
 				isFiltered=false
 			}
