@@ -122,7 +122,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}else{
 				isFiltered=false
 			}
-		}else if filterFieldKey==""{
+		}else{
 			isFiltered=true
 		}
 		// 如果不满足过滤条件 则不执行当前事件
@@ -852,7 +852,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}else{
 				isFiltered=false
 			}
-		}else if filterKey==""{
+		}else {
 			isFiltered=true
 		}
 		// 如果不满足过滤条件 则不执行当前事件
@@ -1229,7 +1229,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			}else{
 				isFiltered=false
 			}
-		}else if filterFieldKey==""{
+		}else{
 			isFiltered=true
 		}
 		// 如果不满足过滤条件 则不执行当前事件
