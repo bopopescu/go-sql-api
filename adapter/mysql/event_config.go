@@ -1237,6 +1237,14 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			continue
 		}
 
+		if filterFunc!=""{
+			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
+			filterResult,_:=api.ExecFuncForOne(filterFuncSql,"result")
+
+			if filterResult!=""{
+				continue
+			}
+		}
 
 
 		for _,item:= range conditionFiledArr{
