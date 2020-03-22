@@ -111,19 +111,14 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			json.Unmarshal([]byte(filterFiledArrStr), &filterFiledArr)
 		}
 		var isFiltered bool
-		if strings.Contains(filterFieldKey,"="){
-			arr:=strings.Split(filterFieldKey,"=")
-			field0:=arr[0]
-			value0:=arr[1]
-
-			extendParamStr:=InterToStr(option.ExtendedMap[field0])
-			if extendParamStr==value0{
-				isFiltered=true
-			}else{
-				isFiltered=false
-			}
+		if strings.Contains(strings.ToLower(filterFieldKey),"/*and*/"){
+			isFiltered=FilterFiledKeyAnd(filterFieldKey,option)
+		}else if strings.Contains(strings.ToLower(filterFieldKey),"/*or*/"){
+			isFiltered=FilterFiledKeyOr(filterFieldKey,option)
 		}else{
-			isFiltered=true
+			isFiltered=FilterFiledKeyItem(filterFieldKey,option)
+
+
 		}
 		// 如果不满足过滤条件 则不执行当前事件
 		if !isFiltered{
@@ -622,6 +617,11 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				title=operateCondContentJsonMap["title"].(string)
 				lib.Logger.Infof("title=",title)
 			}
+			var options string
+			if operateCondContentJsonMap["options"]!=nil{
+				options=InterToStr(option.ExtendedMap[operateCondContentJsonMap["options"].(string)])
+				lib.Logger.Infof("options=",title)
+			}
 			// 构造请求参数
 			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 			contentParam:=ConcatObjectProperties(conditionFiledArr1,option.ExtendedMap)
@@ -649,6 +649,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			pushParamMap["msgKey"]=MsgKey
 			pushParamMap["title"]=title
 			pushParamMap["content"]=content
+			pushParamMap["options"]=options
 			pushParamMap["timestamp"]=time.Now().Format("2006-01-02 15:04:05")
 			pushParamMapBytes,err:=json.Marshal(pushParamMap)
 			fmt.Print("err",err)
@@ -842,18 +843,14 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		}
 
 		var isFiltered bool
-		if strings.Contains(filterKey,"="){
-			arr:=strings.Split(filterKey,"=")
-			field0:=arr[0]
-			value0:=arr[1]
-			extendParamStr:=InterToStr(option.ExtendedMap[field0])
-			if extendParamStr==value0{
-				isFiltered=true
-			}else{
-				isFiltered=false
-			}
-		}else {
-			isFiltered=true
+		if strings.Contains(strings.ToLower(filterKey),"/*and*/"){
+			isFiltered=FilterFiledKeyAnd(filterKey,option)
+		}else if strings.Contains(strings.ToLower(filterKey),"/*or*/"){
+			isFiltered=FilterFiledKeyOr(filterKey,option)
+		}else{
+			isFiltered=FilterFiledKeyItem(filterKey,option)
+
+
 		}
 		// 如果不满足过滤条件 则不执行当前事件
 		if !isFiltered{
@@ -1219,19 +1216,21 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		}
 
 		var isFiltered bool
-		if strings.Contains(filterFieldKey,"="){
-			arr:=strings.Split(filterFieldKey,"=")
-			field0:=arr[0]
-			value0:=arr[1]
-			extendParamStr:=InterToStr(option.ExtendedMap[field0])
-			if extendParamStr==value0{
-				isFiltered=true
-			}else{
-				isFiltered=false
-			}
+		if strings.Contains(strings.ToLower(filterFieldKey),"/*and*/"){
+			isFiltered=FilterFiledKeyAnd(filterFieldKey,option)
+		}else if strings.Contains(strings.ToLower(filterFieldKey),"/*or*/"){
+			isFiltered=FilterFiledKeyOr(filterFieldKey,option)
 		}else{
-			isFiltered=true
+			isFiltered=FilterFiledKeyItem(filterFieldKey,option)
+
+
 		}
+
+
+
+
+
+
 		// 如果不满足过滤条件 则不执行当前事件
 		if !isFiltered{
 			continue
@@ -1766,6 +1765,11 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 				title=operateCondContentJsonMap["title"].(string)
 				lib.Logger.Infof("title=",title)
 			}
+			var options string
+			if operateCondContentJsonMap["options"]!=nil{
+				options=InterToStr(option.ExtendedMap[operateCondContentJsonMap["options"].(string)])
+				lib.Logger.Infof("options=",title)
+			}
 			// 构造请求参数
 			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
 			contentParam:=ConcatObjectProperties(conditionFiledArr1,option.ExtendedMap)
@@ -1792,6 +1796,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			pushParamMap["msgType"]=msgType
 			pushParamMap["title"]=title
 			pushParamMap["content"]=content
+			pushParamMap["options"]=options
 			pushParamMap["timestamp"]=time.Now().Format("2006-01-02 15:04:05")
 			pushParamMapBytes,err:=json.Marshal(pushParamMap)
 			reqest, err := http.NewRequest("POST", operate_table, bytes.NewBuffer(pushParamMapBytes))
@@ -1963,6 +1968,44 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 
 	}
 
+}
+func FilterFiledKeyOr(filterFieldKey string,option QueryOption)(bool){
+	var isFiltered0 bool
+	var isFiltered1 bool
+	arr:=strings.Split(filterFieldKey,"/*or*/")
+	if len(arr)==2{
+		isFiltered0=FilterFiledKeyItem(arr[0],option)
+		isFiltered1=FilterFiledKeyItem(arr[1],option)
+	}
+	return isFiltered0||isFiltered1
+}
+func FilterFiledKeyAnd(filterFieldKey string,option QueryOption)(bool){
+	var isFiltered0 bool
+	var isFiltered1 bool
+	arr:=strings.Split(filterFieldKey,"/*and*/")
+	if len(arr)==2{
+		isFiltered0=FilterFiledKeyItem(arr[0],option)
+		isFiltered1=FilterFiledKeyItem(arr[1],option)
+	}
+
+	return isFiltered0&&isFiltered1
+}
+func FilterFiledKeyItem(filterFieldKey string,option QueryOption)(bool){
+	var isFiltered bool
+	if strings.Contains(filterFieldKey,"="){
+		arr:=strings.Split(filterFieldKey,"=")
+		field0:=strings.TrimSpace(arr[0])
+		value0:=strings.TrimSpace(arr[1])
+		extendParamStr:=InterToStr(option.ExtendedMap[field0])
+		if extendParamStr==value0{
+			isFiltered=true
+		}else{
+			isFiltered=false
+		}
+	}else{
+		isFiltered=true
+	}
+	return isFiltered
 }
 func InterToStr(fieldInter interface{})(string){
 	var result string

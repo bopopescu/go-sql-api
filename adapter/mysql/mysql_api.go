@@ -1153,28 +1153,37 @@ func ConcatObjectProperties(funcParamFields []string,object map[string]interface
 			if strings.Contains(item,"."){
 				item=strings.Split(item,".")[1]
 			}
-			if object[item]==nil{
+			itemValue,ok:=object[item]
+			if ok&&object[item]==nil{
 				b.WriteString("''" + ",")
 			}
-			switch object[item].(type) { //多选语句switch
-			case string:
-				//是字符时做的事情
-				if object[item]==nil || object[item].(string)==""{
-					b.WriteString("''" + ",")
-				}else{
-					b.WriteString(object[item].(string) + ",")
+
+			if !ok{
+				b.WriteString(item + ",")
+			}else{
+				switch object[item].(type) { //多选语句switch
+				case string:
+					//是字符时做的事情
+					if itemValue==nil || itemValue.(string)==""{
+						b.WriteString("''" + ",")
+					}else{
+						b.WriteString(object[item].(string) + ",")
+
+					}
+
+				case float64:
+					//是整数时做的事情
+					b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64) + ",")
+
 				}
-
-			case float64:
-				//是整数时做的事情
-				b.WriteString(strconv.FormatFloat(object[item].(float64), 'f', -1, 64) + ",")
-
 			}
+
 		}
 
 
 
 	}
+	//println("resultStr=%s",b.String())
 	resultStr="'"+strings.Replace(b.String(),",","','",-1)+"'"
 	resultStr=strings.Replace(resultStr,",''","",-1)
 	resultStr=strings.Replace(resultStr,"'''","',''",-1)

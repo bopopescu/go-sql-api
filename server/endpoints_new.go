@@ -3078,11 +3078,13 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 			beforeUpdateMap=beforeUpdateObj[0]
 		}
 		var option QueryOption
+		var postOption QueryOption
 		var extendMap map[string]interface{}
 		extendMap=payload
 		option.PriKey=firstPrimaryKey
 		extendMap[firstPrimaryKey]=id
 		option.ExtendedMap=extendMap
+
 		data,errorMessage:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
 		if len(data)>0{
 			payload=data[0]
@@ -3092,6 +3094,10 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 		//修改时不能修改主键值
 		delete(payload, firstPrimaryKey)
 		rs,error:=api.UpdateWithTx(tx,tableName, id, payload)
+		//重新赋值给主键
+		extendMap[firstPrimaryKey]=id
+		option.ExtendedMap=extendMap
+		postOption=option
 		//fmt.Print("sql",sql)
 		//rs,error:=tx.Exec(sql)
 		//tx.Commit()
@@ -3153,7 +3159,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 			}
 
 			option2=option
-			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,option,"")
+			_,errorMessage=mysql.PostEvent(api,tx,tableName,"PATCH",nil,postOption,"")
 			if errorMessage!=nil{
 				tx.Rollback()
 				return c.String(http.StatusInternalServerError, errorMessage.ErrorDescription)
