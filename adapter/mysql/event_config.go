@@ -620,7 +620,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			var options string
 			if operateCondContentJsonMap["options"]!=nil{
 				options=InterToStr(option.ExtendedMap[operateCondContentJsonMap["options"].(string)])
-				lib.Logger.Infof("options=",title)
+				lib.Logger.Infof("options=",options)
 			}
 			// 构造请求参数
 			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
@@ -678,7 +678,11 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 			}else{
 				// errorMessage.ErrorDescription="api remote error"
-				lib.Logger.Error("errorMessage=%s",error.Error())
+				lib.Logger.Error("response.StatusCode=%s",response.StatusCode)
+				if error!=nil{
+					lib.Logger.Error("errorMessage=%s",error.Error())
+				}
+
 			}
 
 		}
@@ -1754,11 +1758,28 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			var userIds string
 			var msgType int
 			var err error
+			var BusMsgType int
+			var MsgKey string
 			if operateCondContentJsonMap["msg_type"]!=nil{
 				msgType, err = strconv.Atoi(operateCondContentJsonMap["msg_type"].(string))
 				lib.Logger.Infof("msgType=",msgType)
 				if err!=nil{
 					lib.Logger.Infof("errorMessage=%s",err.Error())
+				}
+			}
+			if operateCondContentJsonMap["bus_msg_type"]!=nil{
+				BusMsgType, err = strconv.Atoi(operateCondContentJsonMap["bus_msg_type"].(string))
+				lib.Logger.Infof("bus_msg_type=",BusMsgType)
+				if err!=nil{
+					lib.Logger.Error("errorMessage=%s",err.Error())
+				}
+			}
+			// MsgKey
+			if operateCondContentJsonMap["msg_key"]!=nil{
+				MsgKey= operateCondContentJsonMap["msg_key"].(string)
+				lib.Logger.Infof("msg_key=",MsgKey)
+				if err!=nil{
+					lib.Logger.Error("errorMessage=%s",err.Error())
 				}
 			}
 			if operateCondContentJsonMap["title"]!=nil{
@@ -1768,7 +1789,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			var options string
 			if operateCondContentJsonMap["options"]!=nil{
 				options=InterToStr(option.ExtendedMap[operateCondContentJsonMap["options"].(string)])
-				lib.Logger.Infof("options=",title)
+				lib.Logger.Infof("options=",options)
 			}
 			// 构造请求参数
 			userIdsParam:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
@@ -1794,6 +1815,9 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			pushParamMap["senderName"]="SYSTEM"
 			pushParamMap["userIds"]=userIds
 			pushParamMap["msgType"]=msgType
+			pushParamMap["busMsgType"]=BusMsgType
+			pushParamMap["msgKey"]=MsgKey
+
 			pushParamMap["title"]=title
 			pushParamMap["content"]=content
 			pushParamMap["options"]=options
@@ -1814,7 +1838,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 				panic(err)
 			}
 			//处理返回结果
-			response, _ := client.Do(reqest)
+			response, error := client.Do(reqest)
 			fmt.Print("response", response)
 			var resultMap map[string]interface{}
 			if response.StatusCode == 200 {
@@ -1823,7 +1847,10 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 				fmt.Println("responseBody",string(body))
 
 			}else{
-				// errorMessage.ErrorDescription="api remote error"
+				lib.Logger.Error("response.StatusCode=%s",response.StatusCode)
+				if error!=nil{
+					lib.Logger.Error("errorMessage=%s",error.Error())
+				}
 			}
 
 		}

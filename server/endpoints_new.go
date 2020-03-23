@@ -3156,6 +3156,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 			option.ExtendedMapSecond=beforeUpdateMap
 			if cookie!=nil{
 				option.Authorization=cookie.Value
+				postOption.Authorization=cookie.Value
 			}
 
 			option2=option
