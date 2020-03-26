@@ -1454,7 +1454,10 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	primaryColumns1=masterMeta1.GetPrimaryColumns()
 	var primaryColumns2 []*ColumnMetadata
 	masterMeta2:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName1)
-	primaryColumns2=masterMeta2.GetPrimaryColumns()
+	if masterMeta2!=nil{
+		primaryColumns2=masterMeta2.GetPrimaryColumns()
+	}
+	
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			masterKeyColName=col.ColumnName
