@@ -728,7 +728,10 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 	slaveMeta1:=api.GetDatabaseMetadata().GetTableMeta(slaveTableName1)
 	primaryColumns=masterMeta.GetPrimaryColumns()
 	primaryColumns1=slaveMeta.GetPrimaryColumns()
-	primaryColumns2=slaveMeta1.GetPrimaryColumns()
+	if slaveMeta1!=nil{
+		primaryColumns2=slaveMeta1.GetPrimaryColumns()
+	}
+
 	if masterMeta.HaveField("create_time"){
 		masterInfoMap["create_time"]=time.Now().Format("2006-01-02 15:04:05")
 	}
@@ -1457,7 +1460,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 	if masterMeta2!=nil{
 		primaryColumns2=masterMeta2.GetPrimaryColumns()
 	}
-	
+
 	for _, col := range primaryColumns {
 		if col.Key == "PRI" {
 			masterKeyColName=col.ColumnName
