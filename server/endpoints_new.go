@@ -2272,8 +2272,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		fileHeader,error:=c.FormFile("file")
 		lib.Logger.Infof("error=",error)
 		templateKey:=c.QueryParam(key.IMPORT_TEMPLATE_KEY)
-		where := c.QueryParam(key.KEY_QUERY_WHERE)
-		option ,errorMessage:= parseWhereParams(where)
+
+		queryParam := c.QueryParams()
+		wheres:=queryParam[key.KEY_QUERY_WHERE]
+		option ,errorMessage:= parseWheres(wheres)
 		lib.Logger.Infof("templateKey=",templateKey)
 		file,error:=fileHeader.Open()
 
@@ -3900,6 +3902,69 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 			option.Search = searchStrArray[0]
 		}
 	}
+	return
+}
+func parseWheres(whereStrArr []string) (option QueryOption, errorMessage *ErrorMessage) {
+	option = QueryOption{}
+   for _,whereStr:=range whereStrArr{
+	   r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+	   if whereStr != "" {
+		   option.Wheres = make(map[string]WhereOperation)
+		   sWhere:=whereStr
+		   sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
+		   sWhere=strings.Replace(sWhere,"%22","'",-1)
+		   // 支持同一个参数字符串里包含多个条件
+		   if strings.Contains(sWhere, "&") {
+			   subWhereArr := strings.Split(sWhere, "&")
+			   for _, subWhere := range subWhereArr {
+				   arr := r.FindStringSubmatch(subWhere)
+				   if len(arr) == 4 {
+					   isInject:=util.ValidSqlInject(arr[3])
+					   if isInject{
+						   errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+						   return
+					   }
+					   switch arr[2] {
+					   case "in", "notIn":
+						   option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+					   case "like", "is", "neq", "isNot", "eq":
+						   option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+					   case "lt":
+						   option.Wheres[arr[1]+".lt"] = WhereOperation{arr[2], arr[3]}
+					   case  "gt":
+						   option.Wheres[arr[1]+".gt"] = WhereOperation{arr[2], arr[3]}
+
+					   }
+				   }
+			   }
+		   } else {
+			   arr := r.FindStringSubmatch(sWhere)
+			   if len(arr) == 4 {
+				   isInject:=util.ValidSqlInject(arr[3])
+				   if isInject{
+					   errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+					   return
+				   }
+				   switch arr[2] {
+				   case "in", "notIn":
+					   option.Wheres[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+				   case "like", "is", "neq", "isNot", "eq":
+					   option.Wheres[arr[1]] = WhereOperation{arr[2], arr[3]}
+
+				   case "lt":
+					   option.Wheres[arr[1]+".lt"] = WhereOperation{arr[2], arr[3]}
+				   case  "gt":
+					   option.Wheres[arr[1]+".gt"] = WhereOperation{arr[2], arr[3]}
+
+				   }
+
+			   }
+
+		   }
+	   }
+
+   }
+
 	return
 }
 
