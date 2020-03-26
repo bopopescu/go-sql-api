@@ -3906,10 +3906,11 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 }
 func parseWheres(whereStrArr []string) (option QueryOption, errorMessage *ErrorMessage) {
 	option = QueryOption{}
+	option.Wheres = make(map[string]WhereOperation)
    for _,whereStr:=range whereStrArr{
 	   r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
 	   if whereStr != "" {
-		   option.Wheres = make(map[string]WhereOperation)
+
 		   sWhere:=whereStr
 		   sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
 		   sWhere=strings.Replace(sWhere,"%22","'",-1)
