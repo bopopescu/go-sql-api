@@ -1526,7 +1526,12 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 		if slave[slaveKeyColName]!=nil{
 			b.WriteString(slave[slaveKeyColName].(string)+",")
 		}
-
+		if masterMeta1.HaveField("submit_person"){
+			slave["submit_person"]=updatePerson
+		}
+		if masterMeta1.HaveField("update_person"){
+			slave["update_person"]=updatePerson
+		}
 	}
 	inParams:="'"+strings.Replace(b.String(),",","','",-1)+"'"
 	inParams=strings.Replace(inParams,",''","",-1)
