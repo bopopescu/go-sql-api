@@ -1443,8 +1443,8 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
     if obj["slaveTableName1"]!=nil{
 		slaveTableName1=obj["slaveTableName1"].(string)
 	}
-	if obj["slaveTableInfo"]!=nil{
-		slaveTableInfoStr1=obj["slaveTableInfo"].(string)
+	if obj["slaveTableInfo1"]!=nil{
+		slaveTableInfoStr1=obj["slaveTableInfo1"].(string)
 		slaveInfoMap1,errorMessage=JsonArr2map(slaveTableInfoStr1)
 	}
 	//slaveInfoMap:=make([]map[string]interface{})
@@ -1597,6 +1597,12 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				lib.Logger.Infof("error=",error)
 				objCreate["slaveTableInfo"]=string(byte[:])
 				objCreate["isCreated"]="1"
+				if masterMeta1.HaveField("submit_person"){
+					objCreate["submit_person"]=updatePerson
+				}
+				if masterMeta1.HaveField("update_person"){
+					objCreate["update_person"]=updatePerson
+				}
 				api.RelatedCreateWithTx(tx,masterTableName,slaveTableName,objCreate,updatePerson)
 				lib.Logger.Infof("rsCreate=",rs)
 
@@ -1614,6 +1620,12 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 			lib.Logger.Infof("error=",error)
 			objCreate["slaveTableInfo"]=string(byte[:])
 			objCreate["isCreated"]="1"
+			if masterMeta1.HaveField("submit_person"){
+				objCreate["submit_person"]=updatePerson
+			}
+			if masterMeta1.HaveField("update_person"){
+				objCreate["update_person"]=updatePerson
+			}
 			api.RelatedCreateWithTx(tx,masterTableName,slaveTableName,objCreate,updatePerson)
 			lib.Logger.Infof("rsCreate=",rs)
 
