@@ -405,7 +405,9 @@ func (api *MysqlAPI) Create(table string, obj map[string]interface{}) (rs sql.Re
 	}
 	return api.exec(sql)
 }
-
+func (api *MysqlAPI)CreateSubSql(subSql string) (rs sql.Result,errorMessage *ErrorMessage){
+return api.exec(subSql)
+}
 func (api *MysqlAPI) CreateWithTx(tx *sql.Tx,table string, obj map[string]interface{}) (rs sql.Result,error error) {
 	sql, error := api.sql.InsertByTable(table, obj)
 	return api.ExecSqlWithTx(sql,tx)
@@ -1146,6 +1148,26 @@ func BuildObjectProperties(funcParamFields []string,object map[string]interface{
 	orderBytes,err:=json.Marshal(resultMap)
 	fmt.Print("err",err)
 	return orderBytes
+}
+func ConcatSubSql(conditionArr []string,conditionArr1 []string,rs []map[string]interface{},operateTable string)(string){
+	b := bytes.Buffer{}
+	b.WriteString("insert into "+operateTable+"(")
+	for index,key:=range conditionArr1{
+       b.WriteString(key+",")
+       if index==len(conditionArr1){
+		   b.WriteString(key+")values")
+	   }
+	}
+	for _,item:=range rs{
+		b.WriteString("(")
+		for index,key:=range conditionArr{
+			b.WriteString("'"+InterToStr(item[key])+"',")
+			if index==len(conditionArr){
+				b.WriteString("'"+InterToStr(item[key])+"'"+")")
+			}
+		}
+	}
+	return b.String()
 }
 func ConcatObjectProperties(funcParamFields []string,object map[string]interface{})(string){
 	var resultStr string

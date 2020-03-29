@@ -686,6 +686,30 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}
 
 		}
+		if "SYNC_SUB"==operate_type{
+			// 异步执行分表同步操作
+			if conditionFieldKeyValue==""{
+				continue
+			}
+			// 根据每一行构建查询条件
+			whereOptionSub := map[string]WhereOperation{}
+			whereOptionSub[conditionFieldKey]=WhereOperation{
+				Operation:"eq",
+				Value:option.ExtendedMap[conditionFieldKey],
+			}// rating_status
+
+			querOptionSub := QueryOption{Wheres: whereOptionSub, Table: tableName}
+			rsQuerySub, errorMessage:= api.Select(querOptionSub)
+			// 构造同步分库分表sql
+			subSql:=ConcatSubSql(conditionFiledArr,conditionFiledArr1,rsQuerySub,operate_table)
+			println("subSql=%s",subSql)
+			_,errorMessage=api.CreateSubSql(subSql)
+			if errorMessage!=nil{
+				lib.Logger.Error("errorMessage=%s",errorMessage)
+			}
+
+
+		}
 		// limit
 	}
 
