@@ -84,6 +84,9 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 	sql=strings.Replace(sql,"\\","",-1)
 	sql=strings.Replace(sql,"IS 'NULL'","IS NULL",-1)
 	sql=strings.Replace(sql,"IS 'null'","IS NULL",-1)
+	if opt.IsSubTable==1{
+		sql=strings.Replace(sql,"BINARY ","",-1)
+	}
 	return
 }
 func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
@@ -106,6 +109,10 @@ func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
 	sql=strings.Replace(sql,"\\","",-1)
 	sql=strings.Replace(sql,"IS 'NULL'","IS NULL",-1)
 	sql=strings.Replace(sql,"IS 'null'","IS NULL",-1)
+	if opt.IsSubTable==1{
+		sql=strings.Replace(sql,"BINARY ","",-1)
+	}
+
 	//sql="SELECT `user_id`, SUM(account_log.account_funds) as totalFunds FROM `account_log`"
 	return
 }
@@ -334,6 +341,9 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 
 	for f, w := range opt.Wheres {
 		// check field exist
+		if opt.IsSubTable==1{
+			f=f[(strings.Index(f,".")+1):]
+		}
 		if strings.Contains(f,".gte"){
 			f=strings.Replace(f,".gte","",-1)
 		}
@@ -382,7 +392,9 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	var count int
 	ors := make([]goqu.Expression, len(opt.OrWheres))
 	for f, w := range opt.OrWheres {
-
+		if opt.IsSubTable==1{
+			f=f[(strings.Index(f,".")+1):]
+		}
 		// check field exist
 		if strings.Contains(f,".gte"){
 			f=strings.Replace(f,".gte","",-1)

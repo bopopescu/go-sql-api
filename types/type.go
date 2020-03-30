@@ -93,6 +93,7 @@ type QueryOption struct {
 	Search string                    // fuzzy query word
 	SubTableKey string
 	SubTableFields []string                  // select fields
+	IsSubTable int64
 }
 // 聚合函数 MAX() MIN() SUM() AVG() COUNT()
 //type GroupFunc struct {

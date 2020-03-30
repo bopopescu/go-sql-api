@@ -2064,6 +2064,9 @@ func FilterFiledKeyItem(filterFieldKey string,option QueryOption)(bool){
 }
 func InterToStr(fieldInter interface{})(string){
 	var result string
+	if fieldInter==nil{
+		return result
+	}
 	switch fieldInter.(type){
 	case string: result=fieldInter.(string)
 	case int:result=strconv.Itoa(fieldInter.(int))
@@ -2075,6 +2078,9 @@ func InterToStr(fieldInter interface{})(string){
 }
 func InterToInt(fieldInter interface{})(int64){
 	var result int64
+	if fieldInter==nil{
+		return result
+	}
 	switch fieldInter.(type){
 	case string: result, _ = strconv.ParseInt(fieldInter.(string), 10, 64)
 	case int:result=fieldInter.(int64)

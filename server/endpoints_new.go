@@ -564,6 +564,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
        var isNeedCache int
 		var isNeedPostEvent int
 		var appointUser,appointClient string
+		var isSubTable int64
        // 返回的字段是否需要计算公式计算
        for _,rsq:=range rsQuery{
 		   isNeedCacheStr:=rsq["is_need_cache"].(string)
@@ -573,7 +574,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
            lib.Logger.Print("isNeedPostEvent=",isNeedPostEvent)
 		   appointUser=mysql.InterToStr(rsq["appoint_user"])
 		   appointClient=mysql.InterToStr(rsq["appoint_client"])
-
+		   isSubTable=mysql.InterToInt(rsq["is_sub_table"])
 	   }
 
 		if isNeedCache==1&&redisHost!=""{
@@ -697,6 +698,7 @@ func endpointTableGet(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 			}else{
 
 				//分页
+				option.IsSubTable=isSubTable
 				totalCount,errorMessage:=api.SelectTotalCount(option)
 				if errorMessage != nil {
 					return echo.NewHTTPError(http.StatusInternalServerError,errorMessage)
@@ -1963,7 +1965,26 @@ func endpointTableGetSpecific(api adapter.IDatabaseAPI,redisHost string,redisPas
 			errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
 			return echo.NewHTTPError(http.StatusBadRequest,errorMessage)
 		}
+		whereOption := map[string]WhereOperation{}
+		whereOption["view_name"] = WhereOperation{
+			Operation: "eq",
+			Value:     tableName,
+		}
+		viewQuerOption := QueryOption{Wheres: whereOption, Table: "view_config"}
+		rsQuery, errorMessage:= api.Select(viewQuerOption)
+		if errorMessage!=nil{
+			lib.Logger.Error("errorMessage=%s", errorMessage)
+		}else{
+			lib.Logger.Infof("rs", rsQuery)
+		}
+		// is_need_cache
+		var isSubTable int64
+		// 返回的字段是否需要计算公式计算
+		for _,rsq:=range rsQuery{
+			isSubTable=mysql.InterToInt(rsq["is_sub_table"])
+		}
 
+		option.IsSubTable=isSubTable
 		option.Table = tableName
 		option.Id = id
 		rs, errorMessage := api.Select(option)
