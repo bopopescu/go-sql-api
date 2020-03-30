@@ -59,7 +59,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var actionType string
 		var filterFiledArr []string
 		var filterFiledArrStr string
-
+		var gruopFileds []string
+		var gruopFiledsStr string
 		fieldList:=list.New()
 
 		operate_condition= operate["operate_condition"].(string)
@@ -73,7 +74,9 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 				conditionType=operateCondJsonMap["conditionType"].(string)
 				fmt.Print(conditionType)
 			}
-
+			if operateCondJsonMap["groupFields"]!=nil{
+				gruopFiledsStr=operateCondJsonMap["groupFields"].(string)
+			}
 			if operateCondJsonMap["conditionFields"]!=nil{
 				conditionFileds=operateCondJsonMap["conditionFields"].(string)
 			}
@@ -86,7 +89,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			if operateCondJsonMap["conditionTable"]!=nil{
 				conditionTable=operateCondJsonMap["conditionTable"].(string)
 			}
-
+			json.Unmarshal([]byte(gruopFiledsStr), &gruopFileds)
 			json.Unmarshal([]byte(conditionFileds), &conditionFiledArr)
 			json.Unmarshal([]byte(conditionFileds1), &conditionFiledArr1)
 			json.Unmarshal([]byte(resultFileds), &resultFieldsArr)
@@ -699,6 +702,7 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}// rating_status
 
 			querOptionSub := QueryOption{Wheres: whereOptionSub, Table: tableName}
+			querOptionSub.GroupFields=gruopFileds
 			rsQuerySub, errorMessage:= api.Select(querOptionSub)
 			// 构造同步分库分表sql
 			subSql:=ConcatSubSql(conditionFiledArr,conditionFiledArr1,rsQuerySub,operate_table)

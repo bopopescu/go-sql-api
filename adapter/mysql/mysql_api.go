@@ -1153,7 +1153,10 @@ func ConcatSubSql(conditionArr []string,conditionArr1 []string,rs []map[string]i
 	b := bytes.Buffer{}
 	b.WriteString("insert into "+operateTable+"(")
 	for index,key:=range conditionArr1{
-       b.WriteString(key+",")
+	  if index<(len(conditionArr1)-1){
+		  b.WriteString(key+",")
+	  }
+
        if index==(len(conditionArr1)-1){
 		   b.WriteString(key+")values")
 	   }
@@ -1161,7 +1164,9 @@ func ConcatSubSql(conditionArr []string,conditionArr1 []string,rs []map[string]i
 	for idx,item:=range rs{
 		b.WriteString("(")
 		for index,key:=range conditionArr{
-			b.WriteString("'"+InterToStr(item[key])+"',")
+			if index<(len(conditionArr)-1){
+				b.WriteString("'"+InterToStr(item[key])+"',")
+			}
 			if index==(len(conditionArr)-1) && idx<(len(rs)-1){
 				b.WriteString("'"+InterToStr(item[key])+"'"+"),")
 			}
