@@ -2447,12 +2447,25 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 			}
 		// 除模板外的字段
+		var subFunc string
+		var subFieldKey string
+		var subFieldKeyValue string
+		var condFieldKey string
+		var condFieldKeyValue string
 		if extractParamMap!=nil{
 			// obtain_from_where
 			if extractParamMap["obtain_from_where"]!=nil{
 				obtain_from_where_str:=extractParamMap["obtain_from_where"].(string)
 				//extractParamArrStr:=operateCondJsonMap["conditionFields"].(string)
 				json.Unmarshal([]byte(obtain_from_where_str), &extractParamArr)
+			}
+			// obtain_from_func
+			if extractParamMap["obtain_from_func"]!=nil{
+				subFunc=extractParamMap["obtain_from_func"].(string)
+				//extractParamArrStr:=operateCondJsonMap["conditionFields"].(string)
+				// field_key  cond_field_key
+				subFieldKey=extractParamMap["field_key"].(string)
+				condFieldKey=extractParamMap["cond_field_key"].(string)
 			}
 		}
 		for _,item:=range extractParamArr{
@@ -2461,7 +2474,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 			}
 		}
-
+		if tableMeta.HaveField(subFieldKey){
+			importBuffer.WriteString("`"+subFieldKey+"`,")
+		}
 		if tableMeta.HaveField("import_batch_no"){
 			importBuffer.WriteString("`import_batch_no`,")
 		}
@@ -2526,6 +2541,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 						b:=tableMeta.HaveField(excelColName)
 
 						if b==true{
+							if condFieldKey==excelColName{
+								condFieldKeyValue=colCell
+							}
 							if systemEnumMap!=nil&&systemEnumMap[master_table+"."+excelColName+colCell]!=nil{
 								tableMap[excelColName]=systemEnumMap[master_table+"."+excelColName+colCell]
 								// 从有效数据导入的第一行 拼接字段
@@ -2567,7 +2585,15 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 						}
 					}
-
+					if tableMeta.HaveField(subFieldKey){
+						subFuncStr:="select "+subFunc+"('"+condFieldKeyValue+"') as result;"
+						subFieldKeyValue,errorMessage=api.ExecFuncForOne(subFuncStr,"result")
+						if errorMessage!=nil{
+							lib.Logger.Error("errorMessage=%s",errorMessage.ErrorDescription)
+						}
+						tableMap[subFieldKey]=subFieldKeyValue
+						importBuffer.WriteString("'"+subFieldKeyValue+"',")
+					}
 					if tableMeta.HaveField("import_batch_no"){
 						tableMap["import_batch_no"]=importBatchNo
 						importBuffer.WriteString("'"+importBatchNo+"',")
