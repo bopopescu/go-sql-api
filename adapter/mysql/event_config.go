@@ -129,7 +129,18 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		}
 
 		if filterFunc!=""{
-			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
+			var filterFuncSql string
+			var paramStr string
+			if len(filterFiledArr)>0{
+				paramStr=ConcatObjectProperties(filterFiledArr,option.ExtendedMap)
+			}else{
+				paramStr="'"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"'"
+
+			}
+
+
+			filterFuncSql="select "+filterFunc+"("+paramStr+") as result;"
+
 			filterResult,_:=api.ExecFuncForOne(filterFuncSql,"result")
 
 			if filterResult!=""{
@@ -889,7 +900,19 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			continue
 		}
 		if filterFunc!=""{
-			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterKey,option.ExtendedMap)+"') as result;"
+
+			var filterFuncSql string
+			var paramStr string
+			if len(filterFiledArr)>0{
+				paramStr=ConcatObjectProperties(filterFiledArr,option.ExtendedMap)
+			}else{
+				paramStr="'"+ConverStrFromMap(filterKey,option.ExtendedMap)+"'"
+
+			}
+
+
+			filterFuncSql="select "+filterFunc+"("+paramStr+") as result;"
+
 			filterResult,errorMessage:=api.ExecFuncForOne(filterFuncSql,"result")
 			if errorMessage!=nil{
 				//tx.Rollback()
@@ -1200,6 +1223,8 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		var operateScipt string
 		var operateProcedure string
 		var actionType string
+		var filterFiledArr []string
+		var filterFiledArrStr string
 		var conditionFiledArr []string
 		var conditionFiledArr1 []string
 		var resultFieldsArr []string
@@ -1240,6 +1265,10 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			filter_content=strings.Replace(filter_content,"\r\n","",-1)
 			json.Unmarshal([]byte(filter_content), &operateFilterContentJsonMap)
 		}
+		if operateFilterContentJsonMap["filterFields"]!=nil{
+			filterFiledArrStr=operateFilterContentJsonMap["filterFields"].(string)
+			json.Unmarshal([]byte(filterFiledArrStr), &filterFiledArr)
+		}
 		if operateFilterContentJsonMap["filterFunc"]!=nil{
 			filterFunc=operateFilterContentJsonMap["filterFunc"].(string)
 		}
@@ -1269,7 +1298,18 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		}
 
 		if filterFunc!=""{
-			filterFuncSql:="select "+filterFunc+"('"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"') as result;"
+			var filterFuncSql string
+			var paramStr string
+			if len(filterFiledArr)>0{
+				paramStr=ConcatObjectProperties(filterFiledArr,option.ExtendedMap)
+			}else{
+				paramStr="'"+ConverStrFromMap(filterFieldKey,option.ExtendedMap)+"'"
+
+			}
+
+
+			filterFuncSql="select "+filterFunc+"("+paramStr+") as result;"
+
 			filterResult,_:=api.ExecFuncForOne(filterFuncSql,"result")
 
 			if filterResult!=""{
