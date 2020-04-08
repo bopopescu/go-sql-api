@@ -62,7 +62,8 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		var gruopFileds []string
 		var gruopFiledsStr string
 		fieldList:=list.New()
-
+		var actionFiledArr []string
+		var actionFiledArrStr string
 		operate_condition= operate["operate_condition"].(string)
 		operate_content = operate["operate_content"].(string)
 		filter_content = operate["filter_content"].(string)
@@ -207,7 +208,10 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 		if operateCondContentJsonMap["operate_type"]!=nil{
 			operate_type=operateCondContentJsonMap["operate_type"].(string)
 		}
-
+		if operateCondContentJsonMap["action_fields"]!=nil{
+			actionFiledArrStr=operateCondContentJsonMap["action_fields"].(string)
+		}
+		json.Unmarshal([]byte(actionFiledArrStr), &actionFiledArr)
 		// CAL_CREDIT_SCORE_LEVEL
 		if "CAL_CREDIT_SCORE_LEVEL"==operate_type{
 			// 如果请求方式是DELETE 构造option.ExtendedMap对象只有filterFieldKey
@@ -724,6 +728,67 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 			}
 
 
+		}
+		if "API_REQUEST"==operate_type{
+			// remote request  API_REQUEST-POST
+			if strings.Contains(actionType,"API_REQUEST"){
+				client := &http.Client{}
+				reqMethod:=strings.Split(actionType,"-")[1]
+				// 构造请求参数
+				reStr:=BuildObjectProperties(conditionFiledArr,option.ExtendedMap,actionFiledArr)
+				reqest, err := http.NewRequest(reqMethod, operate_table, bytes.NewBuffer(reStr))
+				if option.Authorization==""{
+					fmt.Println("authorization is null")
+					continue
+				}
+				//增加header选项
+				reqest.Header.Set("Cookie", option.Authorization)
+				reqest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+				reqest.Header.Set("Accept", "application/json, text/plain, */*")
+				reqest.Header.Set("Content-type", "application/json")
+				if err != nil {
+					panic(err)
+				}
+				//处理返回结果
+				response, error := client.Do(reqest)
+				fmt.Print("response", response)
+				var resultMap map[string]interface{}
+				if response.StatusCode == 200 {
+					body, _ := ioutil.ReadAll(response.Body)
+					json.Unmarshal(body, &resultMap)
+					fmt.Println("responseBody",string(body))
+
+					//option.ExtendedMap[conditionFieldKey]=resultMap[conditionFieldKey]
+				}else{
+					// errorMessage.ErrorDescription="api remote error"
+					if error!=nil{
+						lib.Logger.Error("errorMessage=%s",error.Error())
+					}
+
+				}
+			}
+			if operateFunc!=""{
+				var operateFuncSql string
+				params:=ConcatObjectProperties(conditionFiledArr,option.ExtendedMap)
+				paramArr:=strings.Split(params,",")
+				if len(conditionFiledArr)!=len(paramArr){
+					lib.Logger.Error("errorMessage=%s","function "+operateFunc+" params count is not match input")
+					continue
+				}
+				if params!="''"{
+					operateFuncSql="select "+operateFunc+"("+params+") as result;"
+				}else{
+					operateFuncSql="select "+operateFunc+"() as result;"
+				}
+
+				result,_:=api.ExecFuncForOne(operateFuncSql,"result")
+				if result!="" && conditionFieldKey!=""{
+					option.ExtendedMap[conditionFieldKey]=result
+				}
+				//lib.Logger.Error("errorMessage=%s",errorMessage)
+
+
+			}
 		}
 		// limit
 	}
