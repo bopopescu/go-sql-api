@@ -385,6 +385,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	//}
 		rs = rs.Where(goqu.ExOr{f:goqu.Op{w.Operation: w.Value}})
 
+
 	}
 	expressTemp:=goqu.I("a").Eq("1")
 
@@ -439,6 +440,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		if w.Operation=="eq"{
 			expressTemp=goqu.I(f).Eq(w.Value)
 			ors[count]=expressTemp
+
 			count=count+1
 			continue
 		}else if w.Operation=="neq"{
@@ -490,6 +492,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		}else if w.Operation=="gt"{
 			expressTemp=goqu.I(f).Gt(w.Value)
 			ors[count]=expressTemp
+
 			count=count+1
 			continue
 
@@ -512,9 +515,89 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 	//}
 
 	if len(ors)>0{
+      // (? AND ?) OR (?)
 		rs=rs.Where(goqu.Or(ors...))
 	}
 
+// orWhereAnd  (? AND ?) OR (? and ?)
+    var lStr strings.Builder
+	var lStr0,lStr1,lStr2,lStr3 string
+	var lv0,lv1,lv2,lv3 interface{}
+	var countOa int
+	countOa=0
+	for f, w := range opt.OrWheresAnd {
+		// check field exist
+		var operate string
+
+		if opt.IsSubTable==1{
+			f=f[(strings.Index(f,".")+1):]
+		}
+
+       wherIndex:=f[strings.Index(f,"$")+1:]
+		f=f[0:strings.Index(f,"$")]
+		operate="="
+
+		if strings.Contains(f,".gte"){
+			f=strings.Replace(f,".gte","",-1)
+			operate=">="
+		}
+		if strings.Contains(f,".`gte`"){
+			f=strings.Replace(f,".`gte`","",-1)
+			operate=">="
+		}
+
+		if strings.Contains(f,".gt"){
+			f=strings.Replace(f,".gt","",-1)
+			operate=">"
+		}
+		if strings.Contains(f,".`gt`"){
+			f=strings.Replace(f,".`gt`","",-1)
+			operate=">"
+		}
+		if strings.Contains(f,".lte"){
+			f=strings.Replace(f,".lte","",-1)
+			operate="<="
+		}
+		if strings.Contains(f,".`lte`"){
+			f=strings.Replace(f,".`lte`","",-1)
+			operate="<="
+		}
+
+		if strings.Contains(f,".lt"){
+			f=strings.Replace(f,".lt","",-1)
+			operate="<"
+		}
+		if strings.Contains(f,".`lt`"){
+			f=strings.Replace(f,".`lt`","",-1)
+			operate="<"
+		}
+		if wherIndex=="0"{
+			//lStr.WriteString(f+operate+"? and ")
+			lStr0="("+f+operate+"? and "
+			lv0=w.Value
+		}
+		if wherIndex=="1"{
+			//lStr.WriteString(f+operate+"?) or (")
+			lStr1=f+operate+"?) or ("
+			lv1=w.Value
+		}
+		if wherIndex=="2"{
+			//lStr.WriteString(f+operate+"? and ")
+			lStr2=f+operate+"? and "
+			lv2=w.Value
+		}
+		if wherIndex=="3"{
+			//lStr.WriteString(f+operate+"?)")
+			lStr3=f+operate+"?)"
+			lv3=w.Value
+		}
+		countOa++
+	}
+	lStr.WriteString(lStr0+lStr1+lStr2+lStr3)
+	//println("lStr=%s",lStr.String())
+	if countOa>=4{
+		rs = rs.Where(goqu.L(lStr.String(),lv0,lv1,lv2,lv3))
+	}
 
 	var newMp = make([]string, 0)
 	for k, _ := range opt.Orders {
