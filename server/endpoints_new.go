@@ -3948,7 +3948,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 					}
 					switch arr[2] {
 					case "in", "notIn":
-						option.OrWheresAnd[arr[1]] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+						option.OrWheresAnd[arr[1]+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
 					case "like", "is", "neq", "isNot", "eq":
 						option.OrWheresAnd[arr[1]+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], arr[3]}
 					case "lt":

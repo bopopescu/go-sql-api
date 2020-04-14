@@ -536,7 +536,21 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
        wherIndex:=f[strings.Index(f,"$")+1:]
 		f=f[0:strings.Index(f,"$")]
 		operate="="
-
+		if strings.Contains(w.Operation,"in"){
+			operate=" in"
+		}
+		if strings.Contains(w.Operation,"notin"){
+			operate=" notin"
+		}
+		if strings.Contains(w.Operation,"like"){
+			operate=" like"
+		}
+		if strings.Contains(w.Operation,"is"){
+			operate=" is"
+		}
+		if strings.Contains(w.Operation,"neq"){
+			operate="!="
+		}
 		if strings.Contains(f,".gte"){
 			f=strings.Replace(f,".gte","",-1)
 			operate=">="
