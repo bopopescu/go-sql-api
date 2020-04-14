@@ -519,7 +519,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		rs=rs.Where(goqu.Or(ors...))
 	}
 
-// orWhereAnd  (? AND ?) OR (? and ?)
+// orWhereAnd  ((? AND ?) OR (? and ?))
     var lStr strings.Builder
 	var lStr0,lStr1,lStr2,lStr3 string
 	var lv0,lv1,lv2,lv3 interface{}
@@ -587,7 +587,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		}
 		if wherIndex=="0"{
 			//lStr.WriteString(f+operate+"? and ")
-			lStr0="("+f+operate+"? and "
+			lStr0="(("+f+operate+"? and "
 			lv0=w.Value
 		}
 		if wherIndex=="1"{
@@ -602,7 +602,7 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 		}
 		if wherIndex=="3"{
 			//lStr.WriteString(f+operate+"?)")
-			lStr3=f+operate+"?)"
+			lStr3=f+operate+"?))"
 			lv3=w.Value
 		}
 		countOa++
