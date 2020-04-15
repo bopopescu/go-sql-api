@@ -529,7 +529,7 @@ func NewQueryParametersForSub() (ps []spec.Parameter) {
 	ps = []spec.Parameter{
 		NewQueryParameter(key.SUB_KEY, "指定子查询key(subTableName.key)", "string", false),
 		NewQueryArrayParameter(key.SUB_KEY_QUERY_FIELDS, "指定查询子查询字段", "string", false),
-		NewQueryParameter(key.KEY_QUERY_OR_WHERE_AND_TEMPLATE, "orWhereAndTemplate", "string", false),
+		NewQueryParameter(key.KEY_QUERY_OR_WHERE_AND_TEMPLATE, "orWhereAndTemplate", "integer", false),
 	}
 	return
 }

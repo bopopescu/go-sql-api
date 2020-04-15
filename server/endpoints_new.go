@@ -3776,6 +3776,7 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 	//option.Index, option.Limit, option.Offset, option.Fields, option.Wheres, option.Links, err = parseQueryParams(c)
 	option.Limit, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGESIZE))  // _limit
 	option.Index, _ = strconv.Atoi(c.QueryParam(key.KEY_QUERY_PAGEINDEX)) // _skip
+	option.OrWheresAndTemplate,_=strconv.Atoi(c.QueryParam(key.KEY_QUERY_OR_WHERE_AND_TEMPLATE)) // _skip
 	//排除未传值的情况(==0)
 	if option.Limit != 0 {
 		if option.Limit <= 0 {
