@@ -82,8 +82,9 @@ func (s *SQL) GetByTable(opt QueryOption) (sql string, err error) {
 	//替换掉` 兼容聚合函数求出的值 作为新的列
 	sql=strings.Replace(sql,"`","",-1)
 	sql=strings.Replace(sql,"\\","",-1)
-	sql=strings.Replace(sql,"IS 'NULL'","IS NULL",-1)
-	sql=strings.Replace(sql,"IS 'null'","IS NULL",-1)
+	sql=strings.Replace(sql,"'NULL'","NULL",-1)
+	sql=strings.Replace(sql,"'null'","NULL",-1)
+
 	if opt.IsSubTable==1{
 		sql=strings.Replace(sql,"BINARY ","",-1)
 	}
@@ -107,8 +108,8 @@ func (s *SQL) GetByTableTotalCount(opt QueryOption) (sql string, err error) {
 	}
 
 	sql=strings.Replace(sql,"\\","",-1)
-	sql=strings.Replace(sql,"IS 'NULL'","IS NULL",-1)
-	sql=strings.Replace(sql,"IS 'null'","IS NULL",-1)
+	sql=strings.Replace(sql,"'NULL'","NULL",-1)
+	sql=strings.Replace(sql,"'null'","NULL",-1)
 	if opt.IsSubTable==1{
 		sql=strings.Replace(sql,"BINARY ","",-1)
 	}
