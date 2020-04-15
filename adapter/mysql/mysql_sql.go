@@ -291,15 +291,16 @@ func (s *SQL) DeleteByTableAndId(tableName string, id interface{}) (sql string, 
 func (s *SQL)contractOrWhereAnd(builder *goqu.Dataset,opt QueryOption)(rs *goqu.Dataset,err error){
 	rs=builder
 	var lStr strings.Builder
-	var lStr0,lStr1,lStr2,lStr3,lStr4,lStr5 string
-	var lv0,lv1,lv2,lv3,lv4,lv5 interface{}
+	var lStr0,lStr1,lStr2,lStr3,lStr4,lStr5,lStr6,lStr7 string
+	var lv0,lv1,lv2,lv3,lv4,lv5,lv6,lv7 interface{}
 	var countOa int
 	countOa=0
 	if len(opt.OrWheresAnd)==0{
 		return rs,nil
 	}
-	// ((? and ?)or (?and ? and ?))
+
 	if opt.OrWheresAndTemplate==2{
+		// ((? and ?)or (?and ? and ?))
 		for f, w := range opt.OrWheresAnd {
 			// check field exist
 			var operate string
@@ -393,6 +394,7 @@ func (s *SQL)contractOrWhereAnd(builder *goqu.Dataset,opt QueryOption)(rs *goqu.
 			rs = rs.Where(goqu.L(lStr.String(),lv0,lv1,lv2,lv3,lv4))
 		}
 	} else if opt.OrWheresAndTemplate==3{
+		// ((? and ? and ?)or (?and ? and ?))
 		for f, w := range opt.OrWheresAnd {
 			// check field exist
 			var operate string
@@ -489,6 +491,219 @@ func (s *SQL)contractOrWhereAnd(builder *goqu.Dataset,opt QueryOption)(rs *goqu.
 		//println("lStr=%s",lStr.String())
 		if countOa>=6{
 			rs = rs.Where(goqu.L(lStr.String(),lv0,lv1,lv2,lv3,lv4,lv5))
+		}
+	}else if opt.OrWheresAndTemplate==4{
+		// ((? and ? and ?)or ( ?and ? and ? and ?))
+		for f, w := range opt.OrWheresAnd {
+			// check field exist
+			var operate string
+
+			if opt.IsSubTable==1{
+				f=f[(strings.Index(f,".")+1):]
+			}
+
+			wherIndex:=f[strings.Index(f,"$")+1:]
+			f=f[0:strings.Index(f,"$")]
+			operate="="
+			if strings.Contains(w.Operation,"in"){
+				operate=" in"
+			}
+			if strings.Contains(w.Operation,"notin"){
+				operate=" notin"
+			}
+			if strings.Contains(w.Operation,"like"){
+				operate=" like"
+			}
+			if strings.Contains(w.Operation,"is"){
+				operate=" is"
+			}
+			if strings.Contains(w.Operation,"neq"){
+				operate="!="
+			}
+			if strings.Contains(f,".gte"){
+				f=strings.Replace(f,".gte","",-1)
+				operate=">="
+			}
+			if strings.Contains(f,".`gte`"){
+				f=strings.Replace(f,".`gte`","",-1)
+				operate=">="
+			}
+
+			if strings.Contains(f,".gt"){
+				f=strings.Replace(f,".gt","",-1)
+				operate=">"
+			}
+			if strings.Contains(f,".`gt`"){
+				f=strings.Replace(f,".`gt`","",-1)
+				operate=">"
+			}
+			if strings.Contains(f,".lte"){
+				f=strings.Replace(f,".lte","",-1)
+				operate="<="
+			}
+			if strings.Contains(f,".`lte`"){
+				f=strings.Replace(f,".`lte`","",-1)
+				operate="<="
+			}
+
+			if strings.Contains(f,".lt"){
+				f=strings.Replace(f,".lt","",-1)
+				operate="<"
+			}
+			if strings.Contains(f,".`lt`"){
+				f=strings.Replace(f,".`lt`","",-1)
+				operate="<"
+			}
+			if wherIndex=="0"{
+				//lStr.WriteString(f+operate+"? and ")
+				lStr0="(("+f+operate+"? and "
+				lv0=w.Value
+			}
+			if wherIndex=="1"{
+				//lStr.WriteString(f+operate+"?) or (")
+				lStr1=f+operate+"? and "
+				lv1=w.Value
+			}
+			if wherIndex=="2"{
+				//lStr.WriteString(f+operate+"? and ")
+				lStr2=f+operate+"?) or ("
+				lv2=w.Value
+			}
+			if wherIndex=="3"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr3=f+operate+"? and "
+				lv3=w.Value
+			}
+			if wherIndex=="4"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr4=f+operate+"? and "
+				lv4=w.Value
+			}
+			if wherIndex=="5"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr5=f+operate+"? and "
+				lv5=w.Value
+			}
+			if wherIndex=="6"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr6=f+operate+"?))"
+				lv6=w.Value
+			}
+			countOa++
+		}
+		lStr.WriteString(lStr0+lStr1+lStr2+lStr3+lStr4+lStr5+lStr6)
+		//println("lStr=%s",lStr.String())
+		if countOa>=7{
+			rs = rs.Where(goqu.L(lStr.String(),lv0,lv1,lv2,lv3,lv4,lv5,lv6))
+		}
+	}else if opt.OrWheresAndTemplate==5{
+		// ((? and ? and ? and ?)or (?and ? and ? and ?))
+		for f, w := range opt.OrWheresAnd {
+			// check field exist
+			var operate string
+
+			if opt.IsSubTable==1{
+				f=f[(strings.Index(f,".")+1):]
+			}
+
+			wherIndex:=f[strings.Index(f,"$")+1:]
+			f=f[0:strings.Index(f,"$")]
+			operate="="
+			if strings.Contains(w.Operation,"in"){
+				operate=" in"
+			}
+			if strings.Contains(w.Operation,"notin"){
+				operate=" notin"
+			}
+			if strings.Contains(w.Operation,"like"){
+				operate=" like"
+			}
+			if strings.Contains(w.Operation,"is"){
+				operate=" is"
+			}
+			if strings.Contains(w.Operation,"neq"){
+				operate="!="
+			}
+			if strings.Contains(f,".gte"){
+				f=strings.Replace(f,".gte","",-1)
+				operate=">="
+			}
+			if strings.Contains(f,".`gte`"){
+				f=strings.Replace(f,".`gte`","",-1)
+				operate=">="
+			}
+
+			if strings.Contains(f,".gt"){
+				f=strings.Replace(f,".gt","",-1)
+				operate=">"
+			}
+			if strings.Contains(f,".`gt`"){
+				f=strings.Replace(f,".`gt`","",-1)
+				operate=">"
+			}
+			if strings.Contains(f,".lte"){
+				f=strings.Replace(f,".lte","",-1)
+				operate="<="
+			}
+			if strings.Contains(f,".`lte`"){
+				f=strings.Replace(f,".`lte`","",-1)
+				operate="<="
+			}
+
+			if strings.Contains(f,".lt"){
+				f=strings.Replace(f,".lt","",-1)
+				operate="<"
+			}
+			if strings.Contains(f,".`lt`"){
+				f=strings.Replace(f,".`lt`","",-1)
+				operate="<"
+			}
+			if wherIndex=="0"{
+				//lStr.WriteString(f+operate+"? and ")
+				lStr0="(("+f+operate+"? and "
+				lv0=w.Value
+			}
+			if wherIndex=="1"{
+				//lStr.WriteString(f+operate+"?) or (")
+				lStr1=f+operate+"? and "
+				lv1=w.Value
+			}
+			if wherIndex=="2"{
+				//lStr.WriteString(f+operate+"? and ")
+				lStr2=f+operate+"? and "
+				lv2=w.Value
+			}
+			if wherIndex=="3"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr3=f+operate+"?) or ("
+				lv3=w.Value
+			}
+			if wherIndex=="4"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr4=f+operate+"? and "
+				lv4=w.Value
+			}
+			if wherIndex=="5"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr5=f+operate+"? and "
+				lv5=w.Value
+			}
+			if wherIndex=="6"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr6=f+operate+"? and "
+				lv6=w.Value
+			}
+			if wherIndex=="7"{
+				//lStr.WriteString(f+operate+"?)")
+				lStr7=f+operate+"?))"
+				lv7=w.Value
+			}
+			countOa++
+		}
+		lStr.WriteString(lStr0+lStr1+lStr2+lStr3+lStr4+lStr5+lStr6+lStr7)
+		//println("lStr=%s",lStr.String())
+		if countOa>=8{
+			rs = rs.Where(goqu.L(lStr.String(),lv0,lv1,lv2,lv3,lv4,lv5,lv6,lv7))
 		}
 	}else{
 		// ((? and ? and ?)or (?and ? and ?))
