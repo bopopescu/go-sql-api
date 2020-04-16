@@ -839,7 +839,13 @@ func (s *SQL) configBuilder(builder *goqu.Dataset, priT string, opt QueryOption)
 				}
 
 			}else{
-				fs[i+index] = item+" as p"
+				//fs[i+index] = item+" as p"
+				if i>=1{
+					iStr:=strconv.Itoa(i)
+					fs[i+index] = item+" as p"+iStr
+				}else{
+					fs[i+index] = item+" as p"
+				}
 			}
 		}
 
