@@ -929,8 +929,13 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 
 		//判断条件类型 如果是JUDGE 判断是否存在 如果存在做操作后动作
 		// {"operate_type":"UPDATE","pri_key":"id","action_type":"ACC","action_field":"goods_num"}
-		operate_type=operateCondContentJsonMap["operate_type"].(string)
-		operate_table=operateCondContentJsonMap["operate_table"].(string)
+		if operateCondContentJsonMap["operate_type"]!=nil{
+			operate_type=operateCondContentJsonMap["operate_type"].(string)
+		}
+		if operateCondContentJsonMap["operate_table"]!=nil{
+			operate_table=operateCondContentJsonMap["operate_table"].(string)
+		}
+
 
 
 		if(filter_content!=""){

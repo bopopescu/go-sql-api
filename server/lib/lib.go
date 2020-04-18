@@ -2,7 +2,7 @@ package lib
 
 import (
 	"os"
-	. "github.com/xuybin/go-mysql-api/types"
+	. "github.com/shiyongabc/go-sql-api/types"
 	"github.com/labstack/gommon/log"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"

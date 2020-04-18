@@ -1635,12 +1635,13 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					//if err2!=nil{
 					//	lib.Logger.Infof("err",err)
 					//}
-					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
+
+					xlsx.SetCellValue("Sheet1", numAar[j]+strconv.Itoa(i+1), value)
 				}
 			}
 			if !isDefineMyselfTable && len(headContent)<=0{
 				for j, k:=range keys{
-					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(1), k)
+					xlsx.SetCellValue("Sheet1",  numAar[j]+strconv.Itoa(1), k)
 				}
 
 			}
@@ -1713,7 +1714,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 							}
 
 						}
-						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+1), value)
+						xlsx.SetCellValue("Sheet1", numAar[j]+strconv.Itoa(i+1), value)
 					}
 
 				}
@@ -1752,17 +1753,17 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 						}
 
 						if strings.Contains(valueStr,"="){
-							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), "0")
+							xlsx.SetCellValue("Sheet1", numAar[col]+strconv.Itoa(row+hRows+1), "0")
 						}else{
-							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), valueStr)
+							xlsx.SetCellValue("Sheet1", numAar[col]+strconv.Itoa(row+hRows+1), valueStr)
 						}
 
 					}else{
 						for j, k:=range keys{
 							if d[k]!=nil&&systemEnumMap[templateKey+"."+k+d[k].(string)] !=nil{
-								xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), systemEnumMap[templateKey+"."+k+d[k].(string)].(string))
+								xlsx.SetCellValue("Sheet1", numAar[j]+strconv.Itoa(i+hRows+1), systemEnumMap[templateKey+"."+k+d[k].(string)].(string))
 							}else{
-								xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+hRows+1), d[k])
+								xlsx.SetCellValue("Sheet1", numAar[j]+strconv.Itoa(i+hRows+1), d[k])
 							}
 
 						}
@@ -1774,10 +1775,10 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 					if isDefineMyselfTable{
 						col,_:=strconv.Atoi(d["col"].(string))
 						row,_:=strconv.Atoi(d["row"].(string))
-						xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(col)+strconv.Itoa(row+hRows+1), d["value"].(string))
+						xlsx.SetCellValue("Sheet1", numAar[col]+strconv.Itoa(row+hRows+1), d["value"].(string))
 					}else{
 						for j, k:=range keys{
-							xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(i+2), d[k])
+							xlsx.SetCellValue("Sheet1", numAar[j]+strconv.Itoa(i+2), d[k])
 						}
 					}
 
@@ -1825,7 +1826,7 @@ func responseTableGet(c echo.Context,data interface{},ispaginator bool,filename 
 
 
 					}
-					xlsx.SetCellValue("Sheet1", excelize.ToAlphaString(j)+strconv.Itoa(hRows+1+cRows+1), value)
+					xlsx.SetCellValue("Sheet1", numAar[j]+strconv.Itoa(hRows+1+cRows+1), value)
 				}
 				startItem:="A"+strconv.Itoa((hRows+1+cRows+1))
 				endItem:=numAar[headCols]+strconv.Itoa((hRows+1+cRows+1))
@@ -2496,10 +2497,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 			//os.Exit(1)
 			return c.String(http.StatusInternalServerError, error.Error())
 		}
-		rows := xlsx.GetRows("Sheet1")
-
+		rows,error := xlsx.GetRows("Sheet1")
+        if error!=nil{
+        	lib.Logger.Error(error.Error())
+		}
         if rows==nil{
-			rows = xlsx.GetRows("汇总表")
+			rows,_ = xlsx.GetRows("汇总表")
 		}
 		    var rowIndex int
 
