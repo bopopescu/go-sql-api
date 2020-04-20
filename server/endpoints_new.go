@@ -2514,7 +2514,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					continue
 				}
 				//某一行的第一列必须有值 否则当前行不添加
-				if row[col_start-1]==""{
+				if row==nil || row[col_start-1]==""{
 					break
 				}
 				importBuffer.WriteString("(")
@@ -2605,14 +2605,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 					if tableMeta.HaveField("submit_person"){
 						tableMap["submit_person"]=submitPerson
-						if submitPerson!=""{
-							importBuffer.WriteString("'"+submitPerson+"',")
-						}
+						importBuffer.WriteString("'"+submitPerson+"',")
 
 					}
 					createTime:=time.Now().Format("2006-01-02 15:04:05")
 					tableMap["create_time"]=createTime
-					if rowIndex==len(rows) || rows[rowIndex][col_start-1]==""{
+					if rowIndex==len(rows) || rows[rowIndex]==nil || rows[rowIndex][col_start-1]==""{
 						importBuffer.WriteString("'"+createTime+"');")
 					}else{
 						importBuffer.WriteString("'"+createTime+"'),")
