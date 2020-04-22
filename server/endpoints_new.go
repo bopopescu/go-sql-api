@@ -194,7 +194,7 @@ func endpointRelatedBatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 		//}
 		// 执行异步任务 c1 := make (chan int);
 		c1 := make (chan int);
-		go asyncOptionEvent(api,slaveTableName,"POST",option,c1,GenerateRangeNum(0,200))
+		go asyncOptionEvent(api,slaveTableName,"POST",option,c1,GenerateRangeNum(3000,4000))
 		//请求数据存在缓存中 用于校验重复提交问题
 		redisConn.Do("SET", paramV+masterTableName+slaveTableName+"POST",paramV)
 		// 设置有效期为1秒
@@ -464,7 +464,7 @@ func endpointRelatedPatch(api adapter.IDatabaseAPI,redisHost string,redisPasswor
 		// 设置有效期为1秒
 		redisConn.Do("EXPIRE",paramV+masterTableName+slaveTableName+"POST",1)
 		c1 := make (chan int);
-		go asyncOptionEvent(api,slaveTableName,"PATCH",option,c1,GenerateRangeNum(0,200))
+		go asyncOptionEvent(api,slaveTableName,"PATCH",option,c1,GenerateRangeNum(200,500))
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -2138,7 +2138,7 @@ func endpointTableCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword
 		redisConn.Do("EXPIRE",paramV+tableName+"POST",1)
 		// 执行异步任务 c1 := make (chan int);
 		c1 := make (chan int);
-		go asyncOptionEvent(api,tableName,"POST",option,c1,GenerateRangeNum(0,200))
+		go asyncOptionEvent(api,tableName,"POST",option,c1,GenerateRangeNum(500,800))
 		//添加时清楚缓存
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
@@ -2688,7 +2688,7 @@ func asyncImportBatch(api adapter.IDatabaseAPI,templateKey string,tableName stri
 	optionEvent.ExtendedMap=tableMap
 
 	//mysql.AsyncEvent(api,tableName,"POST",nil,optionEvent,"")
-	asyncOptionEvent(api,tableName,"POST",optionEvent,c,GenerateRangeNum(0,200))
+	asyncOptionEvent(api,tableName,"POST",optionEvent,c,GenerateRangeNum(800,1000))
 }
 func GenerateRangeNum(min, max int) int {
 	rand.Seed(time.Now().Unix())
@@ -3029,7 +3029,7 @@ func endpointTableUpdateSpecificField(api adapter.IDatabaseAPI,redisHost string,
 
        //tx.Commit()
 		c1 := make (chan int);
-		go asyncOptionEvent(api,tableName,"PATCH",option2,c1,GenerateRangeNum(0,200))
+		go asyncOptionEvent(api,tableName,"PATCH",option2,c1,GenerateRangeNum(1000,1200))
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3251,7 +3251,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 		}
 
 		c1 := make (chan int);
-		go asyncOptionEvent(api,tableName,"PATCH",option2,c1,GenerateRangeNum(0,200))
+		go asyncOptionEvent(api,tableName,"PATCH",option2,c1,GenerateRangeNum(1200,1400))
 		return c.String(http.StatusOK, strconv.FormatInt(rowesAffected,10))
 	}
 }
@@ -3563,7 +3563,7 @@ func endpointBatchPut(api adapter.IDatabaseAPI,redisHost string,redisPassword st
 		option0.ExtendedArr=extendedArr
 		c1 := make (chan int);
 
-		go asyncOptionArrEvent(api,tableName,"PATCH",option0,c1,GenerateRangeNum(0,200))
+		go asyncOptionArrEvent(api,tableName,"PATCH",option0,c1,GenerateRangeNum(1400,2000))
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
@@ -3712,7 +3712,7 @@ func endpointBatchCreate(api adapter.IDatabaseAPI,redisHost string,redisPassword
 		redisConn.Do("EXPIRE",paramV+tableName+"POSTBATCH",1)
 
 		c1 := make (chan int);
-		go asyncOptionArrEvent(api,tableName,"POST",option0,c1,GenerateRangeNum(0,200))
+		go asyncOptionArrEvent(api,tableName,"POST",option0,c1,GenerateRangeNum(2000,3000))
 		cacheKeyPattern:="/api"+"/"+api.GetDatabaseMetadata().DatabaseName+"/"+tableName+"*"
 		if strings.Contains(tableName,"related"){
 			endIndex:=strings.LastIndex(tableName,"related")
