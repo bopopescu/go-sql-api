@@ -2232,7 +2232,7 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
-
+	operateScipt=strings.Replace(operateScipt,"\\%","%",-1)
 	result,errorMessage=api.ExecSql(operateScipt)
 
 	return
@@ -2247,7 +2247,7 @@ func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,condition
 	}
 	lib.Logger.Infof("execSql=", operateScipt)
 	//result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
-
+	operateScipt=strings.Replace(operateScipt,"\\%","%",-1)
 	result,error=tx.Exec(operateScipt)
 	if error!=nil{
 		lib.Logger.Error("errorMessage=%s",error.Error())

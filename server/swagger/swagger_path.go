@@ -320,20 +320,86 @@ func NewGetOperation(tName string) (op *spec.Operation){
 	op.Produces=[]string{"application/json","application/octet-stream"}
 	return
 }
+func NewGetOperationForPost(tName string) (op *spec.Operation){
+	op=NewOperation(
+		tName,
+		fmt.Sprintf("从%s表里,查询记录", tName),
+		fmt.Sprintf("数组对象返回(未指定index),或分页返回(指定index)"),
+		NewQueryParametersForMySQLAPI(),
+		fmt.Sprintf("分页返回数据(注意:当未指定index时,直接返回[]数组对象,无分页指示对象包裹)"),
+		&spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: spec.StringOrArray{"object"},
+				Properties: map[string]spec.Schema{
+					"pageIndex":{
+						SchemaProps: spec.SchemaProps{
+							Type: spec.StringOrArray{"integer"},
+						},
+						SwaggerSchemaProps: spec.SwaggerSchemaProps{
+							Example: 1,
+						},
+					},
+					"pageSize": {
+						SchemaProps: spec.SchemaProps{
+							Type: spec.StringOrArray{"integer"},
+						},
+						SwaggerSchemaProps: spec.SwaggerSchemaProps{
+							Example: 10,
+						},
+					},
+					"totalPages": {
+						SchemaProps: spec.SchemaProps{
+							Type: spec.StringOrArray{"integer"},
+						},
+						SwaggerSchemaProps: spec.SwaggerSchemaProps{
+							Example: 1,
+						},
+					},
+					"totalCount": {
+						SchemaProps: spec.SchemaProps{
+							Type: spec.StringOrArray{"integer"},
+						},
+						SwaggerSchemaProps: spec.SwaggerSchemaProps{
+							Example: 1,
+						},
+					},
+					"data":    spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Type: spec.StringOrArray{"array"},
+							Items:&spec.SchemaOrArray{
+								Schema:&spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: getTableSwaggerRef(tName),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+	op.Produces=[]string{"application/json","application/octet-stream"}
+	return
+}
 
 func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase *DataBaseMetadata) () {
 	tName := meta.TableName
 	isView := meta.TableType == "VIEW"
 	withoutIDPathItem := spec.PathItem{}
+	withoutIDPathItem1 := spec.PathItem{}
 	withoutIDPathPatchItem := spec.PathItem{}
 	withIDPathItem := spec.PathItem{}
 	withoutIDBatchPathItem := spec.PathItem{}
 	withoutIDBatchPutPathItem := spec.PathItem{}
 	databaseName:=metaBase.DatabaseName
 	apiNoIDPath := fmt.Sprintf("/api/"+databaseName+"/%s", tName)
+	apiNoIDPath1 := fmt.Sprintf("/api/"+databaseName+"/%s/query/", tName)
 	if !isView {
 		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)
+		withoutIDPathItem1.Post =NewGetOperation(tName)
+		paths[apiNoIDPath1] = withoutIDPathItem1
 		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Post = NewOperation(
 			tName,
@@ -518,7 +584,10 @@ func AppendPathsFor(meta *TableMetadata, paths map[string]spec.PathItem,metaBase
 	}else {
 		// /api/"+databaseName+"/:table group
 		withoutIDPathItem.Get =NewGetOperation(tName)
+		withoutIDPathItem1.Post =NewGetOperation(tName)
+
 		paths[apiNoIDPath] = withoutIDPathItem
+		paths[apiNoIDPath1] = withoutIDPathItem1
 	}
 	return
 }

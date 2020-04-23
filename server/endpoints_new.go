@@ -50,6 +50,7 @@ func mountEndpoints(s *echo.Echo, api adapter.IDatabaseAPI,databaseName string,r
 	//s.GET("/api/swagger-ui.html", endpointSwaggerUI).Name = "Swagger UI"
 
 	s.GET("/api/"+databaseName+"/:table", endpointTableGet(api,redisHost,redisPassword)).Name = "Retrive Some Records"
+	s.POST("/api/"+databaseName+"/:table/query/", endpointTableGet(api,redisHost,redisPassword)).Name = "Retrive Some Records"
 	s.POST("/api/"+databaseName+"/:table", endpointTableCreate(api,redisHost,redisPassword)).Name = "Create Single Record"
 	s.DELETE("/api/"+databaseName+"/:table", endpointTableDelete(api,redisHost,redisPassword)).Name = "Remove Some Records"
 
