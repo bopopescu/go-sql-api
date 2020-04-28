@@ -864,7 +864,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 				conditionType=operateCondJsonMap["conditionType"].(string)
 				lib.Logger.Infof("conditionType=",conditionType)
 			}
-
+			option.CondParamType=conditionType
 			if operateCondJsonMap["conditionFields"]!=nil{
 				conditionFileds=operateCondJsonMap["conditionFields"].(string)
 			}
@@ -1298,7 +1298,7 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		var conditionFiledArr []string
 		var conditionFiledArr1 []string
 		var resultFieldsArr []string
-
+		var conditionType string
 		fieldList:=list.New()
 
 		//var conditionComplex string
@@ -1309,7 +1309,12 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 		if(operate_condition!=""){
 			operate_condition=strings.Replace(operate_condition,"\r\n","",-1)
 			json.Unmarshal([]byte(operate_condition), &operateCondJsonMap)
-
+			if operateCondJsonMap["conditionType"]!=nil{
+				conditionType=operateCondJsonMap["conditionType"].(string)
+				lib.Logger.Infof("conditionType=",conditionType)
+			}
+			// conditionType  OBTAIN_FROM WEB  OBTAIN_FROM_DB  OBTAIN_FROM_ALL
+			option.CondParamType=conditionType
 			if operateCondJsonMap["conditionFields"]!=nil{
 				conditionFileds=operateCondJsonMap["conditionFields"].(string)
 			}
@@ -2135,25 +2140,70 @@ func CalculatePre(api adapter.IDatabaseAPI,repeatItem map[string]interface{},fun
 
 }
 func FilterFiledKeyOr(filterFieldKey string,option QueryOption)(bool){
+	var isFilteredCurrent bool
+	var isFilteredPre bool
 	var isFiltered0 bool
 	var isFiltered1 bool
+	var isFiltered2 bool
+
 	arr:=strings.Split(filterFieldKey,"/*or*/")
-	if len(arr)==2{
-		isFiltered0=FilterFiledKeyItem(arr[0],option)
-		isFiltered1=FilterFiledKeyItem(arr[1],option)
+	if len(arr)>=2{
+		for i,_:=range arr{
+			if i+2<len(arr){
+				isFiltered0=FilterFiledKeyItem(arr[i],option)
+				isFiltered1=FilterFiledKeyItem(arr[i+1],option)
+				isFilteredPre=isFiltered0||isFiltered1
+				if isFilteredPre{
+					return true
+				}
+				isFiltered2=FilterFiledKeyItem(arr[i+2],option)
+				isFilteredCurrent=isFilteredPre||isFiltered2
+				if isFilteredCurrent{
+					return true
+				}
+			}else if i+2==len(arr){
+				isFiltered0=FilterFiledKeyItem(arr[i],option)
+				isFiltered1=FilterFiledKeyItem(arr[i+1],option)
+				isFilteredPre=isFiltered0||isFiltered1
+			}
+
+		}
+
 	}
-	return isFiltered0||isFiltered1
+	return isFilteredPre||isFilteredCurrent
 }
 func FilterFiledKeyAnd(filterFieldKey string,option QueryOption)(bool){
+	var isFilteredCurrent bool
+	var isFilteredPre bool
 	var isFiltered0 bool
 	var isFiltered1 bool
-	arr:=strings.Split(filterFieldKey,"/*and*/")
-	if len(arr)==2{
-		isFiltered0=FilterFiledKeyItem(arr[0],option)
-		isFiltered1=FilterFiledKeyItem(arr[1],option)
-	}
+	var isFiltered2 bool
 
-	return isFiltered0&&isFiltered1
+	arr:=strings.Split(filterFieldKey,"/*and*/")
+	if len(arr)>=2{
+		for i,_:=range arr{
+			if i+2<len(arr){
+				isFiltered0=FilterFiledKeyItem(arr[i],option)
+				isFiltered1=FilterFiledKeyItem(arr[i+1],option)
+				isFilteredPre=isFiltered0&&isFiltered1
+				if !isFilteredPre{
+					return false
+				}
+				isFiltered2=FilterFiledKeyItem(arr[i+2],option)
+				isFilteredCurrent=isFilteredPre&&isFiltered2
+				if !isFilteredCurrent{
+					return false
+				}
+			}else if i+2==len(arr){
+				isFiltered0=FilterFiledKeyItem(arr[i],option)
+				isFiltered1=FilterFiledKeyItem(arr[i+1],option)
+				isFilteredPre=isFiltered0&&isFiltered1
+			}
+
+		}
+
+	}
+	return isFilteredPre&&isFilteredCurrent
 }
 func FilterFiledKeyItem(filterFieldKey string,option QueryOption)(bool){
 	var isFiltered bool
@@ -2163,6 +2213,16 @@ func FilterFiledKeyItem(filterFieldKey string,option QueryOption)(bool){
 		value0:=strings.TrimSpace(arr[1])
 		extendParamStr:=InterToStr(option.ExtendedMap[field0])
 		if extendParamStr==value0{
+			isFiltered=true
+		}else{
+			isFiltered=false
+		}
+	}else if strings.Contains(filterFieldKey,">"){
+		arr:=strings.Split(filterFieldKey,">")
+		field0:=strings.TrimSpace(arr[0])
+		value0:=InterToInt(strings.TrimSpace(arr[1]))
+		extendParamStr:=InterToInt(option.ExtendedMap[field0])
+		if extendParamStr>value0{
 			isFiltered=true
 		}else{
 			isFiltered=false
@@ -2205,7 +2265,12 @@ func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []
 	for _,itemField:=range conditionFiledArr{
 		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 	}
-
+	// conditionType  OBTAIN_FROM WEB  OBTAIN_FROM_DB  OBTAIN_FROM_ALL
+	if option.CondParamType=="OBTAIN_FROM_ALL"{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+		}
+	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
@@ -2217,6 +2282,11 @@ func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr [
 	}
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
+	}
+	if option.CondParamType=="OBTAIN_FROM_ALL"{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+		}
 	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
@@ -2232,6 +2302,11 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
+	if option.CondParamType=="OBTAIN_FROM_ALL"{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+		}
+	}
 	operateScipt=strings.Replace(operateScipt,"\\%","%",-1)
 	result,errorMessage=api.ExecSql(operateScipt)
 
@@ -2244,6 +2319,11 @@ func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,condition
 	}
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
+	}
+	if option.CondParamType=="OBTAIN_FROM_ALL"{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+		}
 	}
 	lib.Logger.Infof("execSql=", operateScipt)
 	//result,errorMessage=api.ExecFuncForOne(operateScipt,"result")

@@ -96,6 +96,7 @@ type QueryOption struct {
 	SubTableKey string
 	SubTableFields []string                  // select fields
 	IsSubTable int64
+	CondParamType string
 }
 // 聚合函数 MAX() MIN() SUM() AVG() COUNT()
 //type GroupFunc struct {

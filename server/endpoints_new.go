@@ -3141,7 +3141,7 @@ func endpointTableUpdateSpecific(api adapter.IDatabaseAPI,redisHost string,redis
 		option.PriKey=firstPrimaryKey
 		extendMap[firstPrimaryKey]=id
 		option.ExtendedMap=extendMap
-
+		option.ExtendedMapSecond=beforeUpdateMap
 		data,errorMessage:=mysql.PreEvent(api,tableName,"PATCH",nil,option,"")
 		if len(data)>0{
 			payload=data[0]
