@@ -2455,6 +2455,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		var subFieldKeyValue string
 		var condFieldKey string
 		var condFieldKeyValue string
+
+		var uniqueFunc string
+		var uniqueFiledIndex0 int64
+		var uniqueFiledIndex1 int64
 		if extractParamMap!=nil{
 			// obtain_from_where
 			if extractParamMap["obtain_from_where"]!=nil{
@@ -2469,6 +2473,17 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 				// field_key  cond_field_key
 				subFieldKey=extractParamMap["field_key"].(string)
 				condFieldKey=extractParamMap["cond_field_key"].(string)
+			}
+			// unique_func
+
+			if extractParamMap["unique_func"]!=nil{
+				uniqueFunc=extractParamMap["unique_func"].(string)
+			}
+			if extractParamMap["unique_filed_index0"]!=nil{
+				uniqueFiledIndex0=mysql.InterToInt(extractParamMap["unique_filed_index0"])
+			}
+			if extractParamMap["unique_filed_index0"]!=nil{
+				uniqueFiledIndex1=mysql.InterToInt(extractParamMap["unique_filed_index1"])
 			}
 		}
 		for _,item:=range extractParamArr{
@@ -2519,6 +2534,19 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 				//某一行的第一列必须有值 否则当前行不添加
 				if row==nil || row[col_start-1]==""{
 					break
+				}
+				if uniqueFunc!=""{
+					param0:=row[uniqueFiledIndex0]
+					param1:=row[uniqueFiledIndex1]
+					uniqueFuncStr:="select "+uniqueFunc+"('"+param0+"','"+param1+"') as result;"
+					result,errorMessage:=api.ExecFuncForOne(uniqueFuncStr,"result")
+					if errorMessage!=nil{
+						lib.Logger.Error("errorMessage=",errorMessage)
+					}
+					
+					if result!=""{
+						continue
+					}
 				}
 				importBuffer.WriteString("(")
 				tableKeyValue=uuid.NewV4().String()
