@@ -1997,6 +1997,22 @@ func PostEvent(api adapter.IDatabaseAPI,tx *sql.Tx,tableName string ,equestMetho
 			}
 
 		}
+		if "SYNC_SUB_BATCH"==operate_type{
+			// 同步执行导入关联信息
+
+
+
+			// 构造同步分库分表sql
+			subSql:=ConcatSubSql(conditionFiledArr,conditionFiledArr1,option.ExtendedArr,operate_table)
+			println("subSql=%s",subSql)
+			_,error:=api.CreateSubSqlWithTx(tx,subSql);
+			if error!=nil{
+				lib.Logger.Error("errorMessage=%s",error.Error())
+				tx.Rollback()
+			}
+
+
+		}
 // limit
 	}
 	if data== nil && option.ExtendedMap!=nil{
@@ -2247,6 +2263,7 @@ func InterToStr(fieldInter interface{})(string){
 	return result
 }
 func InterToInt(fieldInter interface{})(int64){
+	print("fieldInter.(type)=",util.TypeOf(fieldInter))
 	var result int64
 	if fieldInter==nil{
 		return result
@@ -2256,7 +2273,9 @@ func InterToInt(fieldInter interface{})(int64){
 	case int:result=fieldInter.(int64)
 		// int64
 	case int64:result= fieldInter.(int64)
-
+	case float64:
+		fieldStr := strconv.FormatFloat(fieldInter.(float64), 'f', -1, 64)
+		result, _ = strconv.ParseInt(fieldStr, 10, 64)
 	}
 	return result
 }

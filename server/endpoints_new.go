@@ -2508,6 +2508,8 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		}
 		    var rowIndex int
 
+		var tableMapArr []map[string]interface{}
+
 	    	rowIndex=0
 			for _, row := range rows {
 				rowIndex=rowIndex+1
@@ -2626,7 +2628,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 					// mysql.PostEvent(api,tableName,"POST",nil,optionEvent,"")
 				}
-
+				tableMapArr=append(tableMapArr,tableMap)
 			}
 		lib.Logger.Info("import-sql=",importBuffer.String())
 		rs,error:=api.ExecSqlWithTx(importBuffer.String(),tx)
@@ -2640,6 +2642,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		tableMap:=make(map[string]interface{})
 		tableMap["import_batch_no"]=importBatchNo
 		optionEvent.ExtendedMap=tableMap
+		optionEvent.ExtendedArr=tableMapArr
 		_,errorMessage=mysql.PostEvent(api,tx,master_table,"POST",nil,optionEvent,"")
 		if errorMessage!=nil{
 			tx.Rollback()

@@ -412,6 +412,9 @@ func (api *MysqlAPI) CreateWithTx(tx *sql.Tx,table string, obj map[string]interf
 	sql, error := api.sql.InsertByTable(table, obj)
 	return api.ExecSqlWithTx(sql,tx)
 }
+func (api *MysqlAPI) CreateSubSqlWithTx(tx *sql.Tx,subSql string) (rs sql.Result,error error) {
+	return api.ExecSqlWithTx(subSql,tx)
+}
 // Create by Table name and obj map
 func (api *MysqlAPI) CreateSql(table string, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage) {
 	sql, err := api.sql.InsertByTable(table, obj)

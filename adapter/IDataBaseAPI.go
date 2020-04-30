@@ -8,6 +8,7 @@ import (
 type IDatabaseAPI interface {
 	Create(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
 	CreateSubSql(subSql string) (rs sql.Result,errorMessage *ErrorMessage)
+	CreateSubSqlWithTx(tx *sql.Tx,subSql string) (rs sql.Result,error error)
 	CreateWithTx(tx *sql.Tx,table string, obj map[string]interface{}) (rs sql.Result,error error)
 	CreateSql(table string, obj map[string]interface{}) (sql string,errorMessage *ErrorMessage)
 	ReplaceCreate(table string, obj map[string]interface{}) (rs sql.Result,errorMessage *ErrorMessage)
