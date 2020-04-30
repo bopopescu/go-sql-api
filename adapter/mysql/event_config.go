@@ -2287,7 +2287,10 @@ func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []
 	// conditionType  OBTAIN_FROM WEB  OBTAIN_FROM_DB  OBTAIN_FROM_ALL
 	if option.CondParamType=="OBTAIN_FROM_ALL"{
 		for _,itemField:=range conditionFiledArr{
-			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			if option.ExtendedMapSecond[itemField]!=nil{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			}
+
 		}
 	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
@@ -2296,15 +2299,24 @@ func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []
 	return
 }
 func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result string,errorMessage *ErrorMessage){
-	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
-	}
+
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
 	if option.CondParamType=="OBTAIN_FROM_ALL"{
 		for _,itemField:=range conditionFiledArr{
-			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			if option.ExtendedMap[itemField]!=nil{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
+			}
+
+		}
+		for _,itemField:=range conditionFiledArr{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+
+		}
+	}else{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 		}
 	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
@@ -2315,17 +2327,25 @@ func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr [
 }
 //针对查询 没有事务
 func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result []map[string]interface{},errorMessage *ErrorMessage){
-	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
-	}
+
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
 	if option.CondParamType=="OBTAIN_FROM_ALL"{
 		for _,itemField:=range conditionFiledArr{
-			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			if option.ExtendedMap[itemField]!=nil{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
+			}
+		}
+		for _,itemField:=range conditionFiledArr{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+		}
+	}else{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 		}
 	}
+
 	operateScipt=strings.Replace(operateScipt,"\\%","%",-1)
 	result,errorMessage=api.ExecSql(operateScipt)
 
@@ -2333,15 +2353,23 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 }
 //针对添加或修改 有事务
 func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,conditionFiledArr []string,varMap map[string]interface{},operateScipt string)(result sql.Result,error error){
-	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
-	}
+
 	for k,v :=range varMap{
 		operateScipt=strings.Replace(operateScipt,"${"+k+"}","'"+InterToStr(v)+"'",-1)
 	}
 	if option.CondParamType=="OBTAIN_FROM_ALL"{
 		for _,itemField:=range conditionFiledArr{
-			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			if option.ExtendedMap[itemField]!=nil{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
+			}
+		}
+		for _,itemField:=range conditionFiledArr{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+		}
+	}else{
+
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 		}
 	}
 	lib.Logger.Infof("execSql=", operateScipt)
