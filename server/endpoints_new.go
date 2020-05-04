@@ -2459,6 +2459,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		var uniqueFunc string
 		var uniqueFiledIndex0 int64
 		var uniqueFiledIndex1 int64
+		var assign_value_default_arr []string
+		var assign_value_func_arr []string
+
 		if extractParamMap!=nil{
 			// obtain_from_where
 			if extractParamMap["obtain_from_where"]!=nil{
@@ -2485,6 +2488,17 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 			if extractParamMap["unique_filed_index0"]!=nil{
 				uniqueFiledIndex1=mysql.InterToInt(extractParamMap["unique_filed_index1"])
 			}
+			// assign_value_default  key=value
+			if extractParamMap["assign_value_default"]!=nil{
+				assign_value_default_str:=extractParamMap["assign_value_default"].(string)
+				json.Unmarshal([]byte(assign_value_default_str), &assign_value_default_arr)
+			}
+			// assign_value_func  key=func(param)
+			if extractParamMap["assign_value_func"]!=nil{
+				assign_value_func_str:=extractParamMap["assign_value_func"].(string)
+				json.Unmarshal([]byte(assign_value_func_str), &assign_value_func_arr)
+			}
+
 		}
 		for _,item:=range extractParamArr{
 			if item!=""{
@@ -2501,6 +2515,20 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 
 		if tableMeta.HaveField("submit_person"){
 			importBuffer.WriteString("`submit_person`,")
+		}
+		for _,item:=range assign_value_default_arr{
+			if item!=""&& strings.Contains(item,"="){
+				itemKV:=strings.Split(item,"=")
+				importBuffer.WriteString("`"+itemKV[0]+"`,")
+
+			}
+		}
+		for _,item:=range assign_value_func_arr{
+			if item!=""&& strings.Contains(item,"="){
+				itemKV:=strings.Split(item,"=")
+				importBuffer.WriteString("`"+itemKV[0]+"`,")
+
+			}
 		}
 		importBuffer.WriteString("`create_time`)values")
 
@@ -2543,7 +2571,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					if errorMessage!=nil{
 						lib.Logger.Error("errorMessage=",errorMessage)
 					}
-					
+
 					if result!=""{
 						continue
 					}
@@ -2639,6 +2667,32 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 						importBuffer.WriteString("'"+submitPerson+"',")
 
 					}
+
+					for _,item:=range assign_value_default_arr{
+						if item!=""&& strings.Contains(item,"="){
+							itemKV:=strings.Split(item,"=")
+							importBuffer.WriteString("'"+itemKV[1]+"',")
+
+						}
+					}
+					for _,item:=range assign_value_func_arr{
+						if item!=""&& strings.Contains(item,"="){
+							itemKV:=strings.Split(item,"=")
+							itemVArr:=strings.Split(itemKV[1],"(")
+							itemVparamKeys:=strings.Replace(itemVArr[1],")","",-1)
+							itemVparamKeysArr:=strings.Split(itemVparamKeys,",")
+							params:=mysql.ConcatObjectProperties(itemVparamKeysArr,tableMap)
+
+							execSql:="select "+itemVArr[0]+"('"+params+"') as result;"
+							result,errorMessage:=api.ExecFuncForOne(execSql,"result")
+							if errorMessage!=nil{
+								lib.Logger.Error("errorMessage=%",errorMessage)
+							}
+							importBuffer.WriteString("'"+result+"',")
+
+						}
+					}
+
 					createTime:=time.Now().Format("2006-01-02 15:04:05")
 					tableMap["create_time"]=createTime
 					if rowIndex==len(rows) || rows[rowIndex]==nil || rows[rowIndex][col_start-1]==""{
