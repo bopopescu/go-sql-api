@@ -2564,8 +2564,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					break
 				}
 				if uniqueFunc!=""{
-					param0:=row[uniqueFiledIndex0]
-					param1:=row[uniqueFiledIndex1]
+					param0:=convertToFormatDay(row[uniqueFiledIndex0])
+					param1:=convertToFormatDay(row[uniqueFiledIndex1])
+					// r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
 					uniqueFuncStr:="select "+uniqueFunc+"('"+param0+"','"+param1+"') as result;"
 					result,errorMessage:=api.ExecFuncForOne(uniqueFuncStr,"result")
 					if errorMessage!=nil{
@@ -2747,6 +2748,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 func convertToFormatDay(excelDaysString string)string {
 	if excelDaysString==""{
 		return ""
+	}
+	// 正则过滤掉 非时间
+	r := regexp.MustCompile("[\\d]")
+	arr:=r.FindStringSubmatch(excelDaysString)
+	if len(arr)<=0{
+		return excelDaysString
 	}
 	println("excelDaysString",excelDaysString)
 	// 2006-01-02 距离 1900-01-01的天数

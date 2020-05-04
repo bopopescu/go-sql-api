@@ -4,6 +4,7 @@ import (
 	"github.com/mkideal/cli"
 	"github.com/shiyongabc/go-sql-api/adapter/mysql"
 	"github.com/shiyongabc/go-sql-api/server"
+
 	//	"fmt"
 	"github.com/robfig/cron"
 	"log"
@@ -30,6 +31,9 @@ func main() {
 	//println("str",str)
 	//b:=util.ValidSqlInject("29994a91-aee1-4ff8-be26-f34f3db6e562")
 	//println("b",b)
+	// 38719
+	//re:=convertToFormatDay("38919")
+	//print("re=%s",re)
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)
