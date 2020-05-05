@@ -2679,17 +2679,31 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					for _,item:=range assign_value_func_arr{
 						if item!=""&& strings.Contains(item,"="){
 							itemKV:=strings.Split(item,"=")
-							itemVArr:=strings.Split(itemKV[1],"(")
-							itemVparamKeys:=strings.Replace(itemVArr[1],")","",-1)
-							itemVparamKeysArr:=strings.Split(itemVparamKeys,",")
-							params:=mysql.ConcatObjectProperties(itemVparamKeysArr,tableMap)
+							// 如果是 key=func(param)
+							if strings.Contains(itemKV[1],"("){
+								itemVArr:=strings.Split(itemKV[1],"(")
+								itemVparamKeys:=strings.Replace(itemVArr[1],")","",-1)
+								itemVparamKeysArr:=strings.Split(itemVparamKeys,",")
+								params:=mysql.ConcatObjectProperties(itemVparamKeysArr,tableMap)
+								var execSql string
+								if params=="''"{
+									execSql="select "+itemVArr[0]+"() as result;"
+								}else{
+									execSql="select "+itemVArr[0]+"("+params+") as result;"
+								}
 
-							execSql:="select "+itemVArr[0]+"('"+params+"') as result;"
-							result,errorMessage:=api.ExecFuncForOne(execSql,"result")
-							if errorMessage!=nil{
-								lib.Logger.Error("errorMessage=%",errorMessage)
+								result,errorMessage:=api.ExecFuncForOne(execSql,"result")
+								if errorMessage!=nil{
+									lib.Logger.Error("errorMessage=%",errorMessage)
+								}
+								tableMap[itemKV[0]]=result
+								importBuffer.WriteString("'"+result+"',")
+
+							}else{// 是字段赋值
+								tableMap[itemKV[0]]=tableMap[itemKV[1]]
+								importBuffer.WriteString("'"+mysql.InterToStr(tableMap[itemKV[1]])+"',")
+
 							}
-							importBuffer.WriteString("'"+result+"',")
 
 						}
 					}
