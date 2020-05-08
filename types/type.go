@@ -91,6 +91,8 @@ type QueryOption struct {
 	OrWheres map[string]WhereOperation // field -> { operation, value }
 	OrWheresAnd map[string]WhereOperation // field -> { operation, value } or 里面嵌套and
 	OrWheresAndTemplate int // 嵌套查询模板 默认是0  当有嵌套条件默认是1 (? AND ?) OR (? and ?)
+	AndWheresOr map[string]WhereOperation // field -> { operation, value } or 里面嵌套and
+	AndWheresOrTemplate int // 嵌套查询模板 默认是0  当有嵌套条件默认是1 (? or ?) and (? or ?)
 	Orders map[string]string // field -> { operation, value }
 	Search string                    // fuzzy query word
 	SubTableKey string

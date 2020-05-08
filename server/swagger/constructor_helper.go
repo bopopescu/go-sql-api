@@ -496,6 +496,7 @@ func NewQueryParametersForFilter() (ps []spec.Parameter) {
 		NewQueryArrayParameter(key.KEY_QUERY_WHERE, "多条件and链接查询：指定一个或多个字段筛选 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt,lte,gte\\](字段值)", "string", false),
 		NewQueryArrayParameter(key.KEY_QUERY_OR_WHERE, "多条件or链接查询：指定一个或多个字段 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt,lte,gte\\](字段值)", "string", false),
 		NewQueryArrayParameter(key.KEY_QUERY_OR_WHERE_AND, "or嵌套and条件查询(4个where)：指定一个或多个字段 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt,lte,gte\\](字段值)", "string", false),
+		NewQueryArrayParameter(key.KEY_QUERY_AND_WHERE_OR, "and嵌套or条件查询(4个where)：指定一个或多个字段 如:\"表名.字段名\".\\[eq,neq,is,isNot,in,notIn,like,lt,gt,lte,gte\\](字段值)", "string", false),
 
 	}
 	return
@@ -530,6 +531,7 @@ func NewQueryParametersForSub() (ps []spec.Parameter) {
 		NewQueryParameter(key.SUB_KEY, "指定子查询key(subTableName.key)", "string", false),
 		NewQueryArrayParameter(key.SUB_KEY_QUERY_FIELDS, "指定查询子查询字段", "string", false),
 		NewQueryParameter(key.KEY_QUERY_OR_WHERE_AND_TEMPLATE, "orWhereAndTemplate", "integer", false),
+		NewQueryParameter(key.KEY_QUERY_AND_WHERE_OR_TEMPLATE, "andWhereOrTemplate", "integer", false),
 	}
 	return
 }

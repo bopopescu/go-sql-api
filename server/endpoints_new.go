@@ -4085,6 +4085,45 @@ func parseQueryParams(c echo.Context) (option QueryOption, errorMessage *ErrorMe
 
 
 
+
+   // andWhereOr
+	andwor := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
+	if queryParam[key.KEY_QUERY_AND_WHERE_OR] != nil {
+		option.AndWheresOr = make(map[string]WhereOperation)
+		for index, sWhere := range queryParam[key.KEY_QUERY_AND_WHERE_OR] {
+			sWhere = strings.Replace(sWhere, "\"", "'", -1) // replace "
+			subWhereArr := strings.Split(sWhere, "&")
+			for _,subWhere:=range subWhereArr{
+				arr := andwor.FindStringSubmatch(subWhere)
+				if len(arr) == 4 {
+					isInject:=util.ValidSqlInject(arr[3])
+					if isInject{
+						errorMessage = &ErrorMessage{ERR_PARAMETER, fmt.Sprintf("bad param")}
+						return
+					}
+					switch arr[2] {
+					case "in", "notIn":
+						option.AndWheresOr[arr[1]+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], strings.Split(arr[3], ",")}
+					case "like", "is", "neq", "isNot", "eq":
+						option.AndWheresOr[arr[1]+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], arr[3]}
+					case "lt":
+						option.AndWheresOr[arr[1]+".lt"+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], arr[3]}
+					case  "gt":
+						option.AndWheresOr[arr[1]+".gt"+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], arr[3]}
+					case "lte":
+						option.AndWheresOr[arr[1]+".lte"+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], arr[3]}
+					case  "gte":
+						option.AndWheresOr[arr[1]+".gte"+"$"+strconv.Itoa(index)] = WhereOperation{arr[2], arr[3]}
+					}
+				}
+			}
+
+
+
+		}
+	}
+
+
 	orderR := regexp.MustCompile("\\'(.*?)\\'\\((.*?)\\)")
 	if queryParam[key.KEY_QUERY_ORDER] != nil {
 		option.Orders = make(map[string]string)
