@@ -2601,9 +2601,9 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 						isDate = dataDetail[colIndex-col_start]["is_date"].(string)
 					}
 
-					if excelColName!="" && colIndex>=col_start{
+					if colIndex>=col_start{
 						b:=tableMeta.HaveField(excelColName)
-
+						colCell=strings.TrimSpace(colCell)
 						if b==true{
 							if condFieldKey==excelColName{
 								condFieldKeyValue=colCell
