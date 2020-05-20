@@ -209,8 +209,8 @@ func (api *MysqlAPI) GetConnectionPool(dbURI string) *sql.DB {
 		}
 		// 3 minutes unused connections will be closed
 		pool.SetConnMaxLifetime(3 * time.Minute)
-		pool.SetMaxIdleConns(6)
-		pool.SetMaxOpenConns(15)
+		pool.SetMaxIdleConns(200)
+		pool.SetMaxOpenConns(1000)
 		api.connection = pool
 	}
 	return api.connection
