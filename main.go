@@ -4,8 +4,10 @@ import (
 	"github.com/mkideal/cli"
 	"github.com/shiyongabc/go-sql-api/adapter/mysql"
 	"github.com/shiyongabc/go-sql-api/server"
-	//"net/http"
+	"net/http"
 
+	//"net/http"
+    _"net/http/pprof"
 	//	"fmt"
 	"github.com/robfig/cron"
 	"log"
@@ -35,9 +37,9 @@ func main() {
 	// 38719
 	//re:=convertToFormatDay("38919")
 	//print("re=%s",re)
-	//go func() {
-	//	log.Println(http.ListenAndServe("localhost:19888", nil))
-	//}()
+	go func() {
+		log.Println(http.ListenAndServe("localhost:19888", nil))
+	}()
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
 		api := mysql.NewMysqlAPI(argv.ConnectionStr, !argv.NoInfomationSchema)
