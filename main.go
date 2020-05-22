@@ -38,7 +38,7 @@ func main() {
 	//re:=convertToFormatDay("38919")
 	//print("re=%s",re)
 	go func() {
-		log.Println(http.ListenAndServe("localhost:19888", nil))
+		log.Println(http.ListenAndServe("127.0.0.1:19888", nil))
 	}()
 	cli.Run(new(cliArgs), func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*cliArgs)
