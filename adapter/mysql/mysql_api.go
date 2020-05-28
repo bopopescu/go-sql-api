@@ -1155,7 +1155,7 @@ func BuildObjectProperties(funcParamFields []string,object map[string]interface{
 }
 func ConcatSubSql(conditionArr []string,conditionArr1 []string,rs []map[string]interface{},operateTable string)(string){
 	b := bytes.Buffer{}
-	b.WriteString("insert into "+operateTable+"(")
+	b.WriteString("replace into "+operateTable+"(")
 	for index,key:=range conditionArr1{
 	  if index<(len(conditionArr1)-1){
 		  b.WriteString(key+",")

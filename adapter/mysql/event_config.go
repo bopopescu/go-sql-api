@@ -2223,7 +2223,17 @@ func FilterFiledKeyAnd(filterFieldKey string,option QueryOption)(bool){
 }
 func FilterFiledKeyItem(filterFieldKey string,option QueryOption)(bool){
 	var isFiltered bool
-	if strings.Contains(filterFieldKey,"="){
+	if strings.Contains(filterFieldKey,"!="){
+		arr:=strings.Split(filterFieldKey,"!=")
+		field0:=strings.TrimSpace(arr[0])
+		value0:=strings.TrimSpace(arr[1])
+		extendParamStr:=InterToStr(option.ExtendedMap[field0])
+		if extendParamStr!=value0{
+			isFiltered=true
+		}else{
+			isFiltered=false
+		}
+	}else 	if strings.Contains(filterFieldKey,"="){
 		arr:=strings.Split(filterFieldKey,"=")
 		field0:=strings.TrimSpace(arr[0])
 		value0:=strings.TrimSpace(arr[1])
