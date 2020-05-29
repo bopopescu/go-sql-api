@@ -790,6 +790,22 @@ func AsyncEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,d
 
 			}
 		}
+		if "SYNC_SUB_BATCH"==operate_type{
+			// 同步执行导入关联信息
+
+
+
+			// 构造同步分库分表sql
+			subSql:=ConcatSubSql(conditionFiledArr,conditionFiledArr1,option.ExtendedArr,operate_table)
+			println("subSql=%s",subSql)
+			_,error:=api.CreateSubSql(subSql);
+			if error!=nil{
+				lib.Logger.Error("errorMessage=%s",error.Error())
+
+			}
+
+
+		}
 		// limit
 	}
 
