@@ -2317,9 +2317,17 @@ func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
 			}
 
+			if option.ExtendedMapSecond[itemField]!=nil{
+				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			}
+
 		}
 	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
+	if strings.Contains(operateScipt,"$"){
+		lib.Logger.Infof("execSql=", operateScipt)
+		return
+	}
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 	return
@@ -2334,18 +2342,21 @@ func SingleExec1(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr [
 			if option.ExtendedMap[itemField]!=nil{
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 			}
-
-		}
-		for _,itemField:=range conditionFiledArr{
+			if option.ExtendedMapSecond[itemField]!=nil{
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
-
+			}
 		}
+
 	}else{
 		for _,itemField:=range conditionFiledArr{
 			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 		}
 	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
+	if strings.Contains(operateScipt,"$"){
+		lib.Logger.Infof("execSql=", operateScipt)
+		return
+	}
 	result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 	//lib.Logger.Infof("result=,", result,"errorMessage=",errorMessage,)
 
@@ -2362,10 +2373,11 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 			if option.ExtendedMap[itemField]!=nil{
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 			}
-		}
-		for _,itemField:=range conditionFiledArr{
+			if option.ExtendedMapSecond[itemField]!=nil{
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			}
 		}
+
 	}else{
 		for _,itemField:=range conditionFiledArr{
 			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
@@ -2373,6 +2385,10 @@ func MutilExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []s
 	}
 
 	operateScipt=strings.Replace(operateScipt,"\\%","%",-1)
+	if strings.Contains(operateScipt,"$"){
+		lib.Logger.Infof("execSql=", operateScipt)
+		return
+	}
 	result,errorMessage=api.ExecSql(operateScipt)
 
 	return
@@ -2388,10 +2404,11 @@ func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,condition
 			if option.ExtendedMap[itemField]!=nil{
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 			}
-		}
-		for _,itemField:=range conditionFiledArr{
+			if option.ExtendedMapSecond[itemField]!=nil {
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
+			}
 		}
+
 	}else{
 
 		for _,itemField:=range conditionFiledArr{
@@ -2401,6 +2418,9 @@ func ExecWithTx(api adapter.IDatabaseAPI,tx *sql.Tx,option QueryOption,condition
 	lib.Logger.Infof("execSql=", operateScipt)
 	//result,errorMessage=api.ExecFuncForOne(operateScipt,"result")
 	operateScipt=strings.Replace(operateScipt,"\\%","%",-1)
+	if strings.Contains(operateScipt,"$"){
+		return
+	}
 	result,error=tx.Exec(operateScipt)
 	if error!=nil{
 		lib.Logger.Error("errorMessage=%s",error.Error())

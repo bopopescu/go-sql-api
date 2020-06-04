@@ -868,6 +868,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 		}
 
 		option.ExtendedMap=slave
+		option.ExtendedMapSecond=masterInfoMap
 		data,errorMessage:=PreEvent(api,slaveTableName,"POST",nil,option,"")
 		if len(data)>0{
 			slave=data[0]
@@ -896,6 +897,7 @@ func (api *MysqlAPI) RelatedCreateWithTx(tx *sql.Tx,masterTable string,slaveTabl
 				if slaveRowAffect>0{
 					var option QueryOption
 					option.ExtendedMap=slave
+					option.ExtendedMapSecond=masterInfoMap
 					_,errorMessage=PostEvent(api,tx,slaveTableName,"POST",nil,option,"")
 					if errorMessage!=nil{
 						lib.Logger.Infof("exec-post-event-error=",errorMessage)
@@ -1683,6 +1685,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				if slaveRowAffect>0{
 					var option QueryOption
 					option.ExtendedMap=slave
+					option.ExtendedMapSecond=masterInfoMap
 					_,errorMessage=PostEvent(api,tx,slaveTableName,"PATCH",nil,option,"")
 					if errorMessage!=nil{
 						lib.Logger.Infof("batch-related-slave-err",errorMessage)
@@ -1760,6 +1763,7 @@ func (api *MysqlAPI) RelatedUpdateWithTx(tx *sql.Tx,operates []map[string]interf
 				if slaveRowAffect>0{
 					var option QueryOption
 					option.ExtendedMap=slave
+					option.ExtendedMapSecond=masterInfoMap
 					_,errorMessage=PostEvent(api,tx,slaveTableName1,"PATCH",nil,option,"")
 					if errorMessage!=nil{
 						lib.Logger.Infof("batch-related-slave-err",errorMessage)
