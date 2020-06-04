@@ -2307,13 +2307,11 @@ func InterToInt(fieldInter interface{})(int64){
 }
 
 func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []string,operateScipt string)(result string,errorMessage *ErrorMessage){
-	for _,itemField:=range conditionFiledArr{
-		operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
-	}
+
 	// conditionType  OBTAIN_FROM WEB  OBTAIN_FROM_DB  OBTAIN_FROM_ALL
 	if option.CondParamType=="OBTAIN_FROM_ALL"{
 		for _,itemField:=range conditionFiledArr{
-			if option.ExtendedMapSecond[itemField]!=nil{
+			if option.ExtendedMap[itemField]!=nil{
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
 			}
 
@@ -2321,6 +2319,10 @@ func SingleExec(api adapter.IDatabaseAPI,option QueryOption,conditionFiledArr []
 				operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMapSecond[itemField])+"'",-1)
 			}
 
+		}
+	}else{
+		for _,itemField:=range conditionFiledArr{
+			operateScipt=strings.Replace(operateScipt,"${"+itemField+"}","'"+InterToStr(option.ExtendedMap[itemField])+"'",-1)
 		}
 	}
 	//lib.Logger.Infof("operateScipt=", operateScipt)
