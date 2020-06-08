@@ -2569,6 +2569,11 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					param1:=convertToFormatDay(row[uniqueFiledIndex1])
 					// r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
 					uniqueFuncStr:="select "+uniqueFunc+"('"+param0+"','"+param1+"') as result;"
+					if param1==""{
+						uniqueFuncStr="select "+uniqueFunc+"('"+param0+"') as result;"
+					}
+
+
 					result,errorMessage:=api.ExecFuncForOne(uniqueFuncStr,"result")
 					if errorMessage!=nil{
 						lib.Logger.Error("errorMessage=",errorMessage)
