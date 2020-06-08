@@ -973,7 +973,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		if filterCondContentJsonMap["filterFieldKey"]!=nil{
 			filterKey=filterCondContentJsonMap["filterFieldKey"].(string)
 		}
-
+        // filterFuncTerminate
 		if filterCondContentJsonMap["filterFuncTerminate"]!=nil{
 			filterFuncTerminate=filterCondContentJsonMap["filterFuncTerminate"].(string)
 		}
@@ -1030,7 +1030,7 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}
 
 
-			filterFuncTerminateSql="select "+filterFunc+"("+paramStr+") as result;"
+			filterFuncTerminateSql="select "+filterFuncTerminate+"("+paramStr+") as result;"
 
 			filterTerminateResult,errorMessage:=api.ExecFuncForOne(filterFuncTerminateSql,"result")
 			if errorMessage!=nil{
