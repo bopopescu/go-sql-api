@@ -2773,7 +2773,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 			importBufferExistValue.Truncate(importBufferExistValue.Len()-1)
 			return c.String(http.StatusOK, "成功导入"+strconv.Itoa(totalCount)+"条,"+importBufferExistValue.String()+"已经存在!")
 		}
-		return c.String(http.StatusOK, strconv.Itoa(totalCount))
+		return c.String(http.StatusOK, "成功导入"+strconv.Itoa(totalCount)+"条!")
 	}
 }// api adapter.IDatabaseAPI,where string,asyncKey string,c chan int
 
