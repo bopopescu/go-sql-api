@@ -2349,6 +2349,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
   		var extractParamMap map[string]interface{}
 		var extractParamArr [5]string
 		var importBuffer bytes.Buffer
+		var importBufferExistValue bytes.Buffer
 		var systemEnumMap =make(map[string]interface{})
 		var tableDataTypeMap =make(map[string]interface{})
         totalCount:=1
@@ -2574,6 +2575,12 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					}
 
 					if result!=""{
+						if param0!=""{
+							importBufferExistValue.WriteString(param0+",")
+						}
+						if param1!=""{
+							importBufferExistValue.WriteString(param1+",")
+						}
 						continue
 					}
 				}
@@ -2753,6 +2760,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		os.Remove("./upload/"+fileHeader.Filename)
 		if errorMessage!=nil{
 			return c.String(http.StatusInternalServerError, errorMessage.Error())
+		}
+		if importBufferExistValue.String()!=""{
+			importBufferExistValue.Truncate(importBufferExistValue.Len()-1)
+			return c.String(http.StatusOK, strconv.Itoa(totalCount)+","+importBufferExistValue.String()+"")
 		}
 		return c.String(http.StatusOK, strconv.Itoa(totalCount))
 	}

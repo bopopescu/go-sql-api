@@ -865,6 +865,9 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 		var filterFiledArrStr string
 		var filterKey string
 		var filterFunc string
+		// terminate
+		var filterKeyTerminate string
+		var filterFuncTerminate string
 		//	var actionType string
 
 		//var actionFieldsArr [5]string
@@ -971,6 +974,14 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			filterKey=filterCondContentJsonMap["filterFieldKey"].(string)
 		}
 
+		if filterCondContentJsonMap["filterFuncTerminate"]!=nil{
+			filterFuncTerminate=filterCondContentJsonMap["filterFuncTerminate"].(string)
+		}
+		if filterCondContentJsonMap["filterFieldKeyTerminate"]!=nil{
+			filterKeyTerminate=filterCondContentJsonMap["filterFieldKeyTerminate"].(string)
+		}
+
+
 		var isFiltered bool
 		if strings.Contains(strings.ToLower(filterKey),"/*and*/"){
 			isFiltered=FilterFiledKeyAnd(filterKey,option)
@@ -1005,6 +1016,29 @@ func PreEvent(api adapter.IDatabaseAPI,tableName string ,equestMethod string,dat
 			}
 			if filterResult!=""{
 				continue
+			}
+		}
+		if filterFuncTerminate!=""{
+
+			var filterFuncTerminateSql string
+			var paramStr string
+			if len(filterFiledArr)>0{
+				paramStr=ConcatObjectProperties(filterFiledArr,option.ExtendedMap)
+			}else{
+				paramStr="'"+ConverStrFromMap(filterKeyTerminate,option.ExtendedMap)+"'"
+
+			}
+
+
+			filterFuncTerminateSql="select "+filterFunc+"("+paramStr+") as result;"
+
+			filterTerminateResult,errorMessage:=api.ExecFuncForOne(filterFuncTerminateSql,"result")
+			if errorMessage!=nil{
+				//tx.Rollback()
+			}
+			if filterTerminateResult!=""{
+				errorMessage = &ErrorMessage{ERR_UNIQUE_VALID, filterTerminateResult+""}
+				return data,errorMessage;
 			}
 		}
 

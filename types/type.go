@@ -12,6 +12,7 @@ var ERR_PARAMETER = "err_parameter"
 var ERR_JSONCONVERT="err_json_convert"
 var ERR_REPEAT_SUBMIT = "err_repeat_submit"
 var ERR_AUTH = "err_auth"
+var ERR_UNIQUE_VALID = "err_unique_valid"
 
 // ErrorMessage
 type ErrorMessage struct {
