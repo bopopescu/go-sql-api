@@ -2569,7 +2569,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 					param1:=convertToFormatDay(row[uniqueFiledIndex1])
 					// r := regexp.MustCompile("\\'(.*?)\\'\\.([\\w]+)\\((.*?)\\)")
 					uniqueFuncStr:="select "+uniqueFunc+"('"+param0+"','"+param1+"') as result;"
-					if param1==""{
+					if extractParamMap["unique_filed_index1"]==nil{
 						uniqueFuncStr="select "+uniqueFunc+"('"+param0+"') as result;"
 					}
 
@@ -2583,7 +2583,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 						if param0!=""{
 							importBufferExistValue.WriteString(param0+",")
 						}
-						if param1!=""{
+						if extractParamMap["unique_filed_index1"]!=nil{
 							importBufferExistValue.WriteString(param1+",")
 						}
 						continue
@@ -2726,7 +2726,7 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 						importBuffer.WriteString("'"+createTime+"');")
 					}else{
 						importBuffer.WriteString("'"+createTime+"'),")
-						totalCount=totalCount+1
+						//totalCount=totalCount+1
 					}
 
 					//
@@ -2740,6 +2740,8 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 				tableMapArr=append(tableMapArr,tableMap)
 			}
 		lib.Logger.Info("import-sql=",importBuffer.String())
+		importBuffer.Truncate(importBuffer.Len()-1)
+		importBuffer.WriteString(";")
 		rs,error:=api.ExecSqlWithTx(importBuffer.String(),tx)
 		if error!=nil{
 			tx.Rollback()
@@ -2766,9 +2768,10 @@ func endpointImportData(api adapter.IDatabaseAPI,redisHost string,redisPassword 
 		if errorMessage!=nil{
 			return c.String(http.StatusInternalServerError, errorMessage.Error())
 		}
+		totalCount= len(tableMapArr)
 		if importBufferExistValue.String()!=""{
 			importBufferExistValue.Truncate(importBufferExistValue.Len()-1)
-			return c.String(http.StatusOK, strconv.Itoa(totalCount)+","+importBufferExistValue.String()+"")
+			return c.String(http.StatusOK, "成功导入"+strconv.Itoa(totalCount)+"条,"+importBufferExistValue.String()+"已经存在!")
 		}
 		return c.String(http.StatusOK, strconv.Itoa(totalCount))
 	}
@@ -2779,9 +2782,16 @@ func convertToFormatDay(excelDaysString string)string {
 	if excelDaysString==""{
 		return ""
 	}
-	// 正则过滤掉 非时间
-	r := regexp.MustCompile("[\\d]")
+	// ^((13[0-9])|(14[0-9])|(15[0-9])|(17[0-9])|(18[0-9])||(19[0-9]))\d{8}$
+	r := regexp.MustCompile("^((13[0-9])|(14[0-9])|(15[0-9])|(17[0-9])|(18[0-9])||(19[0-9]))\\d{8}$")
 	arr:=r.FindStringSubmatch(excelDaysString)
+	if len(arr)>0{
+		// 如果是手机号  直接返回
+		return excelDaysString
+	}
+	// 正则过滤掉 非时间
+	r = regexp.MustCompile("[\\d]")
+	arr=r.FindStringSubmatch(excelDaysString)
 	if len(arr)<=0{
 		return excelDaysString
 	}
